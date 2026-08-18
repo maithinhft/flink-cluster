@@ -1,0 +1,39 @@
+{
+  "name": "postgres-realtime-cdc",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "tasks.max": "1",
+
+    "database.hostname": "postgres",
+    "database.port": "5432",
+    "database.user": "replicator",
+    "database.password": "replicatorpassword",
+    "database.dbname": "realtime_core",
+
+    "topic.prefix": "realtime_core",
+
+    "schema.include.list": "public",
+
+    "table.include.list": "public.aggregation_definitions,public.rule_definitions",
+
+    "plugin.name": "pgoutput",
+
+    "publication.name": "realtime_publication",
+    "publication.autocreate.mode": "disabled",
+
+    "slot.name": "realtime_debezium_slot",
+
+    "snapshot.mode": "initial",
+
+    "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "key.converter.schemas.enable": "false",
+    "value.converter.schemas.enable": "false",
+
+    "heartbeat.interval.ms": "10000",
+
+    "errors.retry.timeout": "60000",
+    "errors.log.enable": "true",
+    "errors.log.include.messages": "true"
+  }
+}
