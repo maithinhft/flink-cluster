@@ -1,3 +1,9 @@
 flink-jobs/
 
 venv/
+
+tmp/
+
+target/
+
+schema.json
