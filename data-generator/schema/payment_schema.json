@@ -1,0 +1,210 @@
+{
+    "source_name": "payment",
+    "version": 1,
+    "fields": {
+        "event_id": {
+            "type": "string",
+            "description": "Unique identifier for the event",
+            "format": "UUID",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "event_type": {
+            "type": "string",
+            "description": "The specific action that occurred",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ],
+            "allowed_values": [
+                "payment_initiated",
+                "payment_success",
+                "payment_failed",
+                "refund",
+                "chargeback"
+            ]
+        },
+        "entity_id": {
+            "type": "string",
+            "description": "Customer identifier (unique ID of the customer)",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "source_system": {
+            "type": "string",
+            "description": "The system that generated the event",
+            "allowed_values": [
+                "ecommerce",
+                "crm",
+                "payment"
+            ],
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "schema_version": {
+            "type": "string",
+            "description": "Version of the event schema",
+            "default": "1.0",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "event_time": {
+            "type": "string",
+            "description": "Timestamp when the event actually occurred at the source",
+            "format": "ISO-8601",
+            "supported_state_strategies": [
+                "last_value",
+                "count",
+                "max",
+                "min"
+            ]
+        },
+        "source_id": {
+            "type": "string",
+            "description": "Original record ID in the source system",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "trace_id": {
+            "type": "string",
+            "description": "Distributed tracing ID for the request flow",
+            "format": "UUID",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "correlation_id": {
+            "type": "string",
+            "description": "Identifier linking multiple related events together",
+            "format": "UUID",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "session_id": {
+            "type": "string",
+            "description": "User or device session identifier",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "transaction_id": {
+            "type": "string",
+            "description": "Unique identifier for the payment transaction",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "payment_gateway": {
+            "type": "string",
+            "description": "Payment gateway provider",
+            "allowed_values": [
+                "stripe",
+                "paypal",
+                "vnpay",
+                "momo"
+            ],
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "payment_method": {
+            "type": "string",
+            "description": "Method of payment used",
+            "allowed_values": [
+                "credit_card",
+                "wallet",
+                "bank_transfer",
+                "cod"
+            ],
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "card_network": {
+            "type": "string",
+            "description": "Credit card network",
+            "allowed_values": [
+                "visa",
+                "mastercard",
+                "amex",
+                "discover",
+                "jcb"
+            ],
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "bank_name": {
+            "type": "string",
+            "description": "Name of the issuing bank",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "account_number_hash": {
+            "type": "string",
+            "description": "Hashed bank account number",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "transaction_status": {
+            "type": "string",
+            "description": "Status of the payment transaction",
+            "allowed_values": [
+                "pending",
+                "success",
+                "failed",
+                "reversed"
+            ],
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "payment_error_message": {
+            "type": "string",
+            "description": "Error message from the payment gateway",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "is_3ds_verified": {
+            "type": "boolean",
+            "description": "Flag indicating if 3D Secure verification passed",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "billing_zip_match": {
+            "type": "boolean",
+            "description": "Flag indicating if billing zip matched card records",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        }
+    }
+}

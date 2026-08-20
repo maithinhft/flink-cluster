@@ -1,0 +1,300 @@
+{
+    "source_name": "crm",
+    "version": 1,
+    "fields": {
+        "event_id": {
+            "type": "string",
+            "description": "Unique identifier for the event",
+            "format": "UUID",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "event_type": {
+            "type": "string",
+            "description": "The specific action that occurred",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ],
+            "allowed_values": [
+                "profile_update",
+                "login",
+                "logout",
+                "account_created",
+                "account_status_change",
+                "subscription_change",
+                "support_ticket_created",
+                "support_ticket_resolved"
+            ]
+        },
+        "entity_id": {
+            "type": "string",
+            "description": "Customer identifier (unique ID of the customer)",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "source_system": {
+            "type": "string",
+            "description": "The system that generated the event",
+            "allowed_values": [
+                "ecommerce",
+                "crm",
+                "payment"
+            ],
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "schema_version": {
+            "type": "string",
+            "description": "Version of the event schema",
+            "default": "1.0",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "event_time": {
+            "type": "string",
+            "description": "Timestamp when the event actually occurred at the source",
+            "format": "ISO-8601",
+            "supported_state_strategies": [
+                "last_value",
+                "count",
+                "max",
+                "min"
+            ]
+        },
+        "source_id": {
+            "type": "string",
+            "description": "Original record ID in the source system",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "trace_id": {
+            "type": "string",
+            "description": "Distributed tracing ID for the request flow",
+            "format": "UUID",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "correlation_id": {
+            "type": "string",
+            "description": "Identifier linking multiple related events together",
+            "format": "UUID",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "session_id": {
+            "type": "string",
+            "description": "User or device session identifier",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "user_first_name": {
+            "type": "string",
+            "description": "User's first name",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "user_last_name": {
+            "type": "string",
+            "description": "User's last name",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "user_email": {
+            "type": "string",
+            "description": "User's email address",
+            "format": "Email",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "user_phone": {
+            "type": "string",
+            "description": "User's phone number",
+            "format": "E.164",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "user_gender": {
+            "type": "string",
+            "description": "User's gender",
+            "allowed_values": [
+                "M",
+                "F",
+                "O",
+                "U"
+            ],
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "user_date_of_birth": {
+            "type": "string",
+            "description": "User's date of birth",
+            "format": "YYYY-MM-DD",
+            "supported_state_strategies": [
+                "last_value",
+                "count",
+                "max",
+                "min"
+            ]
+        },
+        "user_nationality": {
+            "type": "string",
+            "description": "User's nationality",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "account_id": {
+            "type": "string",
+            "description": "Associated account identifier",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "account_status": {
+            "type": "string",
+            "description": "Current status of the account",
+            "allowed_values": [
+                "active",
+                "suspended",
+                "deleted"
+            ],
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "registration_date": {
+            "type": "string",
+            "description": "Account registration timestamp",
+            "format": "ISO-8601",
+            "supported_state_strategies": [
+                "last_value",
+                "count",
+                "max",
+                "min"
+            ]
+        },
+        "last_login_date": {
+            "type": "string",
+            "description": "Last successful login timestamp",
+            "format": "ISO-8601",
+            "supported_state_strategies": [
+                "last_value",
+                "count",
+                "max",
+                "min"
+            ]
+        },
+        "subscription_tier": {
+            "type": "string",
+            "description": "Current subscription or service tier",
+            "allowed_values": [
+                "free",
+                "basic",
+                "premium",
+                "vip",
+                "enterprise"
+            ],
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "loyalty_points": {
+            "type": "integer",
+            "description": "Accumulated loyalty points",
+            "min": 0,
+            "supported_state_strategies": [
+                "last_value",
+                "sum",
+                "count",
+                "avg",
+                "max",
+                "min"
+            ]
+        },
+        "opt_in_email": {
+            "type": "boolean",
+            "description": "Whether user has opted in to email communications",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "opt_in_sms": {
+            "type": "boolean",
+            "description": "Whether user has opted in to SMS communications",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "opt_in_push": {
+            "type": "boolean",
+            "description": "Whether user has opted in to push notifications",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "support_ticket_id": {
+            "type": "string",
+            "description": "ID of a related support ticket",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "support_ticket_status": {
+            "type": "string",
+            "description": "Status of the support ticket",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "satisfaction_score": {
+            "type": "integer",
+            "description": "Customer satisfaction score",
+            "min": 1,
+            "max": 5,
+            "supported_state_strategies": [
+                "last_value",
+                "sum",
+                "count",
+                "avg",
+                "max",
+                "min"
+            ]
+        }
+    }
+}

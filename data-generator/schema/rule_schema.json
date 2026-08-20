@@ -1,5 +1,5 @@
 {
-  "_comment": "Unified Rule Definition Schema",
+  "_comment": "Rule Definition Schema - Phù hợp với cơ chế Ring Buffer Window Aggregation",
   "database_table": "rule_definitions",
   "fields": {
     "rule_id": {
@@ -9,11 +9,6 @@
     "name": {
       "type": "string",
       "description": "Tên gợi nhớ của rule (VD: high_value_segment, churn_risk_detect)"
-    },
-    "entity_type": {
-      "type": "string",
-      "description": "Loại thực thể mà rule này áp dụng (customer, device, account)",
-      "allowed_values": ["customer", "device", "account"]
     },
     "priority": {
       "type": "integer",
@@ -49,6 +44,7 @@
     "_comment": "Cấu trúc đệ quy của cây điều kiện bên trong trường `rule_json`",
     "Node": {
       "description": "Một Node có thể là LogicalNode (AND, OR, NOT) hoặc LeafNode (AGGREGATION, RAW_FIELD)",
+
       "LogicalNode": {
         "operator": {
           "type": "string",
@@ -59,34 +55,73 @@
           "description": "Danh sách các Node con. Nếu operator là NOT, mảng này chỉ có 1 phần tử."
         }
       },
+
       "LeafNode_Aggregation": {
-        "description": "Điều kiện dựa trên một chỉ số tổng hợp (Aggregation) đã được tính sẵn",
+        "description": "Điều kiện dựa trên giá trị tổng hợp qua Ring Buffer Window. Trường được tham chiếu phải có phép tổng hợp tương ứng trong `supported_state_strategies` của source schema.",
         "type": {
           "type": "string",
           "value": "AGGREGATION"
         },
-        "aggregation_id": {
-          "type": "string (UUID)",
-          "description": "ID của cấu hình Aggregation tham chiếu"
+        "field": {
+          "type": "string",
+          "description": "Tên trường dữ liệu cần tổng hợp (VD: total_amount, satisfaction_score). Phải tồn tại trong ít nhất một source schema."
+        },
+        "function": {
+          "type": "string",
+          "description": "Phép tổng hợp áp dụng lên trường dữ liệu trong cửa sổ thời gian",
+          "allowed_values": ["SUM", "COUNT", "AVG", "MAX", "MIN"]
+        },
+        "source_system": {
+          "type": "string",
+          "description": "Nguồn dữ liệu chứa trường cần tổng hợp. Nếu không chỉ định, engine sẽ tìm trường trong tất cả các nguồn.",
+          "allowed_values": ["ecommerce", "crm", "payment"],
+          "required": false
+        },
+        "window": {
+          "type": "object",
+          "description": "Cấu hình cửa sổ thời gian cho Ring Buffer",
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "Loại cửa sổ",
+              "allowed_values": ["sliding", "tumbling"]
+            },
+            "size_seconds": {
+              "type": "integer",
+              "description": "Kích thước cửa sổ (tính bằng giây). VD: 3600 = 1 giờ, 86400 = 1 ngày"
+            },
+            "slide_seconds": {
+              "type": "integer",
+              "description": "Bước trượt (chỉ dùng cho sliding window, tính bằng giây). VD: 300 = 5 phút. Với tumbling window, giá trị này bằng size_seconds.",
+              "required_when": "window.type = 'sliding'"
+            }
+          }
+        },
+        "filter": {
+          "type": "object",
+          "description": "Điều kiện lọc event trước khi tổng hợp (tùy chọn). VD: chỉ đếm event có transaction_status = 'failed'. Cấu trúc giống LeafNode_RawField.",
+          "required": false
         },
         "operator": {
           "type": "string",
-          "allowed_values": ["GT", "GTE", "LT", "LTE"]
+          "description": "Toán tử so sánh kết quả tổng hợp với ngưỡng",
+          "allowed_values": ["GT", "GTE", "LT", "LTE", "EQ", "NEQ"]
         },
         "value": {
           "type": "number",
-          "description": "Ngưỡng giá trị để so sánh"
+          "description": "Ngưỡng giá trị để so sánh với kết quả tổng hợp"
         }
       },
+
       "LeafNode_RawField": {
-        "description": "Điều kiện dựa trên các trường sự kiện thô (Raw Event Fields)",
+        "description": "Điều kiện dựa trên giá trị trường thô (Raw Event Field) của sự kiện hiện tại",
         "type": {
           "type": "string",
           "value": "RAW_FIELD"
         },
         "field": {
           "type": "string",
-          "description": "Tên trường trong Event Schema (VD: total_amount, user_age, product_category)"
+          "description": "Tên trường trong source schema (VD: total_amount, product_category, payment_method)"
         },
         "operator": {
           "type": "string",
@@ -100,32 +135,119 @@
     }
   },
 
-  "example_rule_json": {
-    "operator": "AND",
-    "children": [
-      {
-        "type": "RAW_FIELD",
-        "field": "product_category",
-        "operator": "IN",
-        "value": ["electronics", "fashion"]
-      },
-      {
-        "operator": "OR",
-        "children": [
-          {
-            "type": "RAW_FIELD",
-            "field": "total_amount",
-            "operator": "GTE",
-            "value": 5000
+  "example_rules": {
+    "_comment": "Các ví dụ minh họa rule phân khúc khách hàng",
+
+    "high_value_customer": {
+      "_description": "Khách hàng VIP: Tổng chi tiêu > 50 triệu VND trong 30 ngày (sliding window, trượt 5 phút)",
+      "operator": "AND",
+      "children": [
+        {
+          "type": "AGGREGATION",
+          "field": "total_amount",
+          "function": "SUM",
+          "source_system": "ecommerce",
+          "window": {
+            "type": "sliding",
+            "size_seconds": 2592000,
+            "slide_seconds": 300
           },
-          {
-            "type": "AGGREGATION",
-            "aggregation_id": "123e4567-e89b-12d3-a456-426614174000",
-            "operator": "GT",
-            "value": 10000
-          }
-        ]
-      }
-    ]
+          "operator": "GTE",
+          "value": 50000000
+        },
+        {
+          "type": "AGGREGATION",
+          "field": "order_status",
+          "function": "COUNT",
+          "source_system": "ecommerce",
+          "window": {
+            "type": "sliding",
+            "size_seconds": 2592000,
+            "slide_seconds": 300
+          },
+          "filter": {
+            "field": "order_status",
+            "operator": "EQ",
+            "value": "completed"
+          },
+          "operator": "GTE",
+          "value": 5
+        }
+      ]
+    },
+
+    "churn_risk_detect": {
+      "_description": "Phát hiện nguy cơ rời bỏ: Không có đơn hàng trong 60 ngày VÀ điểm hài lòng trung bình < 2",
+      "operator": "AND",
+      "children": [
+        {
+          "type": "AGGREGATION",
+          "field": "event_id",
+          "function": "COUNT",
+          "source_system": "ecommerce",
+          "window": {
+            "type": "tumbling",
+            "size_seconds": 5184000
+          },
+          "operator": "EQ",
+          "value": 0
+        },
+        {
+          "type": "AGGREGATION",
+          "field": "satisfaction_score",
+          "function": "AVG",
+          "source_system": "crm",
+          "window": {
+            "type": "sliding",
+            "size_seconds": 7776000,
+            "slide_seconds": 86400
+          },
+          "operator": "LT",
+          "value": 2
+        }
+      ]
+    },
+
+    "fraud_alert": {
+      "_description": "Cảnh báo gian lận: Có > 5 giao dịch thất bại trong 1 giờ HOẶC giao dịch lớn không có 3DS",
+      "operator": "OR",
+      "children": [
+        {
+          "type": "AGGREGATION",
+          "field": "transaction_status",
+          "function": "COUNT",
+          "source_system": "payment",
+          "window": {
+            "type": "sliding",
+            "size_seconds": 3600,
+            "slide_seconds": 60
+          },
+          "filter": {
+            "field": "transaction_status",
+            "operator": "EQ",
+            "value": "failed"
+          },
+          "operator": "GT",
+          "value": 5
+        },
+        {
+          "operator": "AND",
+          "children": [
+            {
+              "type": "RAW_FIELD",
+              "field": "is_3ds_verified",
+              "operator": "EQ",
+              "value": false
+            },
+            {
+              "type": "RAW_FIELD",
+              "field": "billing_zip_match",
+              "operator": "EQ",
+              "value": false
+            }
+          ]
+        }
+      ]
+    }
   }
 }

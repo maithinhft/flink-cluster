@@ -1,0 +1,396 @@
+{
+    "source_name": "ecommerce",
+    "version": 1,
+    "fields": {
+        "event_id": {
+            "type": "string",
+            "description": "Unique identifier for the event",
+            "format": "UUID",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "event_type": {
+            "type": "string",
+            "description": "The specific action that occurred",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ],
+            "allowed_values": [
+                "add_to_cart",
+                "remove_from_cart",
+                "purchase",
+                "order_created",
+                "order_shipped",
+                "order_completed",
+                "order_cancelled"
+            ]
+        },
+        "entity_id": {
+            "type": "string",
+            "description": "Customer identifier (unique ID of the customer)",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "source_system": {
+            "type": "string",
+            "description": "The system that generated the event",
+            "allowed_values": [
+                "ecommerce",
+                "crm",
+                "payment"
+            ],
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "schema_version": {
+            "type": "string",
+            "description": "Version of the event schema",
+            "default": "1.0",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "event_time": {
+            "type": "string",
+            "description": "Timestamp when the event actually occurred at the source",
+            "format": "ISO-8601",
+            "supported_state_strategies": [
+                "last_value",
+                "count",
+                "max",
+                "min"
+            ]
+        },
+        "source_id": {
+            "type": "string",
+            "description": "Original record ID in the source system",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "trace_id": {
+            "type": "string",
+            "description": "Distributed tracing ID for the request flow",
+            "format": "UUID",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "correlation_id": {
+            "type": "string",
+            "description": "Identifier linking multiple related events together",
+            "format": "UUID",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "session_id": {
+            "type": "string",
+            "description": "User or device session identifier",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "product_id": {
+            "type": "string",
+            "description": "Unique product identifier",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "product_name": {
+            "type": "string",
+            "description": "Display name of the product",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "product_category": {
+            "type": "string",
+            "description": "Main category of the product",
+            "allowed_values": [
+                "electronics",
+                "fashion",
+                "food",
+                "books",
+                "home",
+                "sports",
+                "beauty",
+                "automotive"
+            ],
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "product_subcategory": {
+            "type": "string",
+            "description": "Sub-category of the product",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "product_sku": {
+            "type": "string",
+            "description": "Stock Keeping Unit (SKU)",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "product_brand": {
+            "type": "string",
+            "description": "Brand name of the product",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "unit_price": {
+            "type": "double",
+            "description": "Price per single unit of the product",
+            "min": 0.0,
+            "supported_state_strategies": [
+                "last_value",
+                "sum",
+                "count",
+                "avg",
+                "max",
+                "min"
+            ]
+        },
+        "quantity": {
+            "type": "integer",
+            "description": "Quantity purchased or interacted with",
+            "min": 1,
+            "supported_state_strategies": [
+                "last_value",
+                "sum",
+                "count",
+                "avg",
+                "max",
+                "min"
+            ]
+        },
+        "discount_amount": {
+            "type": "double",
+            "description": "Total discount amount applied",
+            "min": 0.0,
+            "supported_state_strategies": [
+                "last_value",
+                "sum",
+                "count",
+                "avg",
+                "max",
+                "min"
+            ]
+        },
+        "discount_code": {
+            "type": "string",
+            "description": "Coupon or discount code used",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "tax_amount": {
+            "type": "double",
+            "description": "Tax amount applied",
+            "min": 0.0,
+            "supported_state_strategies": [
+                "last_value",
+                "sum",
+                "count",
+                "avg",
+                "max",
+                "min"
+            ]
+        },
+        "total_amount": {
+            "type": "double",
+            "description": "Final total amount (price * quantity - discount + tax)",
+            "min": 0.0,
+            "supported_state_strategies": [
+                "last_value",
+                "sum",
+                "count",
+                "avg",
+                "max",
+                "min"
+            ]
+        },
+        "currency": {
+            "type": "string",
+            "description": "ISO 4217 currency code",
+            "examples": [
+                "USD",
+                "VND",
+                "EUR"
+            ],
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "cart_id": {
+            "type": "string",
+            "description": "Shopping cart identifier",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "order_id": {
+            "type": "string",
+            "description": "Order identifier",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "order_status": {
+            "type": "string",
+            "description": "Current status of the order",
+            "allowed_values": [
+                "created",
+                "paid",
+                "shipped",
+                "completed",
+                "cancelled"
+            ],
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "shipping_method": {
+            "type": "string",
+            "description": "Selected shipping method",
+            "allowed_values": [
+                "standard",
+                "express",
+                "next_day"
+            ],
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "shipping_cost": {
+            "type": "double",
+            "description": "Cost of shipping",
+            "min": 0.0,
+            "supported_state_strategies": [
+                "last_value",
+                "sum",
+                "count",
+                "avg",
+                "max",
+                "min"
+            ]
+        },
+        "delivery_address_line1": {
+            "type": "string",
+            "description": "Delivery address primary line",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "delivery_city": {
+            "type": "string",
+            "description": "Delivery city",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "delivery_country": {
+            "type": "string",
+            "description": "Delivery country",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "estimated_delivery_date": {
+            "type": "string",
+            "description": "Estimated date for delivery",
+            "format": "YYYY-MM-DD",
+            "supported_state_strategies": [
+                "last_value",
+                "count",
+                "max",
+                "min"
+            ]
+        },
+        "billing_address_line1": {
+            "type": "string",
+            "description": "Billing address primary line",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "billing_city": {
+            "type": "string",
+            "description": "Billing city",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "billing_country": {
+            "type": "string",
+            "description": "Billing country",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "merchant_id": {
+            "type": "string",
+            "description": "Identifier for the merchant or seller",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "store_id": {
+            "type": "string",
+            "description": "Identifier for the physical or online store",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "warranty_period_months": {
+            "type": "integer",
+            "description": "Warranty duration in months",
+            "min": 0,
+            "supported_state_strategies": [
+                "last_value",
+                "sum",
+                "count",
+                "avg",
+                "max",
+                "min"
+            ]
+        }
+    }
+}
