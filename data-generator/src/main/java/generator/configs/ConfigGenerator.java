@@ -1,7 +1,6 @@
 package generator.configs;
 
 import java.sql.*;
-import java.time.temporal.ChronoUnit;
 import java.util.*;
 import org.postgresql.util.PGobject;
 
@@ -28,32 +27,26 @@ public class ConfigGenerator {
     // Dictionaries matching EventGenerator concrete schema
     // ============================================================
 
-    private static final String[] ENTITY_TYPES = {
-            "customer", "device", "account"
-    };
-
     // Fields for exact matches (EQ, NEQ, IN)
     private static final String[] TAG_FIELDS = {
-            "product_category", "country_code", "browser_name", "device_type", 
-            "user_segment", "payment_method", "order_status", "account_status", "payment_gateway"
+            "product_category", "payment_method", "order_status", 
+            "account_status", "subscription_tier", "support_ticket_status", "transaction_status"
     };
 
     private static final String[][] TAG_VALUES = {
             {"electronics", "fashion", "food", "books"},
-            {"VN", "US", "JP", "KR", "SG", "TH"},
-            {"Chrome", "Firefox", "Safari", "Edge"},
-            {"mobile", "tablet", "desktop"},
-            {"new", "returning", "vip", "churn_risk"},
             {"credit_card", "wallet", "bank_transfer"},
-            {"created", "paid", "shipped"},
-            {"active", "suspended"},
-            {"stripe", "paypal", "vnpay"}
+            {"created", "paid", "shipped", "completed", "cancelled"},
+            {"active", "suspended", "closed"},
+            {"free", "basic", "premium"},
+            {"open", "in_progress", "resolved"},
+            {"pending", "success", "failed"}
     };
 
     // Fields for numeric comparison (GT, LT, BETWEEN)
     private static final String[] NUM_FIELDS = {
-            "total_amount", "user_age", "loyalty_points", "time_on_page_ms", 
-            "fraud_score", "battery_level_percent", "quantity"
+            "total_amount", "loyalty_points", "quantity", 
+            "satisfaction_score", "unit_price", "discount_amount", "tax_amount"
     };
 
     // Comparison operators
@@ -75,15 +68,13 @@ public class ConfigGenerator {
             INSERT INTO rule_definitions (
                 rule_id,
                 name,
-                entity_type,
                 rule_json,
                 priority,
                 cooldown_seconds,
-                tags,
                 version,
                 enabled
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             """;
 
     // ============================================================
@@ -137,35 +128,24 @@ public class ConfigGenerator {
             for (int i = 0; i < count; i++) {
                 UUID ruleId = UUID.randomUUID();
                 String name = RULE_PREFIXES[RANDOM.nextInt(RULE_PREFIXES.length)] + "_" + (i + 1);
-                String entityType = randomElement(ENTITY_TYPES);
                 String ruleJson = generateConditionTree(2 + RANDOM.nextInt(3)); // depth 2-4
                 int priority = RANDOM.nextInt(100);
                 long cooldownSeconds = randomElement(new Long[]{0L, 60L, 300L, 900L, 3600L});
-                
-                int numTags = 1 + RANDOM.nextInt(4);
-                String[] tags = new String[numTags];
-                for (int t = 0; t < numTags; t++) {
-                    int tagIdx = RANDOM.nextInt(TAG_VALUES.length);
-                    tags[t] = TAG_VALUES[tagIdx][RANDOM.nextInt(TAG_VALUES[tagIdx].length)];
-                }
-                
                 long version = 1 + RANDOM.nextInt(9);
                 boolean enabled = RANDOM.nextDouble() < 0.95;
 
                 ps.setObject(1, ruleId);
                 ps.setString(2, name);
-                ps.setString(3, entityType);
 
                 PGobject jsonObject = new PGobject();
                 jsonObject.setType("jsonb");
                 jsonObject.setValue(ruleJson);
-                ps.setObject(4, jsonObject);
+                ps.setObject(3, jsonObject);
 
-                ps.setInt(5, priority);
-                ps.setLong(6, cooldownSeconds);
-                ps.setArray(7, connection.createArrayOf("text", tags));
-                ps.setLong(8, version);
-                ps.setBoolean(9, enabled);
+                ps.setInt(4, priority);
+                ps.setLong(5, cooldownSeconds);
+                ps.setLong(6, version);
+                ps.setBoolean(7, enabled);
 
                 ps.addBatch();
 
@@ -224,13 +204,25 @@ public class ConfigGenerator {
     }
 
     private static String generateAggregationClause() {
+        String function = randomElement(new String[]{"SUM", "COUNT", "AVG", "MAX", "MIN"});
+        String field = randomElement(NUM_FIELDS); // Simplification: just use numeric fields for all functions in mock data
+        int size = randomElement(new Integer[]{300, 3600, 21600, 86400});
+        int slide = size == 86400 ? 300 : (size == 3600 ? 300 : size);
+        String windowType = size == slide ? "tumbling" : "sliding";
+        
         return """
                 {
                   "type": "AGGREGATION",
-                  "aggregation_id": "%s",
+                  "field": "%s",
+                  "function": "%s",
+                  "window": {
+                    "type": "%s",
+                    "size_seconds": %d,
+                    "slide_seconds": %d
+                  },
                   "operator": "%s",
                   "value": %d
-                }""".formatted(UUID.randomUUID().toString(), randomElement(NUMERIC_OPS), RANDOM.nextInt(1, 10_000));
+                }""".formatted(field, function, windowType, size, slide, randomElement(NUMERIC_OPS), RANDOM.nextInt(1, 10_000));
     }
 
     private static String generateRawFieldClause() {
@@ -297,7 +289,7 @@ public class ConfigGenerator {
 
         } else if (r < 0.90) {
             // Boolean field
-            String field = randomElement(new String[]{"is_first_open", "vpn_detected", "bounce", "opt_in_email", "is_gift"});
+            String field = randomElement(new String[]{"opt_in_email", "opt_in_sms", "opt_in_push", "is_3ds_verified", "billing_zip_match"});
             return """
                     {
                       "type": "RAW_FIELD",
@@ -308,7 +300,7 @@ public class ConfigGenerator {
 
         } else {
             // String CONTAINS
-            String field = randomElement(new String[]{"page_url", "user_email", "product_name"});
+            String field = randomElement(new String[]{"user_email", "user_first_name", "user_last_name", "product_name"});
             return """
                     {
                       "type": "RAW_FIELD",

@@ -20,7 +20,7 @@ public class EventGenerator {
     static final String DEFAULT_BOOTSTRAP_SERVERS = "localhost:9092";
     static final String DEFAULT_TOPIC = "events";
     static final long DEFAULT_NUM_EVENTS = 1_000_000L;
-    static final double DEFAULT_DIRTY_RATE = 0.05; // 5% dirty data
+    static final double DEFAULT_DIRTY_RATE = 0.05;
     static final double DEFAULT_LATE_EVENT_RATE = 0.05;
     static final int DEFAULT_NUM_ENTITIES = 100_000;
     static final double DEFAULT_DATA_SKEW = 0.5;
@@ -31,24 +31,16 @@ public class EventGenerator {
     // ============================================================
 
     static final String[][] SOURCE_EVENT_TYPES = {
-            {"ecommerce",     "purchase", "view_product", "add_to_cart", "checkout"},
-            {"crm",           "profile_update", "support_ticket", "campaign_response"},
-            {"mobile_app",    "app_open", "screen_view", "push_click", "app_crash"},
-            {"web_analytics", "page_view", "click", "form_submit", "scroll_depth"},
-            {"iot_device",    "sensor_reading", "device_heartbeat", "alert"},
-            {"payment",       "payment_init", "payment_success", "payment_fail", "refund"}
+            {"ecommerce", "add_to_cart", "remove_from_cart", "purchase", "order_created", "order_shipped", "order_completed", "order_cancelled"},
+            {"crm", "profile_update", "login", "logout", "account_created", "account_status_change", "subscription_change", "support_ticket_created", "support_ticket_resolved"},
+            {"payment", "payment_initiated", "payment_success", "payment_failed", "refund", "chargeback"}
     };
-
-    static final String[] ENTITY_TYPES = {"customer", "device", "account"};
     
-    // Geo/Network Lookups
-    static final String[] REGIONS = {"ap-southeast-1", "us-east-1", "eu-west-1", "ap-northeast-1", "sa-east-1"};
-    static final String[] COUNTRIES = {"VN", "US", "JP", "KR", "SG", "TH", "ID", "PH", "MY", "AU"};
-    static final String[] BROWSERS = {"Chrome", "Firefox", "Safari", "Edge", "Opera"};
-    static final String[] OS = {"Android", "iOS", "Windows", "macOS", "Linux"};
-    static final String[] DEVICE_TYPES = {"mobile", "tablet", "desktop", "tv"};
+    // Lookups
+    static final String[] COUNTRIES = {"VN", "US", "JP", "KR", "SG"};
     static final String[] PAYMENT_GATEWAYS = {"stripe", "paypal", "vnpay", "momo"};
-    static final String[] PAYMENT_METHODS = {"credit_card", "wallet", "bank_transfer", "cod"};
+    static final String[] PAYMENT_METHODS = {"credit_card", "wallet", "bank_transfer"};
+    static final String[] CARD_NETWORKS = {"visa", "mastercard", "amex", "napas"};
 
     // ============================================================
     // Main
@@ -60,7 +52,7 @@ public class EventGenerator {
         validate(config);
 
         System.out.println("======================================================================");
-        System.out.println("High Throughput Multi-Source Event Generator (Concrete Fields)");
+        System.out.println("High Throughput Multi-Source Event Generator");
         System.out.println("======================================================================");
         System.out.printf("Kafka             : %s%n", config.bootstrapServers);
         System.out.printf("Topic             : %s%n", config.topic);
@@ -175,7 +167,7 @@ public class EventGenerator {
     }
 
     // ============================================================
-    // Generate Event (Concrete Fields & Dirty Injection)
+    // Generate Event
     // ============================================================
 
     static Map<String, Object> generateEvent(long eventId, String entityId, Random random, Config config) {
@@ -190,17 +182,15 @@ public class EventGenerator {
         }
 
         boolean isDirty = random.nextDouble() < config.dirtyRate;
-        int dirtyType = isDirty ? random.nextInt(4) : -1; // 0=missing, 1=type, 2=bounds, 3=format
+        int dirtyType = isDirty ? random.nextInt(4) : -1;
 
         Map<String, Object> event = new LinkedHashMap<>();
 
-        // Group 1: Core & Routing
         event.put("event_id", UUID.randomUUID().toString());
         event.put("event_type", eventType);
-        event.put("entity_id", entityId);
-        event.put("entity_type", ENTITY_TYPES[random.nextInt(ENTITY_TYPES.length)]);
+        event.put("entity_id", entityId); // customer id
         event.put("source_system", sourceSystem);
-        event.put("schema_version", "1.0");
+        event.put("schema_version", "1.1");
         
         if (dirtyType == 0 && random.nextBoolean()) {
             // Intentionally missing event_time
@@ -208,36 +198,11 @@ public class EventGenerator {
             event.put("event_time", eventTime.toString());
         }
         
-        event.put("ingestion_time", now.minus(random.nextInt(2), ChronoUnit.SECONDS).toString());
-        event.put("processing_time", now.toString());
         event.put("source_id", sourceSystem + "-" + eventId);
         event.put("trace_id", UUID.randomUUID().toString());
         event.put("correlation_id", UUID.randomUUID().toString());
         event.put("session_id", "sess-" + random.nextInt(1_000_000));
-        event.put("is_retry", random.nextDouble() < 0.01);
-        event.put("retry_count", random.nextDouble() < 0.01 ? random.nextInt(3) + 1 : 0);
 
-        // Group 2: Network & Geo (Common for all web/mobile/ecommerce)
-        if (!sourceSystem.equals("iot_device")) {
-            if (dirtyType == 3 && random.nextBoolean()) {
-                event.put("ip_address", "999.999.999.999"); // Invalid format
-            } else {
-                event.put("ip_address", random.nextInt(1, 256) + "." + random.nextInt(256) + "." + random.nextInt(256) + "." + random.nextInt(1, 256));
-            }
-            event.put("user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
-            event.put("country_code", COUNTRIES[random.nextInt(COUNTRIES.length)]);
-            event.put("region_name", REGIONS[random.nextInt(REGIONS.length)]);
-            event.put("city_name", "City-" + random.nextInt(100));
-            event.put("latitude", -90.0 + random.nextDouble() * 180.0);
-            event.put("longitude", -180.0 + random.nextDouble() * 360.0);
-            event.put("timezone", "UTC");
-            event.put("isp_name", "ISP-" + random.nextInt(10));
-            event.put("connection_type", randomElement(random, "wifi", "cellular"));
-            event.put("vpn_detected", random.nextDouble() < 0.02);
-            event.put("bot_probability", random.nextDouble() * 0.2);
-        }
-
-        // Domain-specific fields
         switch (sourceSystem) {
             case "ecommerce":
                 populateEcommerce(event, random, isDirty, dirtyType);
@@ -245,15 +210,8 @@ public class EventGenerator {
             case "crm":
                 populateCrm(event, random, isDirty, dirtyType);
                 break;
-            case "mobile_app":
-            case "web_analytics":
-                populateAnalytics(event, random, sourceSystem, isDirty, dirtyType);
-                break;
             case "payment":
                 populatePayment(event, random, isDirty, dirtyType);
-                break;
-            case "iot_device":
-                populateIot(event, random, isDirty, dirtyType);
                 break;
         }
 
@@ -262,31 +220,48 @@ public class EventGenerator {
 
     private static void populateEcommerce(Map<String, Object> event, Random random, boolean isDirty, int dirtyType) {
         event.put("product_id", "prod-" + random.nextInt(10000));
+        event.put("product_name", "Product " + random.nextInt(1000));
         event.put("product_category", randomElement(random, "electronics", "fashion", "food", "books"));
+        event.put("product_subcategory", "subcat-" + random.nextInt(10));
+        event.put("product_sku", "SKU-" + random.nextInt(10000));
+        event.put("product_brand", "Brand-" + random.nextInt(20));
         
         if (dirtyType == 1 && random.nextBoolean()) {
-            event.put("unit_price", "N/A"); // Type mismatch: string instead of double
+            event.put("unit_price", "N/A"); // Type mismatch
         } else if (dirtyType == 2 && random.nextBoolean()) {
-            event.put("unit_price", -50.0); // Out of bounds: negative price
+            event.put("unit_price", -50.0); // Out of bounds
         } else {
             event.put("unit_price", 10.0 + random.nextDouble() * 500.0);
         }
         
         event.put("quantity", 1 + random.nextInt(5));
         event.put("discount_amount", random.nextDouble() * 10.0);
+        event.put("discount_code", "SUMMER" + random.nextInt(100));
         event.put("tax_amount", 5.0 + random.nextDouble() * 20.0);
         
         double uPrice = event.get("unit_price") instanceof Double ? (Double) event.get("unit_price") : 100.0;
         int qty = (Integer) event.get("quantity");
         event.put("total_amount", uPrice * qty);
         
-        event.put("currency", "USD");
+        event.put("currency", randomElement(random, "USD", "VND"));
+        event.put("cart_id", "cart-" + random.nextInt(100000));
         event.put("order_id", "ord-" + random.nextInt(100000));
-        event.put("order_status", randomElement(random, "created", "paid", "shipped"));
+        event.put("order_status", randomElement(random, "created", "paid", "shipped", "completed", "cancelled"));
         event.put("shipping_method", randomElement(random, "standard", "express"));
         event.put("shipping_cost", random.nextDouble() * 15.0);
+        
+        event.put("delivery_address_line1", random.nextInt(9999) + " Main St");
+        event.put("delivery_city", "City-" + random.nextInt(50));
+        event.put("delivery_country", randomElement(random, COUNTRIES));
+        event.put("estimated_delivery_date", Instant.now().plus(random.nextInt(7), ChronoUnit.DAYS).toString().substring(0, 10));
+        
+        event.put("billing_address_line1", event.get("delivery_address_line1"));
+        event.put("billing_city", event.get("delivery_city"));
+        event.put("billing_country", event.get("delivery_country"));
+        
         event.put("merchant_id", "merch-" + random.nextInt(100));
-        event.put("is_gift", random.nextDouble() < 0.05);
+        event.put("store_id", "store-" + random.nextInt(10));
+        event.put("warranty_period_months", randomElement(random, 0, 12, 24));
     }
 
     private static void populateCrm(Map<String, Object> event, Random random, boolean isDirty, int dirtyType) {
@@ -299,82 +274,53 @@ public class EventGenerator {
             event.put("user_email", "user" + random.nextInt(10000) + "@example.com");
         }
         
-        if (dirtyType == 2 && random.nextBoolean()) {
-            event.put("user_age", -5); // Out of bounds
-        } else {
-            event.put("user_age", 18 + random.nextInt(60));
-        }
-        
+        event.put("user_phone", "+8498" + random.nextInt(10000000));
         event.put("user_gender", randomElement(random, "M", "F", "O"));
+        event.put("user_date_of_birth", "19" + (50 + random.nextInt(50)) + "-01-01");
+        event.put("user_nationality", randomElement(random, COUNTRIES));
+        
         event.put("account_id", "acc-" + random.nextInt(50000));
-        event.put("account_status", randomElement(random, "active", "suspended"));
+        event.put("account_status", randomElement(random, "active", "suspended", "closed"));
+        event.put("registration_date", Instant.now().minus(random.nextInt(365), ChronoUnit.DAYS).toString());
+        event.put("last_login_date", Instant.now().minus(random.nextInt(10), ChronoUnit.DAYS).toString());
+        
         event.put("subscription_tier", randomElement(random, "free", "basic", "premium"));
-        event.put("loyalty_points", random.nextInt(5000));
-        event.put("lifetime_value", random.nextDouble() * 2000.0);
-        event.put("user_segment", randomElement(random, "new", "returning", "vip", "churn_risk"));
-        event.put("utm_source", randomElement(random, "google", "facebook", "direct"));
-        event.put("opt_in_email", random.nextBoolean());
-    }
-
-    private static void populateAnalytics(Map<String, Object> event, Random random, String type, boolean isDirty, int dirtyType) {
-        event.put("page_url", "https://example.com/page-" + random.nextInt(100));
-        event.put("bounce", random.nextDouble() < 0.4);
-        event.put("time_on_page_ms", random.nextInt(300000));
-        event.put("scroll_depth_percent", random.nextInt(100));
         
-        event.put("browser_name", BROWSERS[random.nextInt(BROWSERS.length)]);
-        event.put("os_name", OS[random.nextInt(OS.length)]);
-        event.put("device_type", DEVICE_TYPES[random.nextInt(DEVICE_TYPES.length)]);
-        event.put("screen_width", 1024 + random.nextInt(1000));
-        event.put("screen_height", 768 + random.nextInt(1000));
-        
-        if (type.equals("mobile_app")) {
-            event.put("app_id", "com.example.app");
-            event.put("app_version", "1." + random.nextInt(10) + ".0");
-            event.put("is_first_open", random.nextDouble() < 0.1);
+        if (dirtyType == 2 && random.nextBoolean()) {
+            event.put("loyalty_points", -100);
+        } else {
+            event.put("loyalty_points", random.nextInt(5000));
         }
-        event.put("page_load_time_ms", random.nextInt(5000));
+        
+        event.put("opt_in_email", random.nextBoolean());
+        event.put("opt_in_sms", random.nextBoolean());
+        event.put("opt_in_push", random.nextBoolean());
+        
+        event.put("support_ticket_id", "tck-" + random.nextInt(10000));
+        event.put("support_ticket_status", randomElement(random, "open", "in_progress", "resolved"));
+        event.put("satisfaction_score", 1 + random.nextInt(5));
     }
 
     private static void populatePayment(Map<String, Object> event, Random random, boolean isDirty, int dirtyType) {
         event.put("transaction_id", "txn-" + UUID.randomUUID().toString().substring(0, 8));
         event.put("payment_gateway", PAYMENT_GATEWAYS[random.nextInt(PAYMENT_GATEWAYS.length)]);
         event.put("payment_method", PAYMENT_METHODS[random.nextInt(PAYMENT_METHODS.length)]);
-        event.put("card_network", randomElement(random, "visa", "mastercard", "amex"));
-        event.put("card_last_four", String.format("%04d", random.nextInt(10000)));
-        event.put("transaction_status", randomElement(random, "pending", "success", "failed"));
+        event.put("card_network", randomElement(random, CARD_NETWORKS));
+        event.put("bank_name", "Bank-" + random.nextInt(10));
+        event.put("account_number_hash", "hash-" + random.nextInt(999999));
         
-        if (dirtyType == 1 && random.nextBoolean()) {
-            event.put("fraud_score", "HIGH"); // Type mismatch
-        } else {
-            event.put("fraud_score", random.nextDouble() * 100.0);
-        }
+        event.put("transaction_status", randomElement(random, "pending", "success", "failed"));
+        event.put("payment_error_message", random.nextDouble() < 0.1 ? "Insufficient funds" : null);
         
         event.put("is_3ds_verified", random.nextBoolean());
-        event.put("fee_amount", random.nextDouble() * 5.0);
-        event.put("settlement_amount", random.nextDouble() * 500.0);
-    }
-
-    private static void populateIot(Map<String, Object> event, Random random, boolean isDirty, int dirtyType) {
-        event.put("hardware_serial_number", "hw-" + random.nextInt(10000));
-        event.put("firmware_version", "fw-2." + random.nextInt(5));
-        
-        if (dirtyType == 2 && random.nextBoolean()) {
-            event.put("battery_level_percent", 150.0); // Out of bounds
-        } else {
-            event.put("battery_level_percent", random.nextDouble() * 100.0);
-        }
-        
-        event.put("is_charging", random.nextBoolean());
-        event.put("uptime_seconds", random.nextInt(1000000));
-        event.put("temperature_celsius", 20.0 + random.nextDouble() * 30.0);
-        event.put("humidity_percent", 30.0 + random.nextDouble() * 50.0);
-        event.put("motion_detected", random.nextDouble() < 0.1);
-        event.put("cpu_usage_percent", random.nextDouble() * 100.0);
-        event.put("memory_usage_bytes", (long) random.nextInt(1024 * 1024 * 100));
+        event.put("billing_zip_match", random.nextDouble() < 0.9);
     }
 
     private static String randomElement(Random random, String... elements) {
+        return elements[random.nextInt(elements.length)];
+    }
+    
+    private static int randomElement(Random random, int... elements) {
         return elements[random.nextInt(elements.length)];
     }
 
@@ -389,7 +335,7 @@ public class EventGenerator {
 
         EntityPool(int numEntities, double skew) {
             entities = new String[numEntities];
-            for (int i = 0; i < numEntities; i++) entities[i] = "entity-" + i;
+            for (int i = 0; i < numEntities; i++) entities[i] = "customer-" + i;
             hotEntityCount = Math.max(1, (int) (numEntities * 0.01));
             this.skew = skew;
         }
