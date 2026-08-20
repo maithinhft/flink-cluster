@@ -1,0 +1,982 @@
+{
+    "fields": {
+        "event_id": {
+            "type": "string",
+            "description": "Unique identifier for the event",
+            "format": "UUID"
+        },
+        "event_type": {
+            "type": "string",
+            "description": "The specific action that occurred",
+            "examples": [
+                "purchase",
+                "login",
+                "page_view",
+                "sensor_reading"
+            ]
+        },
+        "entity_id": {
+            "type": "string",
+            "description": "Identifier of the entity performing the action (e.g., user ID, device ID)"
+        },
+        "entity_type": {
+            "type": "string",
+            "description": "Type of the entity",
+            "allowed_values": [
+                "customer",
+                "device",
+                "account"
+            ]
+        },
+        "source_system": {
+            "type": "string",
+            "description": "The system that generated the event",
+            "allowed_values": [
+                "ecommerce",
+                "crm",
+                "mobile_app",
+                "web_analytics",
+                "iot_device",
+                "payment"
+            ]
+        },
+        "schema_version": {
+            "type": "string",
+            "description": "Version of the event schema",
+            "default": "1.0"
+        },
+        "event_time": {
+            "type": "string",
+            "description": "Timestamp when the event actually occurred at the source",
+            "format": "ISO-8601"
+        },
+        "ingestion_time": {
+            "type": "string",
+            "description": "Timestamp when the event was ingested into Kafka/pipeline",
+            "format": "ISO-8601"
+        },
+        "processing_time": {
+            "type": "string",
+            "description": "Timestamp when processing started in Flink",
+            "format": "ISO-8601"
+        },
+        "source_id": {
+            "type": "string",
+            "description": "Original record ID in the source system"
+        },
+        "trace_id": {
+            "type": "string",
+            "description": "Distributed tracing ID for the request flow",
+            "format": "UUID"
+        },
+        "correlation_id": {
+            "type": "string",
+            "description": "Identifier linking multiple related events together",
+            "format": "UUID"
+        },
+        "session_id": {
+            "type": "string",
+            "description": "User or device session identifier"
+        },
+        "is_retry": {
+            "type": "boolean",
+            "description": "Indicates if this is a retried event delivery"
+        },
+        "retry_count": {
+            "type": "integer",
+            "description": "Number of times this event was retried",
+            "min": 0
+        },
+        "ip_address": {
+            "type": "string",
+            "description": "IPv4 address of the client",
+            "format": "IPv4"
+        },
+        "ipv6_address": {
+            "type": "string",
+            "description": "IPv6 address of the client",
+            "format": "IPv6"
+        },
+        "user_agent": {
+            "type": "string",
+            "description": "Raw user agent string from the client"
+        },
+        "country_code": {
+            "type": "string",
+            "description": "ISO 3166-1 alpha-2 country code",
+            "allowed_values": [
+                "VN",
+                "US",
+                "JP",
+                "KR",
+                "SG",
+                "TH",
+                "ID",
+                "PH",
+                "MY",
+                "AU"
+            ]
+        },
+        "country_name": {
+            "type": "string",
+            "description": "Full name of the country"
+        },
+        "region_name": {
+            "type": "string",
+            "description": "State, province, or region name",
+            "examples": [
+                "ap-southeast-1",
+                "us-east-1",
+                "eu-west-1"
+            ]
+        },
+        "city_name": {
+            "type": "string",
+            "description": "City name"
+        },
+        "zip_code": {
+            "type": "string",
+            "description": "Postal or ZIP code"
+        },
+        "latitude": {
+            "type": "double",
+            "description": "Geographical latitude",
+            "min": -90.0,
+            "max": 90.0
+        },
+        "longitude": {
+            "type": "double",
+            "description": "Geographical longitude",
+            "min": -180.0,
+            "max": 180.0
+        },
+        "timezone": {
+            "type": "string",
+            "description": "Timezone string",
+            "examples": [
+                "UTC",
+                "Asia/Ho_Chi_Minh"
+            ]
+        },
+        "isp_name": {
+            "type": "string",
+            "description": "Internet Service Provider name"
+        },
+        "asn_number": {
+            "type": "string",
+            "description": "Autonomous System Number"
+        },
+        "mac_address": {
+            "type": "string",
+            "description": "MAC address of the device (if available)",
+            "format": "MAC"
+        },
+        "connection_type": {
+            "type": "string",
+            "description": "Network connection type",
+            "allowed_values": [
+                "wifi",
+                "cellular",
+                "ethernet"
+            ]
+        },
+        "vpn_detected": {
+            "type": "boolean",
+            "description": "Flag indicating if a VPN was detected"
+        },
+        "proxy_detected": {
+            "type": "boolean",
+            "description": "Flag indicating if a proxy server was detected"
+        },
+        "tor_detected": {
+            "type": "boolean",
+            "description": "Flag indicating if Tor network usage was detected"
+        },
+        "bot_probability": {
+            "type": "double",
+            "description": "Probability score that the client is a bot",
+            "min": 0.0,
+            "max": 1.0
+        },
+        "user_first_name": {
+            "type": "string",
+            "description": "User's first name"
+        },
+        "user_last_name": {
+            "type": "string",
+            "description": "User's last name"
+        },
+        "user_email": {
+            "type": "string",
+            "description": "User's email address",
+            "format": "Email"
+        },
+        "user_phone": {
+            "type": "string",
+            "description": "User's phone number",
+            "format": "E.164"
+        },
+        "user_gender": {
+            "type": "string",
+            "description": "User's gender",
+            "allowed_values": [
+                "M",
+                "F",
+                "O",
+                "U"
+            ]
+        },
+        "user_date_of_birth": {
+            "type": "string",
+            "description": "User's date of birth",
+            "format": "YYYY-MM-DD"
+        },
+        "user_age": {
+            "type": "integer",
+            "description": "User's age in years",
+            "min": 0,
+            "max": 120
+        },
+        "user_nationality": {
+            "type": "string",
+            "description": "User's nationality"
+        },
+        "account_id": {
+            "type": "string",
+            "description": "Associated account identifier"
+        },
+        "account_status": {
+            "type": "string",
+            "description": "Current status of the account",
+            "allowed_values": [
+                "active",
+                "suspended",
+                "deleted"
+            ]
+        },
+        "registration_date": {
+            "type": "string",
+            "description": "Account registration timestamp",
+            "format": "ISO-8601"
+        },
+        "last_login_date": {
+            "type": "string",
+            "description": "Last successful login timestamp",
+            "format": "ISO-8601"
+        },
+        "subscription_tier": {
+            "type": "string",
+            "description": "Current subscription or service tier",
+            "allowed_values": [
+                "free",
+                "basic",
+                "premium",
+                "vip",
+                "enterprise"
+            ]
+        },
+        "loyalty_points": {
+            "type": "integer",
+            "description": "Accumulated loyalty points",
+            "min": 0
+        },
+        "lifetime_value": {
+            "type": "double",
+            "description": "Total monetary lifetime value of the customer",
+            "min": 0.0
+        },
+        "user_segment": {
+            "type": "string",
+            "description": "Marketing or behavioral segment",
+            "allowed_values": [
+                "new",
+                "returning",
+                "vip",
+                "churn_risk"
+            ]
+        },
+        "utm_source": {
+            "type": "string",
+            "description": "UTM Source tag for acquisition"
+        },
+        "utm_medium": {
+            "type": "string",
+            "description": "UTM Medium tag"
+        },
+        "utm_campaign": {
+            "type": "string",
+            "description": "UTM Campaign tag"
+        },
+        "utm_term": {
+            "type": "string",
+            "description": "UTM Term tag (keywords)"
+        },
+        "utm_content": {
+            "type": "string",
+            "description": "UTM Content tag"
+        },
+        "referrer_url": {
+            "type": "string",
+            "description": "URL that referred the user to the current session"
+        },
+        "acquisition_channel": {
+            "type": "string",
+            "description": "Channel through which user was acquired",
+            "examples": [
+                "organic",
+                "paid",
+                "social",
+                "email",
+                "referral",
+                "direct"
+            ]
+        },
+        "opt_in_email": {
+            "type": "boolean",
+            "description": "Whether user has opted in to email communications"
+        },
+        "opt_in_sms": {
+            "type": "boolean",
+            "description": "Whether user has opted in to SMS communications"
+        },
+        "opt_in_push": {
+            "type": "boolean",
+            "description": "Whether user has opted in to push notifications"
+        },
+        "support_ticket_id": {
+            "type": "string",
+            "description": "ID of a related support ticket"
+        },
+        "support_ticket_status": {
+            "type": "string",
+            "description": "Status of the support ticket"
+        },
+        "satisfaction_score": {
+            "type": "integer",
+            "description": "Customer satisfaction score",
+            "min": 1,
+            "max": 5
+        },
+        "product_id": {
+            "type": "string",
+            "description": "Unique product identifier"
+        },
+        "product_name": {
+            "type": "string",
+            "description": "Display name of the product"
+        },
+        "product_category": {
+            "type": "string",
+            "description": "Main category of the product",
+            "allowed_values": [
+                "electronics",
+                "fashion",
+                "food",
+                "books",
+                "home",
+                "sports",
+                "beauty",
+                "automotive"
+            ]
+        },
+        "product_subcategory": {
+            "type": "string",
+            "description": "Sub-category of the product"
+        },
+        "product_sku": {
+            "type": "string",
+            "description": "Stock Keeping Unit (SKU)"
+        },
+        "product_brand": {
+            "type": "string",
+            "description": "Brand name of the product"
+        },
+        "unit_price": {
+            "type": "double",
+            "description": "Price per single unit of the product",
+            "min": 0.0
+        },
+        "quantity": {
+            "type": "integer",
+            "description": "Quantity purchased or interacted with",
+            "min": 1
+        },
+        "discount_amount": {
+            "type": "double",
+            "description": "Total discount amount applied",
+            "min": 0.0
+        },
+        "discount_code": {
+            "type": "string",
+            "description": "Coupon or discount code used"
+        },
+        "tax_amount": {
+            "type": "double",
+            "description": "Tax amount applied",
+            "min": 0.0
+        },
+        "total_amount": {
+            "type": "double",
+            "description": "Final total amount (price * quantity - discount + tax)",
+            "min": 0.0
+        },
+        "currency": {
+            "type": "string",
+            "description": "ISO 4217 currency code",
+            "examples": [
+                "USD",
+                "VND",
+                "EUR"
+            ]
+        },
+        "cart_id": {
+            "type": "string",
+            "description": "Shopping cart identifier"
+        },
+        "order_id": {
+            "type": "string",
+            "description": "Order identifier"
+        },
+        "order_status": {
+            "type": "string",
+            "description": "Current status of the order",
+            "allowed_values": [
+                "created",
+                "paid",
+                "shipped",
+                "completed",
+                "cancelled"
+            ]
+        },
+        "cart_abandoned": {
+            "type": "boolean",
+            "description": "Flag indicating if the cart was abandoned"
+        },
+        "shipping_method": {
+            "type": "string",
+            "description": "Selected shipping method",
+            "allowed_values": [
+                "standard",
+                "express",
+                "next_day"
+            ]
+        },
+        "shipping_cost": {
+            "type": "double",
+            "description": "Cost of shipping",
+            "min": 0.0
+        },
+        "delivery_address_line1": {
+            "type": "string",
+            "description": "Delivery address primary line"
+        },
+        "delivery_city": {
+            "type": "string",
+            "description": "Delivery city"
+        },
+        "delivery_country": {
+            "type": "string",
+            "description": "Delivery country"
+        },
+        "estimated_delivery_date": {
+            "type": "string",
+            "description": "Estimated date for delivery",
+            "format": "YYYY-MM-DD"
+        },
+        "billing_address_line1": {
+            "type": "string",
+            "description": "Billing address primary line"
+        },
+        "billing_city": {
+            "type": "string",
+            "description": "Billing city"
+        },
+        "billing_country": {
+            "type": "string",
+            "description": "Billing country"
+        },
+        "merchant_id": {
+            "type": "string",
+            "description": "Identifier for the merchant or seller"
+        },
+        "store_id": {
+            "type": "string",
+            "description": "Identifier for the physical or online store"
+        },
+        "inventory_level": {
+            "type": "integer",
+            "description": "Current inventory count for the product",
+            "min": 0
+        },
+        "stock_status": {
+            "type": "string",
+            "description": "Stock status",
+            "allowed_values": [
+                "in_stock",
+                "out_of_stock",
+                "pre_order"
+            ]
+        },
+        "is_gift": {
+            "type": "boolean",
+            "description": "Flag indicating if the purchase is a gift"
+        },
+        "return_request_id": {
+            "type": "string",
+            "description": "Identifier for a return request"
+        },
+        "return_reason": {
+            "type": "string",
+            "description": "Reason provided for the return"
+        },
+        "warranty_period_months": {
+            "type": "integer",
+            "description": "Warranty duration in months",
+            "min": 0
+        },
+        "page_url": {
+            "type": "string",
+            "description": "Full URL of the page viewed",
+            "format": "URL"
+        },
+        "page_path": {
+            "type": "string",
+            "description": "Path portion of the URL"
+        },
+        "page_title": {
+            "type": "string",
+            "description": "Title of the webpage"
+        },
+        "previous_page_url": {
+            "type": "string",
+            "description": "URL of the previous page in the session"
+        },
+        "bounce": {
+            "type": "boolean",
+            "description": "Flag indicating if this was a bounce (single-page session)"
+        },
+        "time_on_page_ms": {
+            "type": "integer",
+            "description": "Time spent on the page in milliseconds",
+            "min": 0
+        },
+        "scroll_depth_percent": {
+            "type": "integer",
+            "description": "Maximum scroll depth achieved on the page",
+            "min": 0,
+            "max": 100
+        },
+        "click_target_id": {
+            "type": "string",
+            "description": "ID of the element clicked"
+        },
+        "click_x": {
+            "type": "integer",
+            "description": "X-coordinate of the click"
+        },
+        "click_y": {
+            "type": "integer",
+            "description": "Y-coordinate of the click"
+        },
+        "browser_name": {
+            "type": "string",
+            "description": "Name of the web browser",
+            "allowed_values": [
+                "Chrome",
+                "Firefox",
+                "Safari",
+                "Edge",
+                "Opera"
+            ]
+        },
+        "browser_version": {
+            "type": "string",
+            "description": "Version of the web browser"
+        },
+        "os_name": {
+            "type": "string",
+            "description": "Operating system name",
+            "allowed_values": [
+                "Android",
+                "iOS",
+                "Windows",
+                "macOS",
+                "Linux"
+            ]
+        },
+        "os_version": {
+            "type": "string",
+            "description": "Operating system version"
+        },
+        "device_type": {
+            "type": "string",
+            "description": "Form factor of the device",
+            "allowed_values": [
+                "mobile",
+                "tablet",
+                "desktop",
+                "tv",
+                "wearable"
+            ]
+        },
+        "device_brand": {
+            "type": "string",
+            "description": "Brand of the device (e.g., Apple, Samsung)"
+        },
+        "device_model": {
+            "type": "string",
+            "description": "Specific model of the device"
+        },
+        "screen_width": {
+            "type": "integer",
+            "description": "Screen width in pixels",
+            "min": 1
+        },
+        "screen_height": {
+            "type": "integer",
+            "description": "Screen height in pixels",
+            "min": 1
+        },
+        "app_id": {
+            "type": "string",
+            "description": "Application bundle ID or package name"
+        },
+        "app_name": {
+            "type": "string",
+            "description": "Display name of the application"
+        },
+        "app_version": {
+            "type": "string",
+            "description": "Application version string"
+        },
+        "app_build_number": {
+            "type": "string",
+            "description": "Application build number"
+        },
+        "sdk_version": {
+            "type": "string",
+            "description": "Version of the tracking SDK"
+        },
+        "is_first_open": {
+            "type": "boolean",
+            "description": "Flag indicating if this is the first time the app is opened"
+        },
+        "is_update": {
+            "type": "boolean",
+            "description": "Flag indicating if the app was recently updated"
+        },
+        "push_token": {
+            "type": "string",
+            "description": "Push notification device token"
+        },
+        "notification_type": {
+            "type": "string",
+            "description": "Type of push notification received/clicked"
+        },
+        "notification_action": {
+            "type": "string",
+            "description": "Action taken on the notification"
+        },
+        "page_load_time_ms": {
+            "type": "integer",
+            "description": "Page or screen load time in milliseconds",
+            "min": 0
+        },
+        "api_response_time_ms": {
+            "type": "integer",
+            "description": "API response time for related requests in milliseconds",
+            "min": 0
+        },
+        "error_message": {
+            "type": "string",
+            "description": "Error message if an error occurred"
+        },
+        "crash_stacktrace": {
+            "type": "string",
+            "description": "Stacktrace data for app crashes"
+        },
+        "transaction_id": {
+            "type": "string",
+            "description": "Unique identifier for the payment transaction"
+        },
+        "payment_gateway": {
+            "type": "string",
+            "description": "Payment gateway provider",
+            "allowed_values": [
+                "stripe",
+                "paypal",
+                "vnpay",
+                "momo"
+            ]
+        },
+        "payment_method": {
+            "type": "string",
+            "description": "Method of payment used",
+            "allowed_values": [
+                "credit_card",
+                "wallet",
+                "bank_transfer",
+                "cod"
+            ]
+        },
+        "card_network": {
+            "type": "string",
+            "description": "Credit card network",
+            "allowed_values": [
+                "visa",
+                "mastercard",
+                "amex",
+                "discover",
+                "jcb"
+            ]
+        },
+        "card_bin": {
+            "type": "string",
+            "description": "Bank Identification Number (first 6 digits of card)"
+        },
+        "card_last_four": {
+            "type": "string",
+            "description": "Last four digits of the credit card"
+        },
+        "card_expiry_month": {
+            "type": "integer",
+            "description": "Card expiration month",
+            "min": 1,
+            "max": 12
+        },
+        "card_expiry_year": {
+            "type": "integer",
+            "description": "Card expiration year",
+            "min": 2000,
+            "max": 2100
+        },
+        "bank_name": {
+            "type": "string",
+            "description": "Name of the issuing bank"
+        },
+        "account_number_hash": {
+            "type": "string",
+            "description": "Hashed bank account number"
+        },
+        "routing_number": {
+            "type": "string",
+            "description": "Bank routing number"
+        },
+        "transaction_status": {
+            "type": "string",
+            "description": "Status of the payment transaction",
+            "allowed_values": [
+                "pending",
+                "success",
+                "failed",
+                "reversed"
+            ]
+        },
+        "authorization_code": {
+            "type": "string",
+            "description": "Gateway authorization code"
+        },
+        "payment_error_code": {
+            "type": "string",
+            "description": "Error code from the payment gateway (if failed)"
+        },
+        "payment_error_message": {
+            "type": "string",
+            "description": "Error message from the payment gateway"
+        },
+        "fraud_score": {
+            "type": "double",
+            "description": "Fraud probability score",
+            "min": 0.0,
+            "max": 100.0
+        },
+        "is_3ds_verified": {
+            "type": "boolean",
+            "description": "Flag indicating if 3D Secure verification passed"
+        },
+        "billing_zip_match": {
+            "type": "boolean",
+            "description": "Flag indicating if billing zip matched card records"
+        },
+        "cvc_check_pass": {
+            "type": "boolean",
+            "description": "Flag indicating if CVC check passed"
+        },
+        "avs_check_pass": {
+            "type": "boolean",
+            "description": "Flag indicating if Address Verification System check passed"
+        },
+        "risk_level": {
+            "type": "string",
+            "description": "Assessed risk level of the transaction",
+            "allowed_values": [
+                "low",
+                "medium",
+                "high"
+            ]
+        },
+        "refund_id": {
+            "type": "string",
+            "description": "Identifier for a refund transaction"
+        },
+        "refund_amount": {
+            "type": "double",
+            "description": "Amount refunded",
+            "min": 0.0
+        },
+        "refund_reason": {
+            "type": "string",
+            "description": "Reason provided for the refund"
+        },
+        "fee_amount": {
+            "type": "double",
+            "description": "Processing fee amount",
+            "min": 0.0
+        },
+        "exchange_rate": {
+            "type": "double",
+            "description": "Exchange rate applied (if cross-currency)",
+            "min": 0.0
+        },
+        "base_currency": {
+            "type": "string",
+            "description": "Base currency for the exchange"
+        },
+        "settlement_amount": {
+            "type": "double",
+            "description": "Final amount settled in base currency",
+            "min": 0.0
+        },
+        "wallet_address": {
+            "type": "string",
+            "description": "Cryptocurrency wallet address"
+        },
+        "blockchain_network": {
+            "type": "string",
+            "description": "Blockchain network (e.g., Ethereum, Bitcoin)"
+        },
+        "tx_hash": {
+            "type": "string",
+            "description": "Blockchain transaction hash"
+        },
+        "gas_fee": {
+            "type": "double",
+            "description": "Network gas fee paid",
+            "min": 0.0
+        },
+        "hardware_serial_number": {
+            "type": "string",
+            "description": "Device hardware serial number"
+        },
+        "firmware_version": {
+            "type": "string",
+            "description": "Current firmware version on the device"
+        },
+        "batch_number": {
+            "type": "string",
+            "description": "Manufacturing batch number"
+        },
+        "battery_level_percent": {
+            "type": "double",
+            "description": "Current battery level percentage",
+            "min": 0.0,
+            "max": 100.0
+        },
+        "is_charging": {
+            "type": "boolean",
+            "description": "Flag indicating if the device is currently charging"
+        },
+        "uptime_seconds": {
+            "type": "integer",
+            "description": "Device uptime in seconds",
+            "min": 0
+        },
+        "sleep_mode_active": {
+            "type": "boolean",
+            "description": "Flag indicating if the device is in sleep mode"
+        },
+        "temperature_celsius": {
+            "type": "double",
+            "description": "Sensor reading: Temperature in Celsius"
+        },
+        "humidity_percent": {
+            "type": "double",
+            "description": "Sensor reading: Humidity percentage",
+            "min": 0.0,
+            "max": 100.0
+        },
+        "pressure_hpa": {
+            "type": "double",
+            "description": "Sensor reading: Atmospheric pressure in hPa"
+        },
+        "light_level_lux": {
+            "type": "double",
+            "description": "Sensor reading: Light level in lux",
+            "min": 0.0
+        },
+        "motion_detected": {
+            "type": "boolean",
+            "description": "Sensor reading: Motion detected"
+        },
+        "acceleration_x": {
+            "type": "double",
+            "description": "Sensor reading: X-axis acceleration"
+        },
+        "acceleration_y": {
+            "type": "double",
+            "description": "Sensor reading: Y-axis acceleration"
+        },
+        "acceleration_z": {
+            "type": "double",
+            "description": "Sensor reading: Z-axis acceleration"
+        },
+        "cpu_usage_percent": {
+            "type": "double",
+            "description": "Device CPU usage percentage",
+            "min": 0.0,
+            "max": 100.0
+        },
+        "memory_usage_bytes": {
+            "type": "integer",
+            "description": "Device memory usage in bytes",
+            "min": 0
+        },
+        "disk_space_free_bytes": {
+            "type": "integer",
+            "description": "Free disk/storage space in bytes",
+            "min": 0
+        },
+        "wifi_signal_strength_dbm": {
+            "type": "integer",
+            "description": "WiFi signal strength in dBm",
+            "max": 0
+        },
+        "cellular_signal_strength_dbm": {
+            "type": "integer",
+            "description": "Cellular signal strength in dBm",
+            "max": 0
+        },
+        "hardware_error_code": {
+            "type": "string",
+            "description": "Latest hardware error code (if any)"
+        },
+        "calibration_status": {
+            "type": "string",
+            "description": "Status of device sensors calibration",
+            "allowed_values": [
+                "ok",
+                "pending",
+                "failed"
+            ]
+        },
+        "maintenance_required": {
+            "type": "boolean",
+            "description": "Flag indicating if maintenance is required"
+        },
+        "last_maintenance_date": {
+            "type": "string",
+            "description": "Timestamp of last maintenance",
+            "format": "ISO-8601"
+        }
+    }
+}

@@ -59,7 +59,15 @@ CREATE TABLE IF NOT EXISTS rule_definitions (
 
     name VARCHAR(255) NOT NULL,
 
+    entity_type VARCHAR(100) NOT NULL,
+
     rule_json JSONB NOT NULL,
+
+    priority INTEGER NOT NULL DEFAULT 0,
+
+    cooldown_seconds BIGINT NOT NULL DEFAULT 0,
+
+    tags TEXT[] NOT NULL DEFAULT '{}',
 
     version BIGINT NOT NULL,
 

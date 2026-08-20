@@ -1,0 +1,131 @@
+{
+  "_comment": "Unified Rule Definition Schema",
+  "database_table": "rule_definitions",
+  "fields": {
+    "rule_id": {
+      "type": "string (UUID)",
+      "description": "Định danh duy nhất của rule"
+    },
+    "name": {
+      "type": "string",
+      "description": "Tên gợi nhớ của rule (VD: high_value_segment, churn_risk_detect)"
+    },
+    "entity_type": {
+      "type": "string",
+      "description": "Loại thực thể mà rule này áp dụng (customer, device, account)",
+      "allowed_values": ["customer", "device", "account"]
+    },
+    "priority": {
+      "type": "integer",
+      "description": "Độ ưu tiên của rule khi có xung đột (số càng lớn ưu tiên càng cao)",
+      "default": 0
+    },
+    "cooldown_seconds": {
+      "type": "integer",
+      "description": "Thời gian làm nguội (tính bằng giây). Nếu rule thỏa mãn, nó sẽ không được kích hoạt lại trên cùng một entity_id trong khoảng thời gian này.",
+      "examples": [0, 60, 300, 3600]
+    },
+    "tags": {
+      "type": "array of strings",
+      "description": "Danh sách các tag để gom nhóm và lọc rule nhanh bằng Inverted Index",
+      "examples": [["electronics", "VN"], ["vip", "credit_card"]]
+    },
+    "version": {
+      "type": "integer",
+      "description": "Phiên bản của rule (dùng để quản lý vòng đời và cache)"
+    },
+    "enabled": {
+      "type": "boolean",
+      "description": "Trạng thái kích hoạt của rule",
+      "default": true
+    },
+    "rule_json": {
+      "type": "JSON object",
+      "description": "Cây điều kiện logic (Condition Tree) của rule. Dùng để đánh giá xem một sự kiện có thỏa mãn luật hay không. Xem cấu trúc chi tiết bên dưới."
+    }
+  },
+
+  "rule_json_structure": {
+    "_comment": "Cấu trúc đệ quy của cây điều kiện bên trong trường `rule_json`",
+    "Node": {
+      "description": "Một Node có thể là LogicalNode (AND, OR, NOT) hoặc LeafNode (AGGREGATION, RAW_FIELD)",
+      "LogicalNode": {
+        "operator": {
+          "type": "string",
+          "allowed_values": ["AND", "OR", "NOT"]
+        },
+        "children": {
+          "type": "array of Node",
+          "description": "Danh sách các Node con. Nếu operator là NOT, mảng này chỉ có 1 phần tử."
+        }
+      },
+      "LeafNode_Aggregation": {
+        "description": "Điều kiện dựa trên một chỉ số tổng hợp (Aggregation) đã được tính sẵn",
+        "type": {
+          "type": "string",
+          "value": "AGGREGATION"
+        },
+        "aggregation_id": {
+          "type": "string (UUID)",
+          "description": "ID của cấu hình Aggregation tham chiếu"
+        },
+        "operator": {
+          "type": "string",
+          "allowed_values": ["GT", "GTE", "LT", "LTE"]
+        },
+        "value": {
+          "type": "number",
+          "description": "Ngưỡng giá trị để so sánh"
+        }
+      },
+      "LeafNode_RawField": {
+        "description": "Điều kiện dựa trên các trường sự kiện thô (Raw Event Fields)",
+        "type": {
+          "type": "string",
+          "value": "RAW_FIELD"
+        },
+        "field": {
+          "type": "string",
+          "description": "Tên trường trong Event Schema (VD: total_amount, user_age, product_category)"
+        },
+        "operator": {
+          "type": "string",
+          "allowed_values": ["EQ", "NEQ", "GT", "GTE", "LT", "LTE", "IN", "BETWEEN", "CONTAINS"]
+        },
+        "value": {
+          "type": "any",
+          "description": "Giá trị so sánh. Có thể là String, Number, Boolean, Array of Strings (cho toán tử IN), hoặc Array of 2 Numbers (cho toán tử BETWEEN)"
+        }
+      }
+    }
+  },
+
+  "example_rule_json": {
+    "operator": "AND",
+    "children": [
+      {
+        "type": "RAW_FIELD",
+        "field": "product_category",
+        "operator": "IN",
+        "value": ["electronics", "fashion"]
+      },
+      {
+        "operator": "OR",
+        "children": [
+          {
+            "type": "RAW_FIELD",
+            "field": "total_amount",
+            "operator": "GTE",
+            "value": 5000
+          },
+          {
+            "type": "AGGREGATION",
+            "aggregation_id": "123e4567-e89b-12d3-a456-426614174000",
+            "operator": "GT",
+            "value": 10000
+          }
+        ]
+      }
+    ]
+  }
+}
