@@ -17,7 +17,7 @@ public class EventGenerator {
     // Configuration defaults
     // ============================================================
 
-    static final String DEFAULT_BOOTSTRAP_SERVERS = "localhost:9092";
+    static final String DEFAULT_BOOTSTRAP_SERVERS = "34.55.131.15:9092";
     static final String DEFAULT_TOPIC = "events";
     static final long DEFAULT_NUM_EVENTS = 1_000_000L;
     static final double DEFAULT_DIRTY_RATE = 0.05;
@@ -31,16 +31,18 @@ public class EventGenerator {
     // ============================================================
 
     static final String[][] SOURCE_EVENT_TYPES = {
-            {"ecommerce", "add_to_cart", "remove_from_cart", "purchase", "order_created", "order_shipped", "order_completed", "order_cancelled"},
-            {"crm", "profile_update", "login", "logout", "account_created", "account_status_change", "subscription_change", "support_ticket_created", "support_ticket_resolved"},
-            {"payment", "payment_initiated", "payment_success", "payment_failed", "refund", "chargeback"}
+            { "ecommerce", "add_to_cart", "remove_from_cart", "purchase", "order_created", "order_shipped",
+                    "order_completed", "order_cancelled" },
+            { "crm", "profile_update", "login", "logout", "account_created", "account_status_change",
+                    "subscription_change", "support_ticket_created", "support_ticket_resolved" },
+            { "payment", "payment_initiated", "payment_success", "payment_failed", "refund", "chargeback" }
     };
-    
+
     // Lookups
-    static final String[] COUNTRIES = {"VN", "US", "JP", "KR", "SG"};
-    static final String[] PAYMENT_GATEWAYS = {"stripe", "paypal", "vnpay", "momo"};
-    static final String[] PAYMENT_METHODS = {"credit_card", "wallet", "bank_transfer"};
-    static final String[] CARD_NETWORKS = {"visa", "mastercard", "amex", "napas"};
+    static final String[] COUNTRIES = { "VN", "US", "JP", "KR", "SG" };
+    static final String[] PAYMENT_GATEWAYS = { "stripe", "paypal", "vnpay", "momo" };
+    static final String[] PAYMENT_METHODS = { "credit_card", "wallet", "bank_transfer" };
+    static final String[] CARD_NETWORKS = { "visa", "mastercard", "amex", "napas" };
 
     // ============================================================
     // Main
@@ -111,7 +113,8 @@ public class EventGenerator {
         private final CountDownLatch latch;
         private final AtomicLong totalSent;
 
-        Worker(int workerId, long startEventId, long numEvents, Config config, EntityPool entityPool, CountDownLatch latch, AtomicLong totalSent) {
+        Worker(int workerId, long startEventId, long numEvents, Config config, EntityPool entityPool,
+                CountDownLatch latch, AtomicLong totalSent) {
             this.workerId = workerId;
             this.startEventId = startEventId;
             this.numEvents = numEvents;
@@ -127,8 +130,10 @@ public class EventGenerator {
             try {
                 Properties props = new Properties();
                 props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, config.bootstrapServers);
-                props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer");
-                props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArraySerializer");
+                props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
+                        "org.apache.kafka.common.serialization.StringSerializer");
+                props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
+                        "org.apache.kafka.common.serialization.ByteArraySerializer");
                 props.put(ProducerConfig.ACKS_CONFIG, "1");
                 props.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, "lz4");
                 props.put(ProducerConfig.BATCH_SIZE_CONFIG, 1024 * 1024);
@@ -154,13 +159,15 @@ public class EventGenerator {
                 producer.flush();
                 double elapsed = (System.nanoTime() - start) / 1_000_000_000.0;
                 totalSent.addAndGet(sent);
-                System.out.printf("Worker %d: %,d events in %.2fs (%,.0f events/s)%n", workerId, sent, elapsed, sent / elapsed);
+                System.out.printf("Worker %d: %,d events in %.2fs (%,.0f events/s)%n", workerId, sent, elapsed,
+                        sent / elapsed);
 
             } catch (Exception e) {
                 System.err.printf("Worker %d failed: %s%n", workerId, e.getMessage());
                 e.printStackTrace();
             } finally {
-                if (producer != null) producer.close();
+                if (producer != null)
+                    producer.close();
                 latch.countDown();
             }
         }
@@ -191,13 +198,13 @@ public class EventGenerator {
         event.put("entity_id", entityId); // customer id
         event.put("source_system", sourceSystem);
         event.put("schema_version", "1.1");
-        
+
         if (dirtyType == 0 && random.nextBoolean()) {
             // Intentionally missing event_time
         } else {
             event.put("event_time", eventTime.toString());
         }
-        
+
         event.put("source_id", sourceSystem + "-" + eventId);
         event.put("trace_id", UUID.randomUUID().toString());
         event.put("correlation_id", UUID.randomUUID().toString());
@@ -225,7 +232,7 @@ public class EventGenerator {
         event.put("product_subcategory", "subcat-" + random.nextInt(10));
         event.put("product_sku", "SKU-" + random.nextInt(10000));
         event.put("product_brand", "Brand-" + random.nextInt(20));
-        
+
         if (dirtyType == 1 && random.nextBoolean()) {
             event.put("unit_price", "N/A"); // Type mismatch
         } else if (dirtyType == 2 && random.nextBoolean()) {
@@ -233,32 +240,33 @@ public class EventGenerator {
         } else {
             event.put("unit_price", 10.0 + random.nextDouble() * 500.0);
         }
-        
+
         event.put("quantity", 1 + random.nextInt(5));
         event.put("discount_amount", random.nextDouble() * 10.0);
         event.put("discount_code", "SUMMER" + random.nextInt(100));
         event.put("tax_amount", 5.0 + random.nextDouble() * 20.0);
-        
+
         double uPrice = event.get("unit_price") instanceof Double ? (Double) event.get("unit_price") : 100.0;
         int qty = (Integer) event.get("quantity");
         event.put("total_amount", uPrice * qty);
-        
+
         event.put("currency", randomElement(random, "USD", "VND"));
         event.put("cart_id", "cart-" + random.nextInt(100000));
         event.put("order_id", "ord-" + random.nextInt(100000));
         event.put("order_status", randomElement(random, "created", "paid", "shipped", "completed", "cancelled"));
         event.put("shipping_method", randomElement(random, "standard", "express"));
         event.put("shipping_cost", random.nextDouble() * 15.0);
-        
+
         event.put("delivery_address_line1", random.nextInt(9999) + " Main St");
         event.put("delivery_city", "City-" + random.nextInt(50));
         event.put("delivery_country", randomElement(random, COUNTRIES));
-        event.put("estimated_delivery_date", Instant.now().plus(random.nextInt(7), ChronoUnit.DAYS).toString().substring(0, 10));
-        
+        event.put("estimated_delivery_date",
+                Instant.now().plus(random.nextInt(7), ChronoUnit.DAYS).toString().substring(0, 10));
+
         event.put("billing_address_line1", event.get("delivery_address_line1"));
         event.put("billing_city", event.get("delivery_city"));
         event.put("billing_country", event.get("delivery_country"));
-        
+
         event.put("merchant_id", "merch-" + random.nextInt(100));
         event.put("store_id", "store-" + random.nextInt(10));
         event.put("warranty_period_months", randomElement(random, 0, 12, 24));
@@ -267,35 +275,35 @@ public class EventGenerator {
     private static void populateCrm(Map<String, Object> event, Random random, boolean isDirty, int dirtyType) {
         event.put("user_first_name", "User" + random.nextInt(1000));
         event.put("user_last_name", "Name" + random.nextInt(1000));
-        
+
         if (dirtyType == 3 && random.nextBoolean()) {
             event.put("user_email", "invalid-email-format");
         } else {
             event.put("user_email", "user" + random.nextInt(10000) + "@example.com");
         }
-        
+
         event.put("user_phone", "+8498" + random.nextInt(10000000));
         event.put("user_gender", randomElement(random, "M", "F", "O"));
         event.put("user_date_of_birth", "19" + (50 + random.nextInt(50)) + "-01-01");
         event.put("user_nationality", randomElement(random, COUNTRIES));
-        
+
         event.put("account_id", "acc-" + random.nextInt(50000));
         event.put("account_status", randomElement(random, "active", "suspended", "closed"));
         event.put("registration_date", Instant.now().minus(random.nextInt(365), ChronoUnit.DAYS).toString());
         event.put("last_login_date", Instant.now().minus(random.nextInt(10), ChronoUnit.DAYS).toString());
-        
+
         event.put("subscription_tier", randomElement(random, "free", "basic", "premium"));
-        
+
         if (dirtyType == 2 && random.nextBoolean()) {
             event.put("loyalty_points", -100);
         } else {
             event.put("loyalty_points", random.nextInt(5000));
         }
-        
+
         event.put("opt_in_email", random.nextBoolean());
         event.put("opt_in_sms", random.nextBoolean());
         event.put("opt_in_push", random.nextBoolean());
-        
+
         event.put("support_ticket_id", "tck-" + random.nextInt(10000));
         event.put("support_ticket_status", randomElement(random, "open", "in_progress", "resolved"));
         event.put("satisfaction_score", 1 + random.nextInt(5));
@@ -308,10 +316,10 @@ public class EventGenerator {
         event.put("card_network", randomElement(random, CARD_NETWORKS));
         event.put("bank_name", "Bank-" + random.nextInt(10));
         event.put("account_number_hash", "hash-" + random.nextInt(999999));
-        
+
         event.put("transaction_status", randomElement(random, "pending", "success", "failed"));
         event.put("payment_error_message", random.nextDouble() < 0.1 ? "Insufficient funds" : null);
-        
+
         event.put("is_3ds_verified", random.nextBoolean());
         event.put("billing_zip_match", random.nextDouble() < 0.9);
     }
@@ -319,7 +327,7 @@ public class EventGenerator {
     private static String randomElement(Random random, String... elements) {
         return elements[random.nextInt(elements.length)];
     }
-    
+
     private static int randomElement(Random random, int... elements) {
         return elements[random.nextInt(elements.length)];
     }
@@ -335,13 +343,15 @@ public class EventGenerator {
 
         EntityPool(int numEntities, double skew) {
             entities = new String[numEntities];
-            for (int i = 0; i < numEntities; i++) entities[i] = "customer-" + i;
+            for (int i = 0; i < numEntities; i++)
+                entities[i] = "customer-" + i;
             hotEntityCount = Math.max(1, (int) (numEntities * 0.01));
             this.skew = skew;
         }
 
         String next(Random random) {
-            if (skew > 0 && random.nextDouble() < skew) return entities[random.nextInt(hotEntityCount)];
+            if (skew > 0 && random.nextDouble() < skew)
+                return entities[random.nextInt(hotEntityCount)];
             return entities[random.nextInt(entities.length)];
         }
     }
@@ -360,14 +370,30 @@ public class EventGenerator {
             Config config = new Config();
             for (int i = 0; i < args.length; i++) {
                 switch (args[i]) {
-                    case "--bootstrap-servers": config.bootstrapServers = args[++i]; break;
-                    case "--topic": config.topic = args[++i]; break;
-                    case "--num-events": config.numEvents = Long.parseLong(args[++i]); break;
-                    case "--dirty-rate": config.dirtyRate = Double.parseDouble(args[++i]); break;
-                    case "--late-event-rate": config.lateEventRate = Double.parseDouble(args[++i]); break;
-                    case "--num-entities": config.numEntities = Integer.parseInt(args[++i]); break;
-                    case "--data-skew": config.dataSkew = Double.parseDouble(args[++i]); break;
-                    case "--workers": config.workers = Integer.parseInt(args[++i]); break;
+                    case "--bootstrap-servers":
+                        config.bootstrapServers = args[++i];
+                        break;
+                    case "--topic":
+                        config.topic = args[++i];
+                        break;
+                    case "--num-events":
+                        config.numEvents = Long.parseLong(args[++i]);
+                        break;
+                    case "--dirty-rate":
+                        config.dirtyRate = Double.parseDouble(args[++i]);
+                        break;
+                    case "--late-event-rate":
+                        config.lateEventRate = Double.parseDouble(args[++i]);
+                        break;
+                    case "--num-entities":
+                        config.numEntities = Integer.parseInt(args[++i]);
+                        break;
+                    case "--data-skew":
+                        config.dataSkew = Double.parseDouble(args[++i]);
+                        break;
+                    case "--workers":
+                        config.workers = Integer.parseInt(args[++i]);
+                        break;
                 }
             }
             return config;
@@ -375,8 +401,11 @@ public class EventGenerator {
     }
 
     static void validate(Config config) {
-        if (config.numEvents <= 0) throw new IllegalArgumentException("num-events must be > 0");
-        if (config.dirtyRate < 0 || config.dirtyRate > 1) throw new IllegalArgumentException("dirty-rate must be 0-1");
-        if (config.lateEventRate < 0 || config.lateEventRate > 1) throw new IllegalArgumentException("late-event-rate must be 0-1");
+        if (config.numEvents <= 0)
+            throw new IllegalArgumentException("num-events must be > 0");
+        if (config.dirtyRate < 0 || config.dirtyRate > 1)
+            throw new IllegalArgumentException("dirty-rate must be 0-1");
+        if (config.lateEventRate < 0 || config.lateEventRate > 1)
+            throw new IllegalArgumentException("late-event-rate must be 0-1");
     }
 }

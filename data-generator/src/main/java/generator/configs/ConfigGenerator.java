@@ -10,7 +10,7 @@ public class ConfigGenerator {
     // PostgreSQL configuration
     // ============================================================
 
-    private static final String DEFAULT_DB_URL = "jdbc:postgresql://localhost:5433/realtime_core";
+    private static final String DEFAULT_DB_URL = "jdbc:postgresql://34.55.131.15:5433/realtime_core";
     private static final String DEFAULT_DB_USER = "postgres";
     private static final String DEFAULT_DB_PASSWORD = "postgres";
 
@@ -29,28 +29,28 @@ public class ConfigGenerator {
 
     // Fields for exact matches (EQ, NEQ, IN)
     private static final String[] TAG_FIELDS = {
-            "product_category", "payment_method", "order_status", 
+            "product_category", "payment_method", "order_status",
             "account_status", "subscription_tier", "support_ticket_status", "transaction_status"
     };
 
     private static final String[][] TAG_VALUES = {
-            {"electronics", "fashion", "food", "books"},
-            {"credit_card", "wallet", "bank_transfer"},
-            {"created", "paid", "shipped", "completed", "cancelled"},
-            {"active", "suspended", "closed"},
-            {"free", "basic", "premium"},
-            {"open", "in_progress", "resolved"},
-            {"pending", "success", "failed"}
+            { "electronics", "fashion", "food", "books" },
+            { "credit_card", "wallet", "bank_transfer" },
+            { "created", "paid", "shipped", "completed", "cancelled" },
+            { "active", "suspended", "closed" },
+            { "free", "basic", "premium" },
+            { "open", "in_progress", "resolved" },
+            { "pending", "success", "failed" }
     };
 
     // Fields for numeric comparison (GT, LT, BETWEEN)
     private static final String[] NUM_FIELDS = {
-            "total_amount", "loyalty_points", "quantity", 
+            "total_amount", "loyalty_points", "quantity",
             "satisfaction_score", "unit_price", "discount_amount", "tax_amount"
     };
 
     // Comparison operators
-    private static final String[] NUMERIC_OPS = {"GT", "GTE", "LT", "LTE"};
+    private static final String[] NUMERIC_OPS = { "GT", "GTE", "LT", "LTE" };
 
     // Rule name prefixes for readability
     private static final String[] RULE_PREFIXES = {
@@ -90,11 +90,21 @@ public class ConfigGenerator {
 
         for (int i = 0; i < args.length; i++) {
             switch (args[i]) {
-                case "--num-rules": numRules = Integer.parseInt(args[++i]); break;
-                case "--batch-size": batchSize = Integer.parseInt(args[++i]); break;
-                case "--db-url": dbUrl = args[++i]; break;
-                case "--db-user": dbUser = args[++i]; break;
-                case "--db-password": dbPassword = args[++i]; break;
+                case "--num-rules":
+                    numRules = Integer.parseInt(args[++i]);
+                    break;
+                case "--batch-size":
+                    batchSize = Integer.parseInt(args[++i]);
+                    break;
+                case "--db-url":
+                    dbUrl = args[++i];
+                    break;
+                case "--db-user":
+                    dbUser = args[++i];
+                    break;
+                case "--db-password":
+                    dbPassword = args[++i];
+                    break;
             }
         }
 
@@ -130,7 +140,7 @@ public class ConfigGenerator {
                 String name = RULE_PREFIXES[RANDOM.nextInt(RULE_PREFIXES.length)] + "_" + (i + 1);
                 String ruleJson = generateConditionTree(2 + RANDOM.nextInt(3)); // depth 2-4
                 int priority = RANDOM.nextInt(100);
-                long cooldownSeconds = randomElement(new Long[]{0L, 60L, 300L, 900L, 3600L});
+                long cooldownSeconds = randomElement(new Long[] { 0L, 60L, 300L, 900L, 3600L });
                 long version = 1 + RANDOM.nextInt(9);
                 boolean enabled = RANDOM.nextDouble() < 0.95;
 
@@ -174,9 +184,12 @@ public class ConfigGenerator {
 
         String operator;
         double r = RANDOM.nextDouble();
-        if (r < 0.45) operator = "AND";
-        else if (r < 0.90) operator = "OR";
-        else operator = "NOT";
+        if (r < 0.45)
+            operator = "AND";
+        else if (r < 0.90)
+            operator = "OR";
+        else
+            operator = "NOT";
 
         if ("NOT".equals(operator)) {
             return """
@@ -191,7 +204,8 @@ public class ConfigGenerator {
         sb.append("{\n  \"operator\": \"").append(operator).append("\",\n  \"children\": [\n");
 
         for (int i = 0; i < numChildren; i++) {
-            if (i > 0) sb.append(",\n");
+            if (i > 0)
+                sb.append(",\n");
             sb.append("    ").append(generateNode(currentDepth + 1, maxDepth));
         }
         sb.append("\n  ]\n}");
@@ -199,17 +213,19 @@ public class ConfigGenerator {
     }
 
     private static String generateLeafClause() {
-        if (RANDOM.nextBoolean()) return generateAggregationClause();
+        if (RANDOM.nextBoolean())
+            return generateAggregationClause();
         return generateRawFieldClause();
     }
 
     private static String generateAggregationClause() {
-        String function = randomElement(new String[]{"SUM", "COUNT", "AVG", "MAX", "MIN"});
-        String field = randomElement(NUM_FIELDS); // Simplification: just use numeric fields for all functions in mock data
-        int size = randomElement(new Integer[]{300, 3600, 21600, 86400});
+        String function = randomElement(new String[] { "SUM", "COUNT", "AVG", "MAX", "MIN" });
+        String field = randomElement(NUM_FIELDS); // Simplification: just use numeric fields for all functions in mock
+                                                  // data
+        int size = randomElement(new Integer[] { 300, 3600, 21600, 86400 });
         int slide = size == 86400 ? 300 : (size == 3600 ? 300 : size);
         String windowType = size == slide ? "tumbling" : "sliding";
-        
+
         return """
                 {
                   "type": "AGGREGATION",
@@ -222,7 +238,8 @@ public class ConfigGenerator {
                   },
                   "operator": "%s",
                   "value": %d
-                }""".formatted(field, function, windowType, size, slide, randomElement(NUMERIC_OPS), RANDOM.nextInt(1, 10_000));
+                }""".formatted(field, function, windowType, size, slide, randomElement(NUMERIC_OPS),
+                RANDOM.nextInt(1, 10_000));
     }
 
     private static String generateRawFieldClause() {
@@ -246,7 +263,8 @@ public class ConfigGenerator {
             } else if (opRoll < 0.8) {
                 int count = 2 + RANDOM.nextInt(3);
                 Set<String> vals = new LinkedHashSet<>();
-                while (vals.size() < count && vals.size() < pool.length) vals.add(randomElement(pool));
+                while (vals.size() < count && vals.size() < pool.length)
+                    vals.add(randomElement(pool));
                 return """
                         {
                           "type": "RAW_FIELD",
@@ -289,7 +307,8 @@ public class ConfigGenerator {
 
         } else if (r < 0.90) {
             // Boolean field
-            String field = randomElement(new String[]{"opt_in_email", "opt_in_sms", "opt_in_push", "is_3ds_verified", "billing_zip_match"});
+            String field = randomElement(new String[] { "opt_in_email", "opt_in_sms", "opt_in_push", "is_3ds_verified",
+                    "billing_zip_match" });
             return """
                     {
                       "type": "RAW_FIELD",
@@ -300,7 +319,8 @@ public class ConfigGenerator {
 
         } else {
             // String CONTAINS
-            String field = randomElement(new String[]{"user_email", "user_first_name", "user_last_name", "product_name"});
+            String field = randomElement(
+                    new String[] { "user_email", "user_first_name", "user_last_name", "product_name" });
             return """
                     {
                       "type": "RAW_FIELD",
