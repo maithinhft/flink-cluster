@@ -1,0 +1,125 @@
+{
+    "source_name": "crm",
+    "version": "1.0",
+    "action": "logout",
+    "fields": {
+        "event_id": {
+            "type": "string",
+            "description": "Unique identifier for the event",
+            "format": "UUID",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ],
+            "required": true
+        },
+        "event_type": {
+            "type": "string",
+            "description": "The specific action that occurred",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ],
+            "allowed_values": [
+                "profile_update",
+                "login",
+                "logout",
+                "account_created",
+                "account_status_change",
+                "subscription_change",
+                "support_ticket_created",
+                "support_ticket_resolved"
+            ],
+            "required": true
+        },
+        "entity_id": {
+            "type": "string",
+            "description": "Customer identifier (unique ID of the customer)",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ],
+            "required": true
+        },
+        "source_system": {
+            "type": "string",
+            "description": "The system that generated the event",
+            "allowed_values": [
+                "ecommerce",
+                "crm",
+                "payment"
+            ],
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ],
+            "required": true
+        },
+        "schema_version": {
+            "type": "string",
+            "description": "Version of the event schema",
+            "default": "1.0",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "event_time": {
+            "type": "string",
+            "description": "Timestamp when the event actually occurred at the source",
+            "format": "ISO-8601",
+            "supported_state_strategies": [
+                "last_value",
+                "count",
+                "max",
+                "min"
+            ],
+            "required": true
+        },
+        "source_id": {
+            "type": "string",
+            "description": "Original record ID in the source system",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "trace_id": {
+            "type": "string",
+            "description": "Distributed tracing ID for the request flow",
+            "format": "UUID",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "correlation_id": {
+            "type": "string",
+            "description": "Identifier linking multiple related events together",
+            "format": "UUID",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "session_id": {
+            "type": "string",
+            "description": "User or device session identifier",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "last_login_date": {
+            "type": "string",
+            "description": "Last successful login timestamp",
+            "format": "ISO-8601",
+            "supported_state_strategies": [
+                "last_value",
+                "count",
+                "max",
+                "min"
+            ]
+        }
+    }
+}

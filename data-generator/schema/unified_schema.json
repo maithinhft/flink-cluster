@@ -1,5 +1,5 @@
 {
-    "source_name": "ecommerce",
+    "name": "unified_dictionary",
     "version": "1.0",
     "fields": {
         "event_id": {
@@ -9,7 +9,8 @@
             "supported_state_strategies": [
                 "last_value",
                 "count"
-            ]
+            ],
+            "required": true
         },
         "event_type": {
             "type": "string",
@@ -19,14 +20,16 @@
                 "count"
             ],
             "allowed_values": [
-                "add_to_cart",
-                "remove_from_cart",
-                "purchase",
-                "order_created",
-                "order_shipped",
-                "order_completed",
-                "order_cancelled"
-            ]
+                "profile_update",
+                "login",
+                "logout",
+                "account_created",
+                "account_status_change",
+                "subscription_change",
+                "support_ticket_created",
+                "support_ticket_resolved"
+            ],
+            "required": true
         },
         "entity_id": {
             "type": "string",
@@ -34,7 +37,8 @@
             "supported_state_strategies": [
                 "last_value",
                 "count"
-            ]
+            ],
+            "required": true
         },
         "source_system": {
             "type": "string",
@@ -47,7 +51,8 @@
             "supported_state_strategies": [
                 "last_value",
                 "count"
-            ]
+            ],
+            "required": true
         },
         "schema_version": {
             "type": "string",
@@ -67,7 +72,8 @@
                 "count",
                 "max",
                 "min"
-            ]
+            ],
+            "required": true
         },
         "source_id": {
             "type": "string",
@@ -101,6 +107,198 @@
             "supported_state_strategies": [
                 "last_value",
                 "count"
+            ]
+        },
+        "user_first_name": {
+            "type": "string",
+            "description": "User's first name",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "user_last_name": {
+            "type": "string",
+            "description": "User's last name",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "user_email": {
+            "type": "string",
+            "description": "User's email address",
+            "format": "Email",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "user_phone": {
+            "type": "string",
+            "description": "User's phone number",
+            "format": "E.164",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "user_gender": {
+            "type": "string",
+            "description": "User's gender",
+            "allowed_values": [
+                "M",
+                "F",
+                "O",
+                "U"
+            ],
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "user_date_of_birth": {
+            "type": "string",
+            "description": "User's date of birth",
+            "format": "YYYY-MM-DD",
+            "supported_state_strategies": [
+                "last_value",
+                "count",
+                "max",
+                "min"
+            ]
+        },
+        "user_nationality": {
+            "type": "string",
+            "description": "User's nationality",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "account_id": {
+            "type": "string",
+            "description": "Associated account identifier",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "account_status": {
+            "type": "string",
+            "description": "Current status of the account",
+            "allowed_values": [
+                "active",
+                "suspended",
+                "deleted"
+            ],
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "registration_date": {
+            "type": "string",
+            "description": "Account registration timestamp",
+            "format": "ISO-8601",
+            "supported_state_strategies": [
+                "last_value",
+                "count",
+                "max",
+                "min"
+            ]
+        },
+        "last_login_date": {
+            "type": "string",
+            "description": "Last successful login timestamp",
+            "format": "ISO-8601",
+            "supported_state_strategies": [
+                "last_value",
+                "count",
+                "max",
+                "min"
+            ]
+        },
+        "subscription_tier": {
+            "type": "string",
+            "description": "Current subscription or service tier",
+            "allowed_values": [
+                "free",
+                "basic",
+                "premium",
+                "vip",
+                "enterprise"
+            ],
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "loyalty_points": {
+            "type": "integer",
+            "description": "Accumulated loyalty points",
+            "min": 0,
+            "supported_state_strategies": [
+                "last_value",
+                "sum",
+                "count",
+                "avg",
+                "max",
+                "min"
+            ]
+        },
+        "opt_in_email": {
+            "type": "boolean",
+            "description": "Whether user has opted in to email communications",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "opt_in_sms": {
+            "type": "boolean",
+            "description": "Whether user has opted in to SMS communications",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "opt_in_push": {
+            "type": "boolean",
+            "description": "Whether user has opted in to push notifications",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "support_ticket_id": {
+            "type": "string",
+            "description": "ID of a related support ticket",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "support_ticket_status": {
+            "type": "string",
+            "description": "Status of the support ticket",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "satisfaction_score": {
+            "type": "integer",
+            "description": "Customer satisfaction score",
+            "min": 1,
+            "max": 5,
+            "supported_state_strategies": [
+                "last_value",
+                "sum",
+                "count",
+                "avg",
+                "max",
+                "min"
             ]
         },
         "product_id": {
@@ -390,6 +588,111 @@
                 "avg",
                 "max",
                 "min"
+            ]
+        },
+        "transaction_id": {
+            "type": "string",
+            "description": "Unique identifier for the payment transaction",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "payment_gateway": {
+            "type": "string",
+            "description": "Payment gateway provider",
+            "allowed_values": [
+                "stripe",
+                "paypal",
+                "vnpay",
+                "momo"
+            ],
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "payment_method": {
+            "type": "string",
+            "description": "Method of payment used",
+            "allowed_values": [
+                "credit_card",
+                "wallet",
+                "bank_transfer",
+                "cod"
+            ],
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "card_network": {
+            "type": "string",
+            "description": "Credit card network",
+            "allowed_values": [
+                "visa",
+                "mastercard",
+                "amex",
+                "discover",
+                "jcb"
+            ],
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "bank_name": {
+            "type": "string",
+            "description": "Name of the issuing bank",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "account_number_hash": {
+            "type": "string",
+            "description": "Hashed bank account number",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "transaction_status": {
+            "type": "string",
+            "description": "Status of the payment transaction",
+            "allowed_values": [
+                "pending",
+                "success",
+                "failed",
+                "reversed"
+            ],
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "payment_error_message": {
+            "type": "string",
+            "description": "Error message from the payment gateway",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "is_3ds_verified": {
+            "type": "boolean",
+            "description": "Flag indicating if 3D Secure verification passed",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "billing_zip_match": {
+            "type": "boolean",
+            "description": "Flag indicating if billing zip matched card records",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
             ]
         }
     }

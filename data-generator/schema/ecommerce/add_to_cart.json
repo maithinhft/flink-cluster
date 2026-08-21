@@ -1,6 +1,7 @@
 {
-    "source_name": "payment",
+    "source_name": "ecommerce",
     "version": "1.0",
+    "action": "add_to_cart",
     "fields": {
         "event_id": {
             "type": "string",
@@ -9,7 +10,8 @@
             "supported_state_strategies": [
                 "last_value",
                 "count"
-            ]
+            ],
+            "required": true
         },
         "event_type": {
             "type": "string",
@@ -19,12 +21,15 @@
                 "count"
             ],
             "allowed_values": [
-                "payment_initiated",
-                "payment_success",
-                "payment_failed",
-                "refund",
-                "chargeback"
-            ]
+                "add_to_cart",
+                "remove_from_cart",
+                "purchase",
+                "order_created",
+                "order_shipped",
+                "order_completed",
+                "order_cancelled"
+            ],
+            "required": true
         },
         "entity_id": {
             "type": "string",
@@ -32,7 +37,8 @@
             "supported_state_strategies": [
                 "last_value",
                 "count"
-            ]
+            ],
+            "required": true
         },
         "source_system": {
             "type": "string",
@@ -45,7 +51,8 @@
             "supported_state_strategies": [
                 "last_value",
                 "count"
-            ]
+            ],
+            "required": true
         },
         "schema_version": {
             "type": "string",
@@ -65,7 +72,8 @@
                 "count",
                 "max",
                 "min"
-            ]
+            ],
+            "required": true
         },
         "source_id": {
             "type": "string",
@@ -101,109 +109,109 @@
                 "count"
             ]
         },
-        "transaction_id": {
+        "cart_id": {
             "type": "string",
-            "description": "Unique identifier for the payment transaction",
+            "description": "Shopping cart identifier",
             "supported_state_strategies": [
                 "last_value",
                 "count"
             ]
         },
-        "payment_gateway": {
+        "product_id": {
             "type": "string",
-            "description": "Payment gateway provider",
+            "description": "Unique product identifier",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "product_name": {
+            "type": "string",
+            "description": "Display name of the product",
+            "supported_state_strategies": [
+                "last_value",
+                "count"
+            ]
+        },
+        "product_category": {
+            "type": "string",
+            "description": "Main category of the product",
             "allowed_values": [
-                "stripe",
-                "paypal",
-                "vnpay",
-                "momo"
+                "electronics",
+                "fashion",
+                "food",
+                "books",
+                "home",
+                "sports",
+                "beauty",
+                "automotive"
             ],
             "supported_state_strategies": [
                 "last_value",
                 "count"
             ]
         },
-        "payment_method": {
+        "product_subcategory": {
             "type": "string",
-            "description": "Method of payment used",
-            "allowed_values": [
-                "credit_card",
-                "wallet",
-                "bank_transfer",
-                "cod"
-            ],
+            "description": "Sub-category of the product",
             "supported_state_strategies": [
                 "last_value",
                 "count"
             ]
         },
-        "card_network": {
+        "product_sku": {
             "type": "string",
-            "description": "Credit card network",
-            "allowed_values": [
-                "visa",
-                "mastercard",
-                "amex",
-                "discover",
-                "jcb"
-            ],
+            "description": "Stock Keeping Unit (SKU)",
             "supported_state_strategies": [
                 "last_value",
                 "count"
             ]
         },
-        "bank_name": {
+        "product_brand": {
             "type": "string",
-            "description": "Name of the issuing bank",
+            "description": "Brand name of the product",
             "supported_state_strategies": [
                 "last_value",
                 "count"
             ]
         },
-        "account_number_hash": {
-            "type": "string",
-            "description": "Hashed bank account number",
+        "unit_price": {
+            "type": "double",
+            "description": "Price per single unit of the product",
+            "min": 0.0,
             "supported_state_strategies": [
                 "last_value",
-                "count"
+                "sum",
+                "count",
+                "avg",
+                "max",
+                "min"
             ]
         },
-        "transaction_status": {
-            "type": "string",
-            "description": "Status of the payment transaction",
-            "allowed_values": [
-                "pending",
-                "success",
-                "failed",
-                "reversed"
-            ],
+        "quantity": {
+            "type": "integer",
+            "description": "Quantity purchased or interacted with",
+            "min": 1,
             "supported_state_strategies": [
                 "last_value",
-                "count"
+                "sum",
+                "count",
+                "avg",
+                "max",
+                "min"
             ]
         },
-        "payment_error_message": {
-            "type": "string",
-            "description": "Error message from the payment gateway",
+        "warranty_period_months": {
+            "type": "integer",
+            "description": "Warranty duration in months",
+            "min": 0,
             "supported_state_strategies": [
                 "last_value",
-                "count"
-            ]
-        },
-        "is_3ds_verified": {
-            "type": "boolean",
-            "description": "Flag indicating if 3D Secure verification passed",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
-        },
-        "billing_zip_match": {
-            "type": "boolean",
-            "description": "Flag indicating if billing zip matched card records",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
+                "sum",
+                "count",
+                "avg",
+                "max",
+                "min"
             ]
         }
     }

@@ -4,5 +4,5 @@ import java.util.Map;
 import java.util.Random;
 
 public interface EventPopulator {
-    void populate(Map<String, Object> event, Random random, boolean isDirty, int dirtyType);
+    void populate(Map<String, Object> event, String eventType, Random random, boolean isDirty, int dirtyType);
 }

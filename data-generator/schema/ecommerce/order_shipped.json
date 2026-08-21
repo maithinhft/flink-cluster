@@ -1,6 +1,7 @@
 {
-    "source_name": "payment",
+    "source_name": "ecommerce",
     "version": "1.0",
+    "action": "order_shipped",
     "fields": {
         "event_id": {
             "type": "string",
@@ -9,7 +10,8 @@
             "supported_state_strategies": [
                 "last_value",
                 "count"
-            ]
+            ],
+            "required": true
         },
         "event_type": {
             "type": "string",
@@ -19,12 +21,15 @@
                 "count"
             ],
             "allowed_values": [
-                "payment_initiated",
-                "payment_success",
-                "payment_failed",
-                "refund",
-                "chargeback"
-            ]
+                "add_to_cart",
+                "remove_from_cart",
+                "purchase",
+                "order_created",
+                "order_shipped",
+                "order_completed",
+                "order_cancelled"
+            ],
+            "required": true
         },
         "entity_id": {
             "type": "string",
@@ -32,7 +37,8 @@
             "supported_state_strategies": [
                 "last_value",
                 "count"
-            ]
+            ],
+            "required": true
         },
         "source_system": {
             "type": "string",
@@ -45,7 +51,8 @@
             "supported_state_strategies": [
                 "last_value",
                 "count"
-            ]
+            ],
+            "required": true
         },
         "schema_version": {
             "type": "string",
@@ -65,7 +72,8 @@
                 "count",
                 "max",
                 "min"
-            ]
+            ],
+            "required": true
         },
         "source_id": {
             "type": "string",
@@ -101,109 +109,64 @@
                 "count"
             ]
         },
-        "transaction_id": {
+        "order_id": {
             "type": "string",
-            "description": "Unique identifier for the payment transaction",
+            "description": "Order identifier",
             "supported_state_strategies": [
                 "last_value",
                 "count"
             ]
         },
-        "payment_gateway": {
+        "order_status": {
             "type": "string",
-            "description": "Payment gateway provider",
+            "description": "Current status of the order",
             "allowed_values": [
-                "stripe",
-                "paypal",
-                "vnpay",
-                "momo"
+                "created",
+                "paid",
+                "shipped",
+                "completed",
+                "cancelled"
             ],
             "supported_state_strategies": [
                 "last_value",
                 "count"
             ]
         },
-        "payment_method": {
+        "shipping_method": {
             "type": "string",
-            "description": "Method of payment used",
+            "description": "Selected shipping method",
             "allowed_values": [
-                "credit_card",
-                "wallet",
-                "bank_transfer",
-                "cod"
+                "standard",
+                "express",
+                "next_day"
             ],
             "supported_state_strategies": [
                 "last_value",
                 "count"
             ]
         },
-        "card_network": {
+        "shipping_cost": {
+            "type": "double",
+            "description": "Cost of shipping",
+            "min": 0.0,
+            "supported_state_strategies": [
+                "last_value",
+                "sum",
+                "count",
+                "avg",
+                "max",
+                "min"
+            ]
+        },
+        "estimated_delivery_date": {
             "type": "string",
-            "description": "Credit card network",
-            "allowed_values": [
-                "visa",
-                "mastercard",
-                "amex",
-                "discover",
-                "jcb"
-            ],
+            "description": "Estimated date for delivery",
+            "format": "YYYY-MM-DD",
             "supported_state_strategies": [
                 "last_value",
-                "count"
-            ]
-        },
-        "bank_name": {
-            "type": "string",
-            "description": "Name of the issuing bank",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
-        },
-        "account_number_hash": {
-            "type": "string",
-            "description": "Hashed bank account number",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
-        },
-        "transaction_status": {
-            "type": "string",
-            "description": "Status of the payment transaction",
-            "allowed_values": [
-                "pending",
-                "success",
-                "failed",
-                "reversed"
-            ],
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
-        },
-        "payment_error_message": {
-            "type": "string",
-            "description": "Error message from the payment gateway",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
-        },
-        "is_3ds_verified": {
-            "type": "boolean",
-            "description": "Flag indicating if 3D Secure verification passed",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
-        },
-        "billing_zip_match": {
-            "type": "boolean",
-            "description": "Flag indicating if billing zip matched card records",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
+                "count",
+                "max",
+                "min"
             ]
         }
     }

@@ -25,8 +25,7 @@ public class EventFactory {
     private static final Map<String, EventPopulator> populators = Map.of(
             "ecommerce", new EcommercePopulator(),
             "crm", new CrmPopulator(),
-            "payment", new PaymentPopulator()
-    );
+            "payment", new PaymentPopulator());
 
     public static Map<String, Object> generateEvent(long eventId, String entityId, Random random, EventConfig config) {
         int sourceIdx = random.nextInt(SOURCE_EVENT_TYPES.length);
@@ -48,7 +47,7 @@ public class EventFactory {
         event.put("event_type", eventType);
         event.put("entity_id", entityId); // customer id
         event.put("source_system", sourceSystem);
-        event.put("schema_version", "1.1");
+        event.put("schema_version", "1.0");
 
         if (dirtyType == 0 && random.nextBoolean()) {
             // Intentionally missing event_time
@@ -63,7 +62,7 @@ public class EventFactory {
 
         EventPopulator populator = populators.get(sourceSystem);
         if (populator != null) {
-            populator.populate(event, random, isDirty, dirtyType);
+            populator.populate(event, eventType, random, isDirty, dirtyType);
         }
 
         return event;

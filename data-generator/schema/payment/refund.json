@@ -1,6 +1,7 @@
 {
     "source_name": "payment",
     "version": "1.0",
+    "action": "refund",
     "fields": {
         "event_id": {
             "type": "string",
@@ -9,7 +10,8 @@
             "supported_state_strategies": [
                 "last_value",
                 "count"
-            ]
+            ],
+            "required": true
         },
         "event_type": {
             "type": "string",
@@ -24,7 +26,8 @@
                 "payment_failed",
                 "refund",
                 "chargeback"
-            ]
+            ],
+            "required": true
         },
         "entity_id": {
             "type": "string",
@@ -32,7 +35,8 @@
             "supported_state_strategies": [
                 "last_value",
                 "count"
-            ]
+            ],
+            "required": true
         },
         "source_system": {
             "type": "string",
@@ -45,7 +49,8 @@
             "supported_state_strategies": [
                 "last_value",
                 "count"
-            ]
+            ],
+            "required": true
         },
         "schema_version": {
             "type": "string",
@@ -65,7 +70,8 @@
                 "count",
                 "max",
                 "min"
-            ]
+            ],
+            "required": true
         },
         "source_id": {
             "type": "string",
@@ -123,51 +129,6 @@
                 "count"
             ]
         },
-        "payment_method": {
-            "type": "string",
-            "description": "Method of payment used",
-            "allowed_values": [
-                "credit_card",
-                "wallet",
-                "bank_transfer",
-                "cod"
-            ],
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
-        },
-        "card_network": {
-            "type": "string",
-            "description": "Credit card network",
-            "allowed_values": [
-                "visa",
-                "mastercard",
-                "amex",
-                "discover",
-                "jcb"
-            ],
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
-        },
-        "bank_name": {
-            "type": "string",
-            "description": "Name of the issuing bank",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
-        },
-        "account_number_hash": {
-            "type": "string",
-            "description": "Hashed bank account number",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
-        },
         "transaction_status": {
             "type": "string",
             "description": "Status of the payment transaction",
@@ -177,30 +138,6 @@
                 "failed",
                 "reversed"
             ],
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
-        },
-        "payment_error_message": {
-            "type": "string",
-            "description": "Error message from the payment gateway",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
-        },
-        "is_3ds_verified": {
-            "type": "boolean",
-            "description": "Flag indicating if 3D Secure verification passed",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
-        },
-        "billing_zip_match": {
-            "type": "boolean",
-            "description": "Flag indicating if billing zip matched card records",
             "supported_state_strategies": [
                 "last_value",
                 "count"
