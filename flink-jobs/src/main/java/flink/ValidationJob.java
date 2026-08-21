@@ -1,0 +1,94 @@
+package flink;
+
+import flink.config.EnvLoader;
+import flink.operators.SchemaValidationBroadcastProcessFunction;
+import org.apache.flink.api.common.eventtime.WatermarkStrategy;
+import org.apache.flink.api.common.serialization.SimpleStringSchema;
+import org.apache.flink.api.java.utils.ParameterTool;
+import org.apache.flink.connector.kafka.source.KafkaSource;
+import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer;
+import org.apache.flink.streaming.api.datastream.BroadcastStream;
+import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
+import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class ValidationJob {
+    private static final Logger LOG = LoggerFactory.getLogger(ValidationJob.class);
+
+    public static void main(String[] args) throws Exception {
+        LOG.info("Starting Flink Schema Validation Job...");
+
+        final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+
+        // 1. Sử dụng ParameterTool để đọc tham số truyền vào từ lúc submit Job (qua CLI hoặc Web UI)
+        ParameterTool parameters = ParameterTool.fromArgs(args);
+        
+        // Đăng ký ParameterTool làm Global Job Parameters để mọi Operator đều có thể truy cập nếu cần
+        env.getConfig().setGlobalJobParameters(parameters);
+
+        // Đọc cấu hình từ Tham số dòng lệnh (--bootstrap.servers), nếu không truyền thì Fallback về EnvLoader (Dành cho test local)
+        String defaultBootstrap = EnvLoader.get("SERVER_IP", "127.0.0.1") + ":" + EnvLoader.get("KAFKA_PORT", "9092");
+        String bootstrapServers = parameters.get("bootstrap.servers", defaultBootstrap);
+
+        String eventsTopic = parameters.get("events.topic", "events");
+        String schemaTopic = parameters.get("schema.topic", "schema_registry");
+
+        LOG.info("Kafka Bootstrap Servers: {}", bootstrapServers);
+        LOG.info("Events Topic: {}", eventsTopic);
+        LOG.info("Schema Topic: {}", schemaTopic);
+
+        // 1. Tạo Kafka Source để đọc Schema
+        KafkaSource<String> schemaSource = KafkaSource.<String>builder()
+                .setBootstrapServers(bootstrapServers)
+                .setTopics(schemaTopic)
+                .setGroupId("flink-schema-group")
+                .setStartingOffsets(OffsetsInitializer.earliest())
+                .setValueOnlyDeserializer(new SimpleStringSchema())
+                .build();
+
+        DataStream<String> schemaStream = env.fromSource(
+                schemaSource,
+                WatermarkStrategy.noWatermarks(),
+                "Schema Registry Source"
+        );
+
+        // Biến luồng Schema thành Broadcast Stream
+        BroadcastStream<String> broadcastSchemaStream = schemaStream
+                .broadcast(SchemaValidationBroadcastProcessFunction.SCHEMA_STATE_DESCRIPTOR);
+
+        // 2. Tạo Kafka Source để đọc Events
+        KafkaSource<String> eventSource = KafkaSource.<String>builder()
+                .setBootstrapServers(bootstrapServers)
+                .setTopics(eventsTopic)
+                .setGroupId("flink-event-validation-group")
+                // Trong thực tế có thể đọc từ earliest hoặc latest. Ở đây để dễ demo ta đọc từ earliest
+                .setStartingOffsets(OffsetsInitializer.earliest())
+                .setValueOnlyDeserializer(new SimpleStringSchema())
+                .build();
+
+        DataStream<String> eventStream = env.fromSource(
+                eventSource,
+                WatermarkStrategy.noWatermarks(),
+                "Events Source"
+        );
+
+        // 3. Kết nối luồng Event với luồng Schema (Broadcast) và xử lý
+        SingleOutputStreamOperator<String> processedStream = eventStream
+                .connect(broadcastSchemaStream)
+                .process(new SchemaValidationBroadcastProcessFunction())
+                .name("Schema Validation Operator");
+
+        // 4. In các luồng ra màn hình
+        
+        // Luồng dữ liệu bẩn (Side Output)
+        DataStream<String> dirtyEventsStream = processedStream.getSideOutput(SchemaValidationBroadcastProcessFunction.DIRTY_DATA_TAG);
+        dirtyEventsStream.print("DIRTY DATA -> ");
+
+        // Luồng dữ liệu sạch
+        processedStream.print("VALID DATA -> ");
+
+        env.execute("Flink Realtime Schema Validation Job");
+    }
+}

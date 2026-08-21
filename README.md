@@ -72,3 +72,10 @@ mvn exec:java -Dexec.mainClass=generator.rules.RuleGeneratorApp
 mvn exec:java -Dexec.classpathScope=test -Dexec.mainClass="generator.common.KafkaConsumerApp" -Dexec.args="--topic events --max 5"\n
 ```
 **Note:** nên chạy trên server để tránh tình trạng mất gói tin dẫn đến java bị treo
+
+
+# Submit flink job
+* submit file jar
+```
+--bootstrap.servers kafka:29092 --events.topic events --schema.topic schema_registry
+```
