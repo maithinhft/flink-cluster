@@ -7,7 +7,6 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 
 import java.time.Duration;
-import java.util.Collections;
 import java.util.Properties;
 
 public class KafkaConsumerApp {
@@ -22,12 +21,14 @@ public class KafkaConsumerApp {
             } else if ("--max".equals(args[i]) && i + 1 < args.length) {
                 try {
                     maxMessages = Integer.parseInt(args[i + 1]);
-                } catch (NumberFormatException ignored) {}
+                } catch (NumberFormatException ignored) {
+                }
             }
         }
 
         if (topic == null) {
-            System.err.println("Usage: java -cp target/... generator.common.KafkaConsumerApp --topic <topic_name> [--max <number_of_messages>]");
+            System.err.println(
+                    "Usage: java -cp target/... generator.common.KafkaConsumerApp --topic <topic_name> [--max <number_of_messages>]");
             System.exit(1);
         }
 
@@ -46,15 +47,18 @@ public class KafkaConsumerApp {
 
         int count = 0;
         try (KafkaConsumer<String, String> consumer = new KafkaConsumer<>(props)) {
-            // Thay vì dùng subscribe (cần Consumer Group Coordinator), ta dùng assign để đọc trực tiếp
+            // Thay vì dùng subscribe (cần Consumer Group Coordinator), ta dùng assign để
+            // đọc trực tiếp
             java.util.List<org.apache.kafka.common.PartitionInfo> partitions = consumer.partitionsFor(topic);
             java.util.List<org.apache.kafka.common.TopicPartition> topicPartitions = new java.util.ArrayList<>();
             for (org.apache.kafka.common.PartitionInfo p : partitions) {
                 topicPartitions.add(new org.apache.kafka.common.TopicPartition(topic, p.partition()));
             }
             consumer.assign(topicPartitions);
-            // Đọc từ CUỐI (latest - N) thay vì từ đầu để tránh bị treo nếu topic có quá nhiều dữ liệu cũ
-            java.util.Map<org.apache.kafka.common.TopicPartition, Long> endOffsets = consumer.endOffsets(topicPartitions);
+            // Đọc từ CUỐI (latest - N) thay vì từ đầu để tránh bị treo nếu topic có quá
+            // nhiều dữ liệu cũ
+            java.util.Map<org.apache.kafka.common.TopicPartition, Long> endOffsets = consumer
+                    .endOffsets(topicPartitions);
             for (org.apache.kafka.common.TopicPartition tp : topicPartitions) {
                 long endOffset = endOffsets.get(tp);
                 long startOffset = Math.max(0, endOffset - maxMessages);
@@ -62,16 +66,17 @@ public class KafkaConsumerApp {
             }
 
             System.out.println("Assigned to " + topicPartitions.size() + " partitions. Seeking to end offsets...");
-            
+
             if (!partitions.isEmpty()) {
                 org.apache.kafka.common.Node leader = partitions.get(0).leader();
-                System.out.println("DEBUG: Leader for partition 0 is advertised as: " + leader.host() + ":" + leader.port());
+                System.out.println(
+                        "DEBUG: Leader for partition 0 is advertised as: " + leader.host() + ":" + leader.port());
             }
 
             int emptyPolls = 0;
             while (count < maxMessages) {
                 ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(2000));
-                
+
                 if (records.isEmpty()) {
                     emptyPolls++;
                     if (emptyPolls % 5 == 0) {
@@ -79,13 +84,13 @@ public class KafkaConsumerApp {
                     }
                     continue;
                 }
-                
+
                 for (ConsumerRecord<String, String> record : records) {
                     System.out.println("----------------------------------------");
                     System.out.println("Key: " + record.key());
                     System.out.println("Value: " + record.value());
                     System.out.println("Partition: " + record.partition() + ", Offset: " + record.offset());
-                    
+
                     count++;
                     if (count >= maxMessages) {
                         break;

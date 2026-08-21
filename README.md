@@ -37,3 +37,36 @@ docker exec -it kafka \
   --topic realtime_core.public.aggregation_definitions \
   --from-beginning
 ```
+
+# Sinh dữ liệu
+
+* Compile
+```
+mvn clean package
+```
+
+hoặc nếu chỉ compile thư mục test
+```
+mvn test-compile
+```
+
+* Tạo các schema
+```
+mvn exec:java -Dexec.mainClass=generator.schema.SchemaPublisherApp -- -path ./data/schemas/
+```
+
+* Sinh các Event
+```
+mvn exec:java -Dexec.mainClass=generator.events.EventGeneratorApp
+```
+
+* Sinh các Rule
+```
+mvn exec:java -Dexec.mainClass=generator.rules.RuleGeneratorApp
+```
+
+* Kiểm tra 1 topic trên Kafka
+```
+mvn exec:java -Dexec.classpathScope=test -Dexec.mainClass="generator.common.KafkaConsumerApp" -Dexec.args="--topic events --max 5"\n
+```
+**Note:** nên chạy trên server để tránh tình trạng mất gói tin dẫn đến java bị treo
