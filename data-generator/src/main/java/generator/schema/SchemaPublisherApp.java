@@ -19,7 +19,7 @@ import java.util.stream.Stream;
 
 public class SchemaPublisherApp {
 
-    private static final String TOPIC_NAME = "registry_schema";
+    private static final String TOPIC_NAME = "schema_registry";
     private static final ObjectMapper mapper = new ObjectMapper();
 
     public static void main(String[] args) {
@@ -32,7 +32,8 @@ public class SchemaPublisherApp {
         }
 
         if (pathArg == null) {
-            System.err.println("Usage: java -cp target/... generator.schema.SchemaPublisherApp --path <file_or_directory>");
+            System.err.println(
+                    "Usage: java -cp target/... generator.schema.SchemaPublisherApp --path <file_or_directory>");
             System.exit(1);
         }
 
@@ -55,8 +56,8 @@ public class SchemaPublisherApp {
             if (Files.isDirectory(path)) {
                 try (Stream<Path> paths = Files.walk(path)) {
                     paths.filter(Files::isRegularFile)
-                         .filter(p -> p.toString().endsWith(".json"))
-                         .forEach(p -> processAndSend(p.toFile(), producer));
+                            .filter(p -> p.toString().endsWith(".json"))
+                            .forEach(p -> processAndSend(p.toFile(), producer));
                 }
             } else {
                 processAndSend(path.toFile(), producer);
@@ -71,11 +72,11 @@ public class SchemaPublisherApp {
     private static void processAndSend(File jsonFile, KafkaProducer<String, String> producer) {
         try {
             JsonNode rootNode = mapper.readTree(jsonFile);
-            
+
             // Check if it's a unified schema or action schema
             String sourceName = rootNode.has("source_name") ? rootNode.get("source_name").asText() : "unknown";
             String action = rootNode.has("action") ? rootNode.get("action").asText() : null;
-            
+
             String kafkaKey;
             if ("unified_dictionary".equals(rootNode.has("name") ? rootNode.get("name").asText() : "")) {
                 kafkaKey = "unified_schema";
