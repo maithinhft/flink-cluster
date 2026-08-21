@@ -9,3 +9,5 @@ target/
 schema.json
 
 .env
+
+test.*
