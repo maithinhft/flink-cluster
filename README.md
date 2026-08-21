@@ -52,7 +52,9 @@ mvn test-compile
 
 * Tạo các schema
 ```
-mvn exec:java -Dexec.mainClass=generator.schema.SchemaPublisherApp -- -path ./data/schemas/
+mvn exec:java -Dexec.mainClass=generator.schema.SchemaPublisherApp -Dexec.args="--path ./schema/crm"
+mvn exec:java -Dexec.mainClass=generator.schema.SchemaPublisherApp -Dexec.args="--path ./schema/ecommerce"
+mvn exec:java -Dexec.mainClass=generator.schema.SchemaPublisherApp -Dexec.args="--path ./schema/payment"
 ```
 
 * Sinh các Event
