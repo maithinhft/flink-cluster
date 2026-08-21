@@ -58,6 +58,8 @@ services:
 
     environment:
 
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+
       # KRaft
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
