@@ -93,14 +93,6 @@
                 "count"
             ]
         },
-        "session_id": {
-            "type": "string",
-            "description": "User or device session identifier",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
-        },
         "transaction_id": {
             "type": "string",
             "description": "Unique identifier for the payment transaction",

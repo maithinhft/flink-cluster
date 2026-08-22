@@ -58,7 +58,6 @@ public class EventFactory {
         event.put("source_id", sourceSystem + "-" + eventId);
         event.put("trace_id", UUID.randomUUID().toString());
         event.put("correlation_id", UUID.randomUUID().toString());
-        event.put("session_id", "sess-" + random.nextInt(1_000_000));
 
         EventPopulator populator = populators.get(sourceSystem);
         if (populator != null) {

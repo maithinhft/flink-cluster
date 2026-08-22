@@ -102,14 +102,6 @@
                 "count"
             ]
         },
-        "session_id": {
-            "type": "string",
-            "description": "User or device session identifier",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
-        },
         "last_login_date": {
             "type": "string",
             "description": "Last successful login timestamp",

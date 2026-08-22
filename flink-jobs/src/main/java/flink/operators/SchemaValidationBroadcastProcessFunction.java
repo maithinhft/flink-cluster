@@ -23,35 +23,37 @@ public class SchemaValidationBroadcastProcessFunction extends BroadcastProcessFu
     private static final Logger LOG = LoggerFactory.getLogger(SchemaValidationBroadcastProcessFunction.class);
     private static final ObjectMapper mapper = new ObjectMapper();
 
-    // MapStateDescriptor để định nghĩa cấu trúc lưu trữ Schema (Key: Tên schema, Value: Nội dung JSON của Schema)
-    public static final MapStateDescriptor<String, String> SCHEMA_STATE_DESCRIPTOR =
-            new MapStateDescriptor<>("schemaBroadcastState", Types.STRING, Types.STRING);
+    // MapStateDescriptor để định nghĩa cấu trúc lưu trữ Schema (Key: Tên schema,
+    // Value: Nội dung JSON của Schema)
+    public static final MapStateDescriptor<String, String> SCHEMA_STATE_DESCRIPTOR = new MapStateDescriptor<>(
+            "schemaBroadcastState", Types.STRING, Types.STRING);
 
     // OutputTag để rẽ nhánh dữ liệu bẩn ra luồng riêng (Side Output)
-    public static final OutputTag<String> DIRTY_DATA_TAG = new OutputTag<String>("dirty-events") {};
+    public static final OutputTag<String> DIRTY_DATA_TAG = new OutputTag<String>("dirty-events") {
+    };
 
     @Override
     public void processElement(String eventJson, ReadOnlyContext ctx, Collector<String> out) throws Exception {
         try {
             JsonNode eventNode = mapper.readTree(eventJson);
-            
-            // Xác định source_name và action để suy ra Schema Key (VD: crm_login)
-            if (!eventNode.has("source_name") || !eventNode.has("action")) {
+
+            // Xác định source_system và action để suy ra Schema Key (VD: crm_login)
+            if (!eventNode.has("source_system") || !eventNode.has("event_type")) {
                 // Thiếu thông tin cơ bản để map schema -> Đẩy thẳng vào DIRTY
-                ((ObjectNode) eventNode).put("error_reason", "Missing source_name or action for schema mapping");
+                ((ObjectNode) eventNode).put("error_reason", "Missing source_system or action for schema mapping");
                 ctx.output(DIRTY_DATA_TAG, mapper.writeValueAsString(eventNode));
                 return;
             }
 
-            String sourceName = eventNode.get("source_name").asText();
-            String action = eventNode.get("action").asText();
+            String sourceName = eventNode.get("source_system").asText();
+            String action = eventNode.get("event_type").asText();
             String schemaKey = sourceName + "_" + action;
 
             ReadOnlyBroadcastState<String, String> schemaState = ctx.getBroadcastState(SCHEMA_STATE_DESCRIPTOR);
             String schemaJson = schemaState.get(schemaKey);
 
             if (schemaJson == null) {
-                // Nếu chưa nhận được schema từ Broadcast, có thể tạm coi là hợp lệ hoặc không. 
+                // Nếu chưa nhận được schema từ Broadcast, có thể tạm coi là hợp lệ hoặc không.
                 // Ở đây ta ghi nhận lỗi thiếu schema.
                 ((ObjectNode) eventNode).put("error_reason", "Schema not found for key: " + schemaKey);
                 ctx.output(DIRTY_DATA_TAG, mapper.writeValueAsString(eventNode));
@@ -88,7 +90,8 @@ public class SchemaValidationBroadcastProcessFunction extends BroadcastProcessFu
 
             if (!missingFields.isEmpty()) {
                 // Sự kiện thiếu trường bắt buộc -> DIRTY DATA
-                ((ObjectNode) eventNode).put("error_reason", "Missing required fields: " + String.join(", ", missingFields));
+                ((ObjectNode) eventNode).put("error_reason",
+                        "Missing required fields: " + String.join(", ", missingFields));
                 ctx.output(DIRTY_DATA_TAG, mapper.writeValueAsString(eventNode));
             } else {
                 // Dữ liệu Sạch -> Đẩy ra luồng chính
@@ -109,21 +112,22 @@ public class SchemaValidationBroadcastProcessFunction extends BroadcastProcessFu
     public void processBroadcastElement(String schemaJson, Context ctx, Collector<String> out) throws Exception {
         try {
             JsonNode schemaNode = mapper.readTree(schemaJson);
-            
+
             String schemaKey;
             if (schemaNode.has("name") && "unified_dictionary".equals(schemaNode.get("name").asText())) {
                 schemaKey = "unified_schema";
             } else {
-                String sourceName = schemaNode.has("source_name") ? schemaNode.get("source_name").asText() : "unknown";
-                String action = schemaNode.has("action") ? schemaNode.get("action").asText() : "unknown";
+                String sourceName = schemaNode.has("source_system") ? schemaNode.get("source_system").asText()
+                        : "unknown";
+                String action = schemaNode.has("event_type") ? schemaNode.get("event_type").asText() : "unknown";
                 schemaKey = sourceName + "_" + action;
             }
 
             BroadcastState<String, String> broadcastState = ctx.getBroadcastState(SCHEMA_STATE_DESCRIPTOR);
             broadcastState.put(schemaKey, schemaJson);
-            
+
             LOG.info("Received and cached schema for key: {}", schemaKey);
-            
+
         } catch (Exception e) {
             LOG.error("Failed to parse and store schema from Broadcast Stream", e);
         }
