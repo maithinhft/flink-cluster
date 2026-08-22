@@ -59,7 +59,7 @@ mvn exec:java -Dexec.mainClass=generator.schema.SchemaPublisherApp -Dexec.args="
 
 * Sinh các Event
 ```
-mvn exec:java -Dexec.mainClass=generator.events.EventGeneratorApp
+mvn exec:java -Dexec.mainClass=generator.events.EventGeneratorApp -Dexec.args="--num-events 100"
 ```
 
 * Sinh các Rule

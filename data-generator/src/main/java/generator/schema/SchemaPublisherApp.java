@@ -43,7 +43,8 @@ public class SchemaPublisherApp {
 
         // Setup PostgreSQL Connection
         String serverIp = EnvLoader.get("SERVER_IP", "127.0.0.1");
-        String dbUrl = "jdbc:postgresql://" + serverIp + ":5432/realtime_core";
+        String dbPort = EnvLoader.get("POSTGRES_PORT", "5433");
+        String dbUrl = "jdbc:postgresql://" + serverIp + ":" + dbPort + "/realtime_core";
         String dbUser = EnvLoader.get("DB_USER", "postgres");
         String dbPassword = EnvLoader.get("DB_PASSWORD", "postgres");
 
@@ -100,9 +101,9 @@ public class SchemaPublisherApp {
 
             // UPSERT statement (INSERT OR UPDATE)
             String sql = "INSERT INTO schema_definitions (schema_id, schema_payload) " +
-                         "VALUES (?, ?::jsonb) " +
-                         "ON CONFLICT (schema_id) DO UPDATE " +
-                         "SET schema_payload = EXCLUDED.schema_payload, updated_at = CURRENT_TIMESTAMP";
+                    "VALUES (?, ?::jsonb) " +
+                    "ON CONFLICT (schema_id) DO UPDATE " +
+                    "SET schema_payload = EXCLUDED.schema_payload, updated_at = CURRENT_TIMESTAMP";
 
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 pstmt.setString(1, schemaId);
