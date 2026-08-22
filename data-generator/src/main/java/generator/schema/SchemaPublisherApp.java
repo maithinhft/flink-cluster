@@ -4,22 +4,20 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import generator.common.EnvLoader;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.serialization.StringSerializer;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Properties;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.stream.Stream;
 
 public class SchemaPublisherApp {
 
-    private static final String TOPIC_NAME = "schema_registry";
     private static final ObjectMapper mapper = new ObjectMapper();
 
     public static void main(String[] args) {
@@ -43,25 +41,26 @@ public class SchemaPublisherApp {
             System.exit(1);
         }
 
-        // Setup Kafka Producer
-        Properties props = new Properties();
-        String bootstrapServers = EnvLoader.get("SERVER_IP", "127.0.0.1") + ":" + EnvLoader.get("KAFKA_PORT", "9092");
-        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        // Setup PostgreSQL Connection
+        String serverIp = EnvLoader.get("SERVER_IP", "127.0.0.1");
+        String dbUrl = "jdbc:postgresql://" + serverIp + ":5432/realtime_core";
+        String dbUser = EnvLoader.get("DB_USER", "postgres");
+        String dbPassword = EnvLoader.get("DB_PASSWORD", "postgres");
 
-        System.out.println("Connecting to Kafka: " + bootstrapServers);
+        System.out.println("Connecting to PostgreSQL: " + dbUrl);
 
-        try (KafkaProducer<String, String> producer = new KafkaProducer<>(props)) {
+        try (Connection conn = DriverManager.getConnection(dbUrl, dbUser, dbPassword)) {
             if (Files.isDirectory(path)) {
                 try (Stream<Path> paths = Files.walk(path)) {
                     paths.filter(Files::isRegularFile)
                             .filter(p -> p.toString().endsWith(".json"))
-                            .forEach(p -> processAndSend(p.toFile(), producer));
+                            .forEach(p -> processAndSend(p.toFile(), conn));
                 }
             } else {
-                processAndSend(path.toFile(), producer);
+                processAndSend(path.toFile(), conn);
             }
+        } catch (SQLException e) {
+            System.err.println("Failed to connect to PostgreSQL: " + e.getMessage());
         } catch (IOException e) {
             System.err.println("Failed to walk the directory: " + e.getMessage());
         }
@@ -69,7 +68,7 @@ public class SchemaPublisherApp {
         System.out.println("Done processing schemas.");
     }
 
-    private static void processAndSend(File jsonFile, KafkaProducer<String, String> producer) {
+    private static void processAndSend(File jsonFile, Connection conn) {
         try {
             JsonNode rootNode = mapper.readTree(jsonFile);
 
@@ -77,13 +76,13 @@ public class SchemaPublisherApp {
             String sourceName = rootNode.has("source_name") ? rootNode.get("source_name").asText() : "unknown";
             String action = rootNode.has("action") ? rootNode.get("action").asText() : null;
 
-            String kafkaKey;
+            String schemaId;
             if ("unified_dictionary".equals(rootNode.has("name") ? rootNode.get("name").asText() : "")) {
-                kafkaKey = "unified_schema";
+                schemaId = "unified_schema";
             } else if (action != null) {
-                kafkaKey = sourceName + "_" + action;
+                schemaId = sourceName + "_" + action;
             } else {
-                kafkaKey = sourceName + "_schema";
+                schemaId = sourceName + "_schema";
             }
 
             JsonNode fieldsNode = rootNode.get("fields");
@@ -98,14 +97,21 @@ public class SchemaPublisherApp {
             }
 
             String minifiedJson = mapper.writeValueAsString(rootNode);
-            ProducerRecord<String, String> record = new ProducerRecord<>(TOPIC_NAME, kafkaKey, minifiedJson);
-            producer.send(record, (metadata, exception) -> {
-                if (exception != null) {
-                    System.err.println("Error sending schema for key " + kafkaKey + ": " + exception.getMessage());
-                } else {
-                    System.out.println("Sent schema to partition " + metadata.partition() + " with key: " + kafkaKey);
-                }
-            });
+
+            // UPSERT statement (INSERT OR UPDATE)
+            String sql = "INSERT INTO schema_definitions (schema_id, schema_payload) " +
+                         "VALUES (?, ?::jsonb) " +
+                         "ON CONFLICT (schema_id) DO UPDATE " +
+                         "SET schema_payload = EXCLUDED.schema_payload, updated_at = CURRENT_TIMESTAMP";
+
+            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setString(1, schemaId);
+                pstmt.setString(2, minifiedJson);
+                pstmt.executeUpdate();
+                System.out.println("Saved schema to DB with ID: " + schemaId);
+            } catch (SQLException e) {
+                System.err.println("Database error for schema " + schemaId + ": " + e.getMessage());
+            }
 
         } catch (IOException e) {
             System.err.println("Failed to process file " + jsonFile.getAbsolutePath() + ": " + e.getMessage());

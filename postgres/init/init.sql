@@ -41,14 +41,25 @@ CREATE TABLE IF NOT EXISTS rule_definitions (
         UNIQUE (rule_id, version)
 );
 
+CREATE TABLE IF NOT EXISTS schema_definitions (
+    schema_id VARCHAR(255) PRIMARY KEY,
+    schema_payload JSONB NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 
 ALTER TABLE rule_definitions
+REPLICA IDENTITY FULL;
+
+ALTER TABLE schema_definitions
 REPLICA IDENTITY FULL;
 
 GRANT USAGE ON SCHEMA public TO replicator;
 
 GRANT SELECT ON
-    public.rule_definitions
+    public.rule_definitions,
+    public.schema_definitions
 TO replicator;
 
 GRANT SELECT ON ALL SEQUENCES IN SCHEMA public TO replicator;
@@ -56,4 +67,5 @@ GRANT SELECT ON ALL SEQUENCES IN SCHEMA public TO replicator;
 
 CREATE PUBLICATION realtime_publication
 FOR TABLE
-    public.rule_definitions;
+    public.rule_definitions,
+    public.schema_definitions;

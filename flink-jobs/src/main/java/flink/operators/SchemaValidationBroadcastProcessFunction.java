@@ -109,25 +109,34 @@ public class SchemaValidationBroadcastProcessFunction extends BroadcastProcessFu
     }
 
     @Override
-    public void processBroadcastElement(String schemaJson, Context ctx, Collector<String> out) throws Exception {
+    public void processBroadcastElement(String messageJson, Context ctx, Collector<String> out) throws Exception {
         try {
-            JsonNode schemaNode = mapper.readTree(schemaJson);
-
+            JsonNode messageNode = mapper.readTree(messageJson);
+            
             String schemaKey;
-            if (schemaNode.has("name") && "unified_dictionary".equals(schemaNode.get("name").asText())) {
-                schemaKey = "unified_schema";
+            String schemaJson;
+
+            // Hỗ trợ luồng dữ liệu mới từ PostgreSQL CDC
+            if (messageNode.has("schema_payload") && messageNode.has("schema_id")) {
+                schemaKey = messageNode.get("schema_id").asText();
+                schemaJson = messageNode.get("schema_payload").asText(); // Debezium convert JSONB thành String
             } else {
-                String sourceName = schemaNode.has("source_system") ? schemaNode.get("source_system").asText()
-                        : "unknown";
-                String action = schemaNode.has("event_type") ? schemaNode.get("event_type").asText() : "unknown";
-                schemaKey = sourceName + "_" + action;
+                // Hỗ trợ ngược cho luồng dữ liệu cũ bắn trực tiếp lên Kafka
+                schemaJson = messageJson;
+                if (messageNode.has("name") && "unified_dictionary".equals(messageNode.get("name").asText())) {
+                    schemaKey = "unified_schema";
+                } else {
+                    String sourceName = messageNode.has("source_name") ? messageNode.get("source_name").asText() : "unknown";
+                    String action = messageNode.has("action") ? messageNode.get("action").asText() : "unknown";
+                    schemaKey = sourceName + "_" + action;
+                }
             }
 
             BroadcastState<String, String> broadcastState = ctx.getBroadcastState(SCHEMA_STATE_DESCRIPTOR);
             broadcastState.put(schemaKey, schemaJson);
-
+            
             LOG.info("Received and cached schema for key: {}", schemaKey);
-
+            
         } catch (Exception e) {
             LOG.error("Failed to parse and store schema from Broadcast Stream", e);
         }
