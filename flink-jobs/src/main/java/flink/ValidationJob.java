@@ -22,14 +22,18 @@ public class ValidationJob {
 
         final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
-        // 1. Sử dụng ParameterTool để đọc tham số truyền vào từ lúc submit Job (qua CLI hoặc Web UI)
+        // 1. Sử dụng ParameterTool để đọc tham số truyền vào từ lúc submit Job (qua CLI
+        // hoặc Web UI)
         ParameterTool parameters = ParameterTool.fromArgs(args);
-        
-        // Đăng ký ParameterTool làm Global Job Parameters để mọi Operator đều có thể truy cập nếu cần
+
+        // Đăng ký ParameterTool làm Global Job Parameters để mọi Operator đều có thể
+        // truy cập nếu cần
         env.getConfig().setGlobalJobParameters(parameters);
 
-        // Đọc cấu hình từ Tham số dòng lệnh (--bootstrap.servers), nếu không truyền thì Fallback về EnvLoader (Dành cho test local)
-        String defaultBootstrap = EnvLoader.get("SERVER_IP", "127.0.0.1") + ":" + EnvLoader.get("KAFKA_PORT", "9092");
+        // Đọc cấu hình từ Tham số dòng lệnh (--bootstrap.servers), nếu không truyền thì
+        // Fallback về EnvLoader (Dành cho test local)
+        String defaultBootstrap = EnvLoader.get("SERVER_IP", "127.0.0.1") + ":"
+                + EnvLoader.get("KAFKA_PORT", "9092");
         String bootstrapServers = parameters.get("bootstrap.servers", defaultBootstrap);
 
         String eventsTopic = parameters.get("events.topic", "events");
@@ -51,8 +55,7 @@ public class ValidationJob {
         DataStream<String> schemaStream = env.fromSource(
                 schemaSource,
                 WatermarkStrategy.noWatermarks(),
-                "Schema Registry Source"
-        );
+                "Schema Registry Source");
 
         // Biến luồng Schema thành Broadcast Stream
         BroadcastStream<String> broadcastSchemaStream = schemaStream
@@ -63,7 +66,8 @@ public class ValidationJob {
                 .setBootstrapServers(bootstrapServers)
                 .setTopics(eventsTopic)
                 .setGroupId("flink-event-validation-group")
-                // Trong thực tế có thể đọc từ earliest hoặc latest. Ở đây để dễ demo ta đọc từ earliest
+                // Trong thực tế có thể đọc từ earliest hoặc latest. Ở đây để dễ demo ta đọc từ
+                // earliest
                 .setStartingOffsets(OffsetsInitializer.earliest())
                 .setValueOnlyDeserializer(new SimpleStringSchema())
                 .build();
@@ -71,8 +75,7 @@ public class ValidationJob {
         DataStream<String> eventStream = env.fromSource(
                 eventSource,
                 WatermarkStrategy.noWatermarks(),
-                "Events Source"
-        );
+                "Events Source");
 
         // 3. Kết nối luồng Event với luồng Schema (Broadcast) và xử lý
         SingleOutputStreamOperator<String> processedStream = eventStream
@@ -81,13 +84,20 @@ public class ValidationJob {
                 .name("Schema Validation Operator");
 
         // 4. In các luồng ra màn hình
-        
+
         // Luồng dữ liệu bẩn (Side Output)
-        DataStream<String> dirtyEventsStream = processedStream.getSideOutput(SchemaValidationBroadcastProcessFunction.DIRTY_DATA_TAG);
-        dirtyEventsStream.print("DIRTY DATA -> ");
+        DataStream<String> dirtyEventsStream = processedStream
+                .getSideOutput(SchemaValidationBroadcastProcessFunction.DIRTY_DATA_TAG);
+        dirtyEventsStream.map(data -> {
+            LOG.info("DIRTY DATA -> {}", data);
+            return data;
+        });
 
         // Luồng dữ liệu sạch
-        processedStream.print("VALID DATA -> ");
+        processedStream.map(data -> {
+            LOG.info("VALID DATA -> {}", data);
+            return data;
+        });
 
         env.execute("Flink Realtime Schema Validation Job");
     }
