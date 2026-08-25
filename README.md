@@ -77,5 +77,10 @@ mvn exec:java -Dexec.classpathScope=test -Dexec.mainClass="generator.common.Kafk
 # Submit flink job
 * submit file jar
 ```
---bootstrap.servers kafka:29092 --events.topic events --schema.topic schema_registry
+docker cp target/flink-jobs-1.0-SNAPSHOT.jar flink-jobmanager:/tmp/
+
+docker exec -it flink-jobmanager \
+    ./bin/flink run \
+    -m jobmanager:8081 \
+    /tmp/flink-jobs-1.0-SNAPSHOT.jar --bootstrap.servers kafka:29092 --events.topic events --schema.topic schema_registry
 ```
