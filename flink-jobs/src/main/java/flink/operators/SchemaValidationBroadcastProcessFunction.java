@@ -69,21 +69,19 @@ public class SchemaValidationBroadcastProcessFunction extends BroadcastProcessFu
             }
 
             List<String> missingFields = new ArrayList<>();
-            JsonNode eventFields = eventNode.get("fields");
-            if (eventFields == null) {
-                missingFields.add("fields_object_missing");
-            } else {
-                Iterator<Map.Entry<String, JsonNode>> fieldsIter = fieldsNode.fields();
-                while (fieldsIter.hasNext()) {
-                    Map.Entry<String, JsonNode> fieldEntry = fieldsIter.next();
-                    String fieldName = fieldEntry.getKey();
-                    JsonNode fieldDef = fieldEntry.getValue();
+            // Event payload is a flat JSON, so the fields are at the root of the eventNode
+            JsonNode eventFields = eventNode;
+            
+            Iterator<Map.Entry<String, JsonNode>> fieldsIter = fieldsNode.fields();
+            while (fieldsIter.hasNext()) {
+                Map.Entry<String, JsonNode> fieldEntry = fieldsIter.next();
+                String fieldName = fieldEntry.getKey();
+                JsonNode fieldDef = fieldEntry.getValue();
 
-                    // Kiểm tra cờ required
-                    if (fieldDef.has("required") && fieldDef.get("required").asBoolean()) {
-                        if (!eventFields.has(fieldName) || eventFields.get(fieldName).isNull()) {
-                            missingFields.add(fieldName);
-                        }
+                // Kiểm tra cờ required
+                if (fieldDef.has("required") && fieldDef.get("required").asBoolean()) {
+                    if (!eventFields.has(fieldName) || eventFields.get(fieldName).isNull()) {
+                        missingFields.add(fieldName);
                     }
                 }
             }
