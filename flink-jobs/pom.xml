@@ -164,11 +164,6 @@
                             <artifactSet>
                                 <excludes>
 
-                                    <!-- Flink đã có trong cluster -->
-                                    <exclude>
-                                        org.apache.flink:*
-                                    </exclude>
-
                                     <!-- Logging của cluster -->
                                     <exclude>
                                         org.slf4j:*
