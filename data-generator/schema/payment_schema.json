@@ -1,4 +1,5 @@
 {
+    "entity_type": "customer_event",
     "source_name": "payment",
     "version": "1.0",
     "fields": {
@@ -6,33 +7,24 @@
             "type": "string",
             "description": "Unique identifier for the event",
             "format": "UUID",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "event_type": {
             "type": "string",
             "description": "The specific action that occurred",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ],
             "allowed_values": [
                 "payment_initiated",
                 "payment_success",
                 "payment_failed",
                 "refund",
                 "chargeback"
-            ]
+            ],
+            "filterable": true
         },
         "entity_id": {
             "type": "string",
             "description": "Customer identifier (unique ID of the customer)",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "source_system": {
             "type": "string",
@@ -42,65 +34,42 @@
                 "crm",
                 "payment"
             ],
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "schema_version": {
             "type": "string",
             "description": "Version of the event schema",
             "default": "1.0",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ],
-            "required": true
+            "required": true,
+            "filterable": true
         },
         "event_time": {
             "type": "string",
             "description": "Timestamp when the event actually occurred at the source",
             "format": "ISO-8601",
-            "supported_state_strategies": [
-                "last_value",
-                "count",
-                "max",
-                "min"
-            ]
+            "filterable": true
         },
         "source_id": {
             "type": "string",
             "description": "Original record ID in the source system",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "trace_id": {
             "type": "string",
             "description": "Distributed tracing ID for the request flow",
             "format": "UUID",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "correlation_id": {
             "type": "string",
             "description": "Identifier linking multiple related events together",
             "format": "UUID",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "transaction_id": {
             "type": "string",
             "description": "Unique identifier for the payment transaction",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "payment_gateway": {
             "type": "string",
@@ -111,10 +80,7 @@
                 "vnpay",
                 "momo"
             ],
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "payment_method": {
             "type": "string",
@@ -125,10 +91,7 @@
                 "bank_transfer",
                 "cod"
             ],
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "card_network": {
             "type": "string",
@@ -140,26 +103,17 @@
                 "discover",
                 "jcb"
             ],
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "bank_name": {
             "type": "string",
             "description": "Name of the issuing bank",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "account_number_hash": {
             "type": "string",
             "description": "Hashed bank account number",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "transaction_status": {
             "type": "string",
@@ -170,34 +124,150 @@
                 "failed",
                 "reversed"
             ],
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "payment_error_message": {
             "type": "string",
             "description": "Error message from the payment gateway",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "is_3ds_verified": {
             "type": "boolean",
             "description": "Flag indicating if 3D Secure verification passed",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "billing_zip_match": {
             "type": "boolean",
             "description": "Flag indicating if billing zip matched card records",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         }
-    }
+    },
+    "metrics": [
+        {
+            "metric_id": "count_event_id",
+            "source_field": "event_id",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_event_type",
+            "source_field": "event_type",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_entity_id",
+            "source_field": "entity_id",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_source_system",
+            "source_field": "source_system",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_schema_version",
+            "source_field": "schema_version",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_event_time",
+            "source_field": "event_time",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "max_event_time",
+            "source_field": "event_time",
+            "aggregation": "MAX",
+            "filter": null
+        },
+        {
+            "metric_id": "min_event_time",
+            "source_field": "event_time",
+            "aggregation": "MIN",
+            "filter": null
+        },
+        {
+            "metric_id": "count_source_id",
+            "source_field": "source_id",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_trace_id",
+            "source_field": "trace_id",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_correlation_id",
+            "source_field": "correlation_id",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_transaction_id",
+            "source_field": "transaction_id",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_payment_gateway",
+            "source_field": "payment_gateway",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_payment_method",
+            "source_field": "payment_method",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_card_network",
+            "source_field": "card_network",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_bank_name",
+            "source_field": "bank_name",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_account_number_hash",
+            "source_field": "account_number_hash",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_transaction_status",
+            "source_field": "transaction_status",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_payment_error_message",
+            "source_field": "payment_error_message",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_is_3ds_verified",
+            "source_field": "is_3ds_verified",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_billing_zip_match",
+            "source_field": "billing_zip_match",
+            "aggregation": "COUNT",
+            "filter": null
+        }
+    ]
 }

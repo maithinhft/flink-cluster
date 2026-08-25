@@ -1,4 +1,5 @@
 {
+    "entity_type": "customer_event",
     "source_name": "crm",
     "version": "1.0",
     "fields": {
@@ -6,18 +7,11 @@
             "type": "string",
             "description": "Unique identifier for the event",
             "format": "UUID",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "event_type": {
             "type": "string",
             "description": "The specific action that occurred",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ],
             "allowed_values": [
                 "profile_update",
                 "login",
@@ -27,15 +21,13 @@
                 "subscription_change",
                 "support_ticket_created",
                 "support_ticket_resolved"
-            ]
+            ],
+            "filterable": true
         },
         "entity_id": {
             "type": "string",
             "description": "Customer identifier (unique ID of the customer)",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "source_system": {
             "type": "string",
@@ -45,91 +37,59 @@
                 "crm",
                 "payment"
             ],
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "schema_version": {
             "type": "string",
             "description": "Version of the event schema",
             "default": "1.0",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ],
-            "required": true
+            "required": true,
+            "filterable": true
         },
         "event_time": {
             "type": "string",
             "description": "Timestamp when the event actually occurred at the source",
             "format": "ISO-8601",
-            "supported_state_strategies": [
-                "last_value",
-                "count",
-                "max",
-                "min"
-            ]
+            "filterable": true
         },
         "source_id": {
             "type": "string",
             "description": "Original record ID in the source system",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "trace_id": {
             "type": "string",
             "description": "Distributed tracing ID for the request flow",
             "format": "UUID",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "correlation_id": {
             "type": "string",
             "description": "Identifier linking multiple related events together",
             "format": "UUID",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "user_first_name": {
             "type": "string",
             "description": "User's first name",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "user_last_name": {
             "type": "string",
             "description": "User's last name",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "user_email": {
             "type": "string",
             "description": "User's email address",
             "format": "Email",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "user_phone": {
             "type": "string",
             "description": "User's phone number",
             "format": "E.164",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "user_gender": {
             "type": "string",
@@ -140,37 +100,23 @@
                 "O",
                 "U"
             ],
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "user_date_of_birth": {
             "type": "string",
             "description": "User's date of birth",
             "format": "YYYY-MM-DD",
-            "supported_state_strategies": [
-                "last_value",
-                "count",
-                "max",
-                "min"
-            ]
+            "filterable": true
         },
         "user_nationality": {
             "type": "string",
             "description": "User's nationality",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "account_id": {
             "type": "string",
             "description": "Associated account identifier",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "account_status": {
             "type": "string",
@@ -180,32 +126,19 @@
                 "suspended",
                 "deleted"
             ],
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "registration_date": {
             "type": "string",
             "description": "Account registration timestamp",
             "format": "ISO-8601",
-            "supported_state_strategies": [
-                "last_value",
-                "count",
-                "max",
-                "min"
-            ]
+            "filterable": true
         },
         "last_login_date": {
             "type": "string",
             "description": "Last successful login timestamp",
             "format": "ISO-8601",
-            "supported_state_strategies": [
-                "last_value",
-                "count",
-                "max",
-                "min"
-            ]
+            "filterable": true
         },
         "subscription_tier": {
             "type": "string",
@@ -217,77 +150,311 @@
                 "vip",
                 "enterprise"
             ],
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "loyalty_points": {
             "type": "integer",
             "description": "Accumulated loyalty points",
             "min": 0,
-            "supported_state_strategies": [
-                "last_value",
-                "sum",
-                "count",
-                "avg",
-                "max",
-                "min"
-            ]
+            "filterable": true
         },
         "opt_in_email": {
             "type": "boolean",
             "description": "Whether user has opted in to email communications",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "opt_in_sms": {
             "type": "boolean",
             "description": "Whether user has opted in to SMS communications",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "opt_in_push": {
             "type": "boolean",
             "description": "Whether user has opted in to push notifications",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "support_ticket_id": {
             "type": "string",
             "description": "ID of a related support ticket",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "support_ticket_status": {
             "type": "string",
             "description": "Status of the support ticket",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "satisfaction_score": {
             "type": "integer",
             "description": "Customer satisfaction score",
             "min": 1,
             "max": 5,
-            "supported_state_strategies": [
-                "last_value",
-                "sum",
-                "count",
-                "avg",
-                "max",
-                "min"
-            ]
+            "filterable": true
         }
-    }
+    },
+    "metrics": [
+        {
+            "metric_id": "count_event_id",
+            "source_field": "event_id",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_event_type",
+            "source_field": "event_type",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_entity_id",
+            "source_field": "entity_id",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_source_system",
+            "source_field": "source_system",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_schema_version",
+            "source_field": "schema_version",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_event_time",
+            "source_field": "event_time",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "max_event_time",
+            "source_field": "event_time",
+            "aggregation": "MAX",
+            "filter": null
+        },
+        {
+            "metric_id": "min_event_time",
+            "source_field": "event_time",
+            "aggregation": "MIN",
+            "filter": null
+        },
+        {
+            "metric_id": "count_source_id",
+            "source_field": "source_id",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_trace_id",
+            "source_field": "trace_id",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_correlation_id",
+            "source_field": "correlation_id",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_user_first_name",
+            "source_field": "user_first_name",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_user_last_name",
+            "source_field": "user_last_name",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_user_email",
+            "source_field": "user_email",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_user_phone",
+            "source_field": "user_phone",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_user_gender",
+            "source_field": "user_gender",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_user_date_of_birth",
+            "source_field": "user_date_of_birth",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "max_user_date_of_birth",
+            "source_field": "user_date_of_birth",
+            "aggregation": "MAX",
+            "filter": null
+        },
+        {
+            "metric_id": "min_user_date_of_birth",
+            "source_field": "user_date_of_birth",
+            "aggregation": "MIN",
+            "filter": null
+        },
+        {
+            "metric_id": "count_user_nationality",
+            "source_field": "user_nationality",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_account_id",
+            "source_field": "account_id",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_account_status",
+            "source_field": "account_status",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_registration_date",
+            "source_field": "registration_date",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "max_registration_date",
+            "source_field": "registration_date",
+            "aggregation": "MAX",
+            "filter": null
+        },
+        {
+            "metric_id": "min_registration_date",
+            "source_field": "registration_date",
+            "aggregation": "MIN",
+            "filter": null
+        },
+        {
+            "metric_id": "count_last_login_date",
+            "source_field": "last_login_date",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "max_last_login_date",
+            "source_field": "last_login_date",
+            "aggregation": "MAX",
+            "filter": null
+        },
+        {
+            "metric_id": "min_last_login_date",
+            "source_field": "last_login_date",
+            "aggregation": "MIN",
+            "filter": null
+        },
+        {
+            "metric_id": "count_subscription_tier",
+            "source_field": "subscription_tier",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "sum_loyalty_points",
+            "source_field": "loyalty_points",
+            "aggregation": "SUM",
+            "filter": null
+        },
+        {
+            "metric_id": "count_loyalty_points",
+            "source_field": "loyalty_points",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "avg_loyalty_points",
+            "source_field": "loyalty_points",
+            "aggregation": "AVG",
+            "filter": null
+        },
+        {
+            "metric_id": "max_loyalty_points",
+            "source_field": "loyalty_points",
+            "aggregation": "MAX",
+            "filter": null
+        },
+        {
+            "metric_id": "min_loyalty_points",
+            "source_field": "loyalty_points",
+            "aggregation": "MIN",
+            "filter": null
+        },
+        {
+            "metric_id": "count_opt_in_email",
+            "source_field": "opt_in_email",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_opt_in_sms",
+            "source_field": "opt_in_sms",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_opt_in_push",
+            "source_field": "opt_in_push",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_support_ticket_id",
+            "source_field": "support_ticket_id",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_support_ticket_status",
+            "source_field": "support_ticket_status",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "sum_satisfaction_score",
+            "source_field": "satisfaction_score",
+            "aggregation": "SUM",
+            "filter": null
+        },
+        {
+            "metric_id": "count_satisfaction_score",
+            "source_field": "satisfaction_score",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "avg_satisfaction_score",
+            "source_field": "satisfaction_score",
+            "aggregation": "AVG",
+            "filter": null
+        },
+        {
+            "metric_id": "max_satisfaction_score",
+            "source_field": "satisfaction_score",
+            "aggregation": "MAX",
+            "filter": null
+        },
+        {
+            "metric_id": "min_satisfaction_score",
+            "source_field": "satisfaction_score",
+            "aggregation": "MIN",
+            "filter": null
+        }
+    ]
 }

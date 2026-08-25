@@ -1,4 +1,5 @@
 {
+    "entity_type": "customer_event",
     "source_name": "ecommerce",
     "version": "1.0",
     "fields": {
@@ -6,18 +7,11 @@
             "type": "string",
             "description": "Unique identifier for the event",
             "format": "UUID",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "event_type": {
             "type": "string",
             "description": "The specific action that occurred",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ],
             "allowed_values": [
                 "add_to_cart",
                 "remove_from_cart",
@@ -26,15 +20,13 @@
                 "order_shipped",
                 "order_completed",
                 "order_cancelled"
-            ]
+            ],
+            "filterable": true
         },
         "entity_id": {
             "type": "string",
             "description": "Customer identifier (unique ID of the customer)",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "source_system": {
             "type": "string",
@@ -44,73 +36,47 @@
                 "crm",
                 "payment"
             ],
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "schema_version": {
             "type": "string",
             "description": "Version of the event schema",
             "default": "1.0",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ],
-            "required": true
+            "required": true,
+            "filterable": true
         },
         "event_time": {
             "type": "string",
             "description": "Timestamp when the event actually occurred at the source",
             "format": "ISO-8601",
-            "supported_state_strategies": [
-                "last_value",
-                "count",
-                "max",
-                "min"
-            ]
+            "filterable": true
         },
         "source_id": {
             "type": "string",
             "description": "Original record ID in the source system",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "trace_id": {
             "type": "string",
             "description": "Distributed tracing ID for the request flow",
             "format": "UUID",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "correlation_id": {
             "type": "string",
             "description": "Identifier linking multiple related events together",
             "format": "UUID",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "product_id": {
             "type": "string",
             "description": "Unique product identifier",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "product_name": {
             "type": "string",
             "description": "Display name of the product",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "product_category": {
             "type": "string",
@@ -125,107 +91,57 @@
                 "beauty",
                 "automotive"
             ],
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "product_subcategory": {
             "type": "string",
             "description": "Sub-category of the product",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "product_sku": {
             "type": "string",
             "description": "Stock Keeping Unit (SKU)",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "product_brand": {
             "type": "string",
             "description": "Brand name of the product",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "unit_price": {
             "type": "double",
             "description": "Price per single unit of the product",
             "min": 0.0,
-            "supported_state_strategies": [
-                "last_value",
-                "sum",
-                "count",
-                "avg",
-                "max",
-                "min"
-            ]
+            "filterable": true
         },
         "quantity": {
             "type": "integer",
             "description": "Quantity purchased or interacted with",
             "min": 1,
-            "supported_state_strategies": [
-                "last_value",
-                "sum",
-                "count",
-                "avg",
-                "max",
-                "min"
-            ]
+            "filterable": true
         },
         "discount_amount": {
             "type": "double",
             "description": "Total discount amount applied",
             "min": 0.0,
-            "supported_state_strategies": [
-                "last_value",
-                "sum",
-                "count",
-                "avg",
-                "max",
-                "min"
-            ]
+            "filterable": true
         },
         "discount_code": {
             "type": "string",
             "description": "Coupon or discount code used",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "tax_amount": {
             "type": "double",
             "description": "Tax amount applied",
             "min": 0.0,
-            "supported_state_strategies": [
-                "last_value",
-                "sum",
-                "count",
-                "avg",
-                "max",
-                "min"
-            ]
+            "filterable": true
         },
         "total_amount": {
             "type": "double",
             "description": "Final total amount (price * quantity - discount + tax)",
             "min": 0.0,
-            "supported_state_strategies": [
-                "last_value",
-                "sum",
-                "count",
-                "avg",
-                "max",
-                "min"
-            ]
+            "filterable": true
         },
         "currency": {
             "type": "string",
@@ -235,26 +151,17 @@
                 "VND",
                 "EUR"
             ],
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "cart_id": {
             "type": "string",
             "description": "Shopping cart identifier",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "order_id": {
             "type": "string",
             "description": "Order identifier",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "order_status": {
             "type": "string",
@@ -266,10 +173,7 @@
                 "completed",
                 "cancelled"
             ],
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "shipping_method": {
             "type": "string",
@@ -279,111 +183,481 @@
                 "express",
                 "next_day"
             ],
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "shipping_cost": {
             "type": "double",
             "description": "Cost of shipping",
             "min": 0.0,
-            "supported_state_strategies": [
-                "last_value",
-                "sum",
-                "count",
-                "avg",
-                "max",
-                "min"
-            ]
+            "filterable": true
         },
         "delivery_address_line1": {
             "type": "string",
             "description": "Delivery address primary line",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "delivery_city": {
             "type": "string",
             "description": "Delivery city",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "delivery_country": {
             "type": "string",
             "description": "Delivery country",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "estimated_delivery_date": {
             "type": "string",
             "description": "Estimated date for delivery",
             "format": "YYYY-MM-DD",
-            "supported_state_strategies": [
-                "last_value",
-                "count",
-                "max",
-                "min"
-            ]
+            "filterable": true
         },
         "billing_address_line1": {
             "type": "string",
             "description": "Billing address primary line",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "billing_city": {
             "type": "string",
             "description": "Billing city",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "billing_country": {
             "type": "string",
             "description": "Billing country",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "merchant_id": {
             "type": "string",
             "description": "Identifier for the merchant or seller",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "store_id": {
             "type": "string",
             "description": "Identifier for the physical or online store",
-            "supported_state_strategies": [
-                "last_value",
-                "count"
-            ]
+            "filterable": true
         },
         "warranty_period_months": {
             "type": "integer",
             "description": "Warranty duration in months",
             "min": 0,
-            "supported_state_strategies": [
-                "last_value",
-                "sum",
-                "count",
-                "avg",
-                "max",
-                "min"
-            ]
+            "filterable": true
         }
-    }
+    },
+    "metrics": [
+        {
+            "metric_id": "count_event_id",
+            "source_field": "event_id",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_event_type",
+            "source_field": "event_type",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_entity_id",
+            "source_field": "entity_id",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_source_system",
+            "source_field": "source_system",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_schema_version",
+            "source_field": "schema_version",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_event_time",
+            "source_field": "event_time",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "max_event_time",
+            "source_field": "event_time",
+            "aggregation": "MAX",
+            "filter": null
+        },
+        {
+            "metric_id": "min_event_time",
+            "source_field": "event_time",
+            "aggregation": "MIN",
+            "filter": null
+        },
+        {
+            "metric_id": "count_source_id",
+            "source_field": "source_id",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_trace_id",
+            "source_field": "trace_id",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_correlation_id",
+            "source_field": "correlation_id",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_product_id",
+            "source_field": "product_id",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_product_name",
+            "source_field": "product_name",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_product_category",
+            "source_field": "product_category",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_product_subcategory",
+            "source_field": "product_subcategory",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_product_sku",
+            "source_field": "product_sku",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_product_brand",
+            "source_field": "product_brand",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "sum_unit_price",
+            "source_field": "unit_price",
+            "aggregation": "SUM",
+            "filter": null
+        },
+        {
+            "metric_id": "count_unit_price",
+            "source_field": "unit_price",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "avg_unit_price",
+            "source_field": "unit_price",
+            "aggregation": "AVG",
+            "filter": null
+        },
+        {
+            "metric_id": "max_unit_price",
+            "source_field": "unit_price",
+            "aggregation": "MAX",
+            "filter": null
+        },
+        {
+            "metric_id": "min_unit_price",
+            "source_field": "unit_price",
+            "aggregation": "MIN",
+            "filter": null
+        },
+        {
+            "metric_id": "sum_quantity",
+            "source_field": "quantity",
+            "aggregation": "SUM",
+            "filter": null
+        },
+        {
+            "metric_id": "count_quantity",
+            "source_field": "quantity",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "avg_quantity",
+            "source_field": "quantity",
+            "aggregation": "AVG",
+            "filter": null
+        },
+        {
+            "metric_id": "max_quantity",
+            "source_field": "quantity",
+            "aggregation": "MAX",
+            "filter": null
+        },
+        {
+            "metric_id": "min_quantity",
+            "source_field": "quantity",
+            "aggregation": "MIN",
+            "filter": null
+        },
+        {
+            "metric_id": "sum_discount_amount",
+            "source_field": "discount_amount",
+            "aggregation": "SUM",
+            "filter": null
+        },
+        {
+            "metric_id": "count_discount_amount",
+            "source_field": "discount_amount",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "avg_discount_amount",
+            "source_field": "discount_amount",
+            "aggregation": "AVG",
+            "filter": null
+        },
+        {
+            "metric_id": "max_discount_amount",
+            "source_field": "discount_amount",
+            "aggregation": "MAX",
+            "filter": null
+        },
+        {
+            "metric_id": "min_discount_amount",
+            "source_field": "discount_amount",
+            "aggregation": "MIN",
+            "filter": null
+        },
+        {
+            "metric_id": "count_discount_code",
+            "source_field": "discount_code",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "sum_tax_amount",
+            "source_field": "tax_amount",
+            "aggregation": "SUM",
+            "filter": null
+        },
+        {
+            "metric_id": "count_tax_amount",
+            "source_field": "tax_amount",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "avg_tax_amount",
+            "source_field": "tax_amount",
+            "aggregation": "AVG",
+            "filter": null
+        },
+        {
+            "metric_id": "max_tax_amount",
+            "source_field": "tax_amount",
+            "aggregation": "MAX",
+            "filter": null
+        },
+        {
+            "metric_id": "min_tax_amount",
+            "source_field": "tax_amount",
+            "aggregation": "MIN",
+            "filter": null
+        },
+        {
+            "metric_id": "sum_total_amount",
+            "source_field": "total_amount",
+            "aggregation": "SUM",
+            "filter": null
+        },
+        {
+            "metric_id": "count_total_amount",
+            "source_field": "total_amount",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "avg_total_amount",
+            "source_field": "total_amount",
+            "aggregation": "AVG",
+            "filter": null
+        },
+        {
+            "metric_id": "max_total_amount",
+            "source_field": "total_amount",
+            "aggregation": "MAX",
+            "filter": null
+        },
+        {
+            "metric_id": "min_total_amount",
+            "source_field": "total_amount",
+            "aggregation": "MIN",
+            "filter": null
+        },
+        {
+            "metric_id": "count_currency",
+            "source_field": "currency",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_cart_id",
+            "source_field": "cart_id",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_order_id",
+            "source_field": "order_id",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_order_status",
+            "source_field": "order_status",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_shipping_method",
+            "source_field": "shipping_method",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "sum_shipping_cost",
+            "source_field": "shipping_cost",
+            "aggregation": "SUM",
+            "filter": null
+        },
+        {
+            "metric_id": "count_shipping_cost",
+            "source_field": "shipping_cost",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "avg_shipping_cost",
+            "source_field": "shipping_cost",
+            "aggregation": "AVG",
+            "filter": null
+        },
+        {
+            "metric_id": "max_shipping_cost",
+            "source_field": "shipping_cost",
+            "aggregation": "MAX",
+            "filter": null
+        },
+        {
+            "metric_id": "min_shipping_cost",
+            "source_field": "shipping_cost",
+            "aggregation": "MIN",
+            "filter": null
+        },
+        {
+            "metric_id": "count_delivery_address_line1",
+            "source_field": "delivery_address_line1",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_delivery_city",
+            "source_field": "delivery_city",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_delivery_country",
+            "source_field": "delivery_country",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_estimated_delivery_date",
+            "source_field": "estimated_delivery_date",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "max_estimated_delivery_date",
+            "source_field": "estimated_delivery_date",
+            "aggregation": "MAX",
+            "filter": null
+        },
+        {
+            "metric_id": "min_estimated_delivery_date",
+            "source_field": "estimated_delivery_date",
+            "aggregation": "MIN",
+            "filter": null
+        },
+        {
+            "metric_id": "count_billing_address_line1",
+            "source_field": "billing_address_line1",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_billing_city",
+            "source_field": "billing_city",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_billing_country",
+            "source_field": "billing_country",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_merchant_id",
+            "source_field": "merchant_id",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_store_id",
+            "source_field": "store_id",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "sum_warranty_period_months",
+            "source_field": "warranty_period_months",
+            "aggregation": "SUM",
+            "filter": null
+        },
+        {
+            "metric_id": "count_warranty_period_months",
+            "source_field": "warranty_period_months",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "avg_warranty_period_months",
+            "source_field": "warranty_period_months",
+            "aggregation": "AVG",
+            "filter": null
+        },
+        {
+            "metric_id": "max_warranty_period_months",
+            "source_field": "warranty_period_months",
+            "aggregation": "MAX",
+            "filter": null
+        },
+        {
+            "metric_id": "min_warranty_period_months",
+            "source_field": "warranty_period_months",
+            "aggregation": "MIN",
+            "filter": null
+        }
+    ]
 }
