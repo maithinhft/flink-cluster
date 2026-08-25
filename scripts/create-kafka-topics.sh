@@ -17,8 +17,22 @@ docker exec -it kafka \
 
 docker exec kafka /opt/kafka/bin/kafka-topics.sh \
   --bootstrap-server kafka:29092 \
-  --create \
-  --topic events \
+  --create --if-not-exists \
+  --topic events.crm \
+  --partitions 6 \
+  --replication-factor 1
+
+docker exec kafka /opt/kafka/bin/kafka-topics.sh \
+  --bootstrap-server kafka:29092 \
+  --create --if-not-exists \
+  --topic events.ecommerce \
+  --partitions 6 \
+  --replication-factor 1
+
+docker exec kafka /opt/kafka/bin/kafka-topics.sh \
+  --bootstrap-server kafka:29092 \
+  --create --if-not-exists \
+  --topic events.payment \
   --partitions 6 \
   --replication-factor 1
 

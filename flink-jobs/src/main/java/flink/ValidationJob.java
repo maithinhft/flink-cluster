@@ -36,11 +36,11 @@ public class ValidationJob {
                 + EnvLoader.get("KAFKA_PORT", "9092");
         String bootstrapServers = parameters.get("bootstrap.servers", defaultBootstrap);
 
-        String eventsTopic = parameters.get("events.topic", "events");
+        String eventsTopicPattern = parameters.get("events.topic.pattern", "events.*");
         String schemaTopic = parameters.get("schema.topic", "schema_registry");
 
         LOG.info("Kafka Bootstrap Servers: {}", bootstrapServers);
-        LOG.info("Events Topic: {}", eventsTopic);
+        LOG.info("Events Topic Pattern: {}", eventsTopicPattern);
         LOG.info("Schema Topic: {}", schemaTopic);
 
         // 1. Tạo Kafka Source để đọc Schema
@@ -61,13 +61,14 @@ public class ValidationJob {
         BroadcastStream<String> broadcastSchemaStream = schemaStream
                 .broadcast(SchemaValidationBroadcastProcessFunction.SCHEMA_STATE_DESCRIPTOR);
 
-        // 2. Tạo Kafka Source để đọc Events
+        // 2. Tạo Kafka Source để đọc Event Data từ NHIỀU TOPIC dựa trên Regex Pattern
         KafkaSource<String> eventSource = KafkaSource.<String>builder()
                 .setBootstrapServers(bootstrapServers)
-                .setTopics(eventsTopic)
+                .setTopicPattern(java.util.regex.Pattern.compile(eventsTopicPattern))
                 .setGroupId("flink-event-validation-group")
-                // Trong thực tế có thể đọc từ earliest hoặc latest. Ở đây để dễ demo ta đọc từ
-                // earliest
+                // Quan trọng: Bật tính năng tự động tìm kiếm topic/partition mới mỗi 60 giây (60000ms)
+                .setProperty("partition.discovery.interval.ms", "60000")
+                // Trong thực tế có thể đọc từ earliest hoặc latest. Ở đây để dễ demo ta đọc từ earliest
                 .setStartingOffsets(OffsetsInitializer.earliest())
                 .setValueOnlyDeserializer(new SimpleStringSchema())
                 .build();

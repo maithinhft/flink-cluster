@@ -58,7 +58,8 @@ public class EventWorker implements Runnable {
                 String entityId = entityPool.next(random);
                 Map<String, Object> event = EventFactory.generateEvent(eventId, entityId, random, config);
                 byte[] json = mapper.writeValueAsBytes(event);
-                ProducerRecord<String, byte[]> record = new ProducerRecord<>(config.topic, entityId, json);
+                String topicName = config.topic + "." + event.get("source_system");
+                ProducerRecord<String, byte[]> record = new ProducerRecord<>(topicName, entityId, json);
                 producer.send(record);
                 sent++;
             }
