@@ -42,7 +42,7 @@ public class PaymentPopulator implements EventPopulator {
             case "refund":
             case "chargeback":
                 event.put("payment_gateway", RandomUtils.randomElement(PAYMENT_GATEWAYS));
-                event.put("transaction_status", "payment_success".equals(eventType) ? "refunded" : "chargeback");
+                event.put("transaction_status", "refund".equals(eventType) ? "reversed" : "chargeback");
                 break;
         }
     }

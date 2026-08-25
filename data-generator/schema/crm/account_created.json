@@ -62,7 +62,8 @@
             "supported_state_strategies": [
                 "last_value",
                 "count"
-            ]
+            ],
+            "required": true
         },
         "event_time": {
             "type": "string",
@@ -125,7 +126,8 @@
             "supported_state_strategies": [
                 "last_value",
                 "count"
-            ]
+            ],
+            "required": true
         },
         "user_phone": {
             "type": "string",
@@ -202,7 +204,8 @@
                 "count",
                 "max",
                 "min"
-            ]
+            ],
+            "required": true
         }
     }
 }

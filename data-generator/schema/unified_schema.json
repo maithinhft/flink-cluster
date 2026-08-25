@@ -61,7 +61,8 @@
             "supported_state_strategies": [
                 "last_value",
                 "count"
-            ]
+            ],
+            "required": true
         },
         "event_time": {
             "type": "string",

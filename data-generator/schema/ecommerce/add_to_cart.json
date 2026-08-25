@@ -61,7 +61,8 @@
             "supported_state_strategies": [
                 "last_value",
                 "count"
-            ]
+            ],
+            "required": true
         },
         "event_time": {
             "type": "string",
@@ -107,7 +108,8 @@
             "supported_state_strategies": [
                 "last_value",
                 "count"
-            ]
+            ],
+            "required": true
         },
         "product_id": {
             "type": "string",
@@ -115,7 +117,8 @@
             "supported_state_strategies": [
                 "last_value",
                 "count"
-            ]
+            ],
+            "required": true
         },
         "product_name": {
             "type": "string",
@@ -178,7 +181,8 @@
                 "avg",
                 "max",
                 "min"
-            ]
+            ],
+            "required": true
         },
         "quantity": {
             "type": "integer",
@@ -191,7 +195,8 @@
                 "avg",
                 "max",
                 "min"
-            ]
+            ],
+            "required": true
         },
         "warranty_period_months": {
             "type": "integer",

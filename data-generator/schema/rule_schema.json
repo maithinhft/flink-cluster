@@ -1,7 +1,6 @@
 {
   "_comment": "Rule Definition Schema - Ring Buffer Window Aggregation (max 24h, bucket 5 phút)",
   "database_table": "rule_definitions",
-
   "ring_buffer_constraints": {
     "_comment": "Ràng buộc cố định của Ring Buffer trong hệ thống",
     "max_window_size_seconds": 86400,
@@ -9,7 +8,6 @@
     "total_buckets": 288,
     "description": "Ring buffer chia 24 giờ thành 288 bucket (mỗi bucket 5 phút). Window size phải là bội số của bucket_size và không vượt quá max_window_size."
   },
-
   "fields": {
     "rule_id": {
       "type": "string (UUID)",
@@ -27,7 +25,12 @@
     "cooldown_seconds": {
       "type": "integer",
       "description": "Thời gian làm nguội (tính bằng giây). Nếu rule thỏa mãn, nó sẽ không được kích hoạt lại trên cùng một entity_id trong khoảng thời gian này.",
-      "examples": [0, 60, 300, 3600]
+      "examples": [
+        0,
+        60,
+        300,
+        3600
+      ]
     },
     "version": {
       "type": "integer",
@@ -38,28 +41,43 @@
       "description": "Trạng thái kích hoạt của rule",
       "default": true
     },
+    "created_at": {
+      "type": "string",
+      "description": "Thời điểm tạo rule",
+      "format": "ISO-8601"
+    },
+    "updated_at": {
+      "type": "string",
+      "description": "Thời điểm cập nhật rule gần nhất",
+      "format": "ISO-8601"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "ID của người tạo rule"
+    },
     "rule_json": {
       "type": "JSON object",
       "description": "Cây điều kiện logic (Condition Tree) của rule. Xem cấu trúc chi tiết bên dưới."
     }
   },
-
   "rule_json_structure": {
     "_comment": "Cấu trúc đệ quy của cây điều kiện bên trong trường `rule_json`",
     "Node": {
       "description": "Một Node có thể là LogicalNode (AND, OR, NOT) hoặc LeafNode (AGGREGATION, RAW_FIELD)",
-
       "LogicalNode": {
         "operator": {
           "type": "string",
-          "allowed_values": ["AND", "OR", "NOT"]
+          "allowed_values": [
+            "AND",
+            "OR",
+            "NOT"
+          ]
         },
         "children": {
           "type": "array of Node",
           "description": "Danh sách các Node con. Nếu operator là NOT, mảng này chỉ có 1 phần tử."
         }
       },
-
       "LeafNode_Aggregation": {
         "description": "Điều kiện dựa trên giá trị tổng hợp qua Ring Buffer. Window size phải là bội số của 300s và tối đa 86400s (24h).",
         "type": {
@@ -73,12 +91,22 @@
         "function": {
           "type": "string",
           "description": "Phép tổng hợp trên ring buffer",
-          "allowed_values": ["SUM", "COUNT", "AVG", "MAX", "MIN"]
+          "allowed_values": [
+            "SUM",
+            "COUNT",
+            "AVG",
+            "MAX",
+            "MIN"
+          ]
         },
         "source_system": {
           "type": "string",
           "description": "Nguồn dữ liệu chứa trường cần tổng hợp",
-          "allowed_values": ["ecommerce", "crm", "payment"],
+          "allowed_values": [
+            "ecommerce",
+            "crm",
+            "payment"
+          ],
           "required": false
         },
         "window": {
@@ -87,7 +115,10 @@
           "properties": {
             "type": {
               "type": "string",
-              "allowed_values": ["sliding", "tumbling"]
+              "allowed_values": [
+                "sliding",
+                "tumbling"
+              ]
             },
             "size_seconds": {
               "type": "integer",
@@ -110,14 +141,20 @@
         },
         "operator": {
           "type": "string",
-          "allowed_values": ["GT", "GTE", "LT", "LTE", "EQ", "NEQ"]
+          "allowed_values": [
+            "GT",
+            "GTE",
+            "LT",
+            "LTE",
+            "EQ",
+            "NEQ"
+          ]
         },
         "value": {
           "type": "number",
           "description": "Ngưỡng giá trị để so sánh với kết quả tổng hợp"
         }
       },
-
       "LeafNode_RawField": {
         "description": "Điều kiện dựa trên giá trị trường thô của sự kiện hiện tại",
         "type": {
@@ -130,7 +167,17 @@
         },
         "operator": {
           "type": "string",
-          "allowed_values": ["EQ", "NEQ", "GT", "GTE", "LT", "LTE", "IN", "BETWEEN", "CONTAINS"]
+          "allowed_values": [
+            "EQ",
+            "NEQ",
+            "GT",
+            "GTE",
+            "LT",
+            "LTE",
+            "IN",
+            "BETWEEN",
+            "CONTAINS"
+          ]
         },
         "value": {
           "type": "any",
@@ -139,10 +186,8 @@
       }
     }
   },
-
   "example_rules": {
     "_comment": "Các ví dụ rule trong phạm vi ring buffer 24h / bucket 5 phút",
-
     "high_value_24h": {
       "_description": "Khách hàng chi tiêu cao: Tổng chi tiêu >= 5 triệu VND trong 24h VÀ có >= 3 đơn hoàn thành",
       "operator": "AND",
@@ -180,7 +225,6 @@
         }
       ]
     },
-
     "fraud_alert": {
       "_description": "Cảnh báo gian lận: > 5 giao dịch thất bại trong 1 giờ HOẶC giao dịch không có 3DS và không khớp ZIP",
       "operator": "OR",
@@ -222,7 +266,6 @@
         }
       ]
     },
-
     "inactive_customer": {
       "_description": "Khách hàng không hoạt động: 0 event từ ecommerce trong 12 giờ gần nhất VÀ điểm hài lòng gần nhất < 2",
       "operator": "AND",
@@ -255,7 +298,6 @@
         }
       ]
     },
-
     "frequent_buyer": {
       "_description": "Khách mua sắm thường xuyên: >= 5 đơn hàng trong 6 giờ VÀ giá trị trung bình đơn >= 500.000 VND",
       "operator": "AND",

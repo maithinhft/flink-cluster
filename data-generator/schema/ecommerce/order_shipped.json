@@ -61,7 +61,8 @@
             "supported_state_strategies": [
                 "last_value",
                 "count"
-            ]
+            ],
+            "required": true
         },
         "event_time": {
             "type": "string",
@@ -107,7 +108,8 @@
             "supported_state_strategies": [
                 "last_value",
                 "count"
-            ]
+            ],
+            "required": true
         },
         "order_status": {
             "type": "string",
@@ -122,7 +124,8 @@
             "supported_state_strategies": [
                 "last_value",
                 "count"
-            ]
+            ],
+            "required": true
         },
         "shipping_method": {
             "type": "string",
@@ -135,7 +138,8 @@
             "supported_state_strategies": [
                 "last_value",
                 "count"
-            ]
+            ],
+            "required": true
         },
         "shipping_cost": {
             "type": "double",

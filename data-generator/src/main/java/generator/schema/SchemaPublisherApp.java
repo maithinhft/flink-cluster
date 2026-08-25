@@ -44,9 +44,10 @@ public class SchemaPublisherApp {
         // Setup PostgreSQL Connection
         String serverIp = EnvLoader.get("SERVER_IP", "127.0.0.1");
         String dbPort = EnvLoader.get("POSTGRES_PORT", "5433");
-        String dbUrl = "jdbc:postgresql://" + serverIp + ":" + dbPort + "/realtime_core";
-        String dbUser = EnvLoader.get("DB_USER", "postgres");
-        String dbPassword = EnvLoader.get("DB_PASSWORD", "postgres");
+        String dbName = EnvLoader.get("POSTGRES_DB", "realtime_core");
+        String dbUrl = "jdbc:postgresql://" + serverIp + ":" + dbPort + "/" + dbName;
+        String dbUser = EnvLoader.get("POSTGRES_USER", "postgres");
+        String dbPassword = EnvLoader.get("POSTGRES_PASSWORD", "postgres");
 
         System.out.println("Connecting to PostgreSQL: " + dbUrl);
 

@@ -37,6 +37,8 @@ CREATE TABLE IF NOT EXISTS rule_definitions (
 
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
+    user_id VARCHAR(255) NOT NULL DEFAULT 'system',
+
     CONSTRAINT uq_rule_version
         UNIQUE (rule_id, version)
 );

@@ -47,6 +47,24 @@ services:
   # ============================================================
   # Kafka
   # ============================================================
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    hostname: kafka-ui
+    ports:
+      - "${KAFKA_UI_PORT:-8080}:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: flink-cluster
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+      KAFKA_CLUSTERS_0_KAFKACONNECT_0_NAME: debezium-connect
+      KAFKA_CLUSTERS_0_KAFKACONNECT_0_ADDRESS: http://kafka-connect:${CONNECT_PORT:-8083}
+      DYNAMIC_CONFIG_ENABLED: true
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - cluster-network
+    restart: unless-stopped
 
   kafka:
     image: apache/kafka:3.9.1

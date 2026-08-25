@@ -62,7 +62,8 @@
             "supported_state_strategies": [
                 "last_value",
                 "count"
-            ]
+            ],
+            "required": true
         },
         "event_time": {
             "type": "string",
@@ -108,7 +109,8 @@
             "supported_state_strategies": [
                 "last_value",
                 "count"
-            ]
+            ],
+            "required": true
         },
         "support_ticket_status": {
             "type": "string",
@@ -116,7 +118,8 @@
             "supported_state_strategies": [
                 "last_value",
                 "count"
-            ]
+            ],
+            "required": true
         },
         "satisfaction_score": {
             "type": "integer",
@@ -130,7 +133,8 @@
                 "avg",
                 "max",
                 "min"
-            ]
+            ],
+            "required": true
         }
     }
 }
