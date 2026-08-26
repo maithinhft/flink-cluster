@@ -124,60 +124,66 @@ public class SchemaValidationBroadcastProcessFunction extends BroadcastProcessFu
         try {
             JsonNode messageNode = mapper.readTree(messageJson);
 
-            if (messageNode.has("schema_payload") && messageNode.has("schema_id")
-                    && messageNode.get("schema_payload").has("version")) {
+            if (messageNode.has("schema_payload") && messageNode.has("schema_id")) {
 
                 String schemaId = messageNode.get("schema_id").asText();
-                String version = messageNode.get("schema_payload").get("version").asText();
-                String schemaKey = schemaId + "_" + version;
                 String schemaJson = messageNode.get("schema_payload").asText();
 
-                BroadcastState<String, String> schemaState = ctx.getBroadcastState(SCHEMA_STATE_DESCRIPTOR);
-                BroadcastState<String, String> latestVersionState = ctx.getBroadcastState(LATEST_VERSION_DESCRIPTOR);
-                BroadcastState<String, Long> deprecatedState = ctx.getBroadcastState(DEPRECATED_SCHEMAS_DESCRIPTOR);
+                JsonNode payloadNode = mapper.readTree(schemaJson);
 
-                String currentLatestVersion = latestVersionState.get(schemaId);
+                if (payloadNode.has("version")) {
+                    String version = payloadNode.get("version").asText();
+                    String schemaKey = schemaId + "_" + version;
 
-                if (currentLatestVersion == null) {
-                    latestVersionState.put(schemaId, version);
-                    schemaState.put(schemaKey, schemaJson);
-                    LOG.info("Received and cached initial schema for key: {}", schemaKey);
-                } else {
-                    int cmp = compareVersions(version, currentLatestVersion);
-                    if (cmp > 0) {
-                        // Version mới thực sự lớn hơn -> Đánh dấu version cũ là deprecated
-                        String oldSchemaKey = schemaId + "_" + currentLatestVersion;
-                        deprecatedState.put(oldSchemaKey, ctx.currentProcessingTime());
-                        LOG.info("Deprecated old schema version: {}", oldSchemaKey);
+                    BroadcastState<String, String> schemaState = ctx.getBroadcastState(SCHEMA_STATE_DESCRIPTOR);
+                    BroadcastState<String, String> latestVersionState = ctx
+                            .getBroadcastState(LATEST_VERSION_DESCRIPTOR);
+                    BroadcastState<String, Long> deprecatedState = ctx.getBroadcastState(DEPRECATED_SCHEMAS_DESCRIPTOR);
 
+                    String currentLatestVersion = latestVersionState.get(schemaId);
+
+                    if (currentLatestVersion == null) {
                         latestVersionState.put(schemaId, version);
                         schemaState.put(schemaKey, schemaJson);
-                        LOG.info("Received and cached newer schema for key: {}", schemaKey);
-                    } else if (cmp < 0) {
-                        // Version nhận được NHỎ HƠN latest -> Đây là version cũ đến out-of-order
-                        schemaState.put(schemaKey, schemaJson);
-                        deprecatedState.put(schemaKey, ctx.currentProcessingTime());
-                        LOG.info("Received out-of-order old schema version: {}, immediately deprecating it", schemaKey);
+                        LOG.info("Received and cached initial schema for key: {}", schemaKey);
                     } else {
-                        // Bằng nhau (replay)
-                        schemaState.put(schemaKey, schemaJson);
-                    }
-                }
+                        int cmp = compareVersions(version, currentLatestVersion);
+                        if (cmp > 0) {
+                            // Version mới thực sự lớn hơn -> Đánh dấu version cũ là deprecated
+                            String oldSchemaKey = schemaId + "_" + currentLatestVersion;
+                            deprecatedState.put(oldSchemaKey, ctx.currentProcessingTime());
+                            LOG.info("Deprecated old schema version: {}", oldSchemaKey);
 
-                // Chạy vòng lặp dọn dẹp các schema đã bị deprecated quá 5 phút
-                long currentTime = ctx.currentProcessingTime();
-                List<String> keysToRemove = new ArrayList<>();
-                for (Map.Entry<String, Long> entry : deprecatedState.entries()) {
-                    if (currentTime - entry.getValue() > 5 * 60 * 1000L) {
-                        keysToRemove.add(entry.getKey());
+                            latestVersionState.put(schemaId, version);
+                            schemaState.put(schemaKey, schemaJson);
+                            LOG.info("Received and cached newer schema for key: {}", schemaKey);
+                        } else if (cmp < 0) {
+                            // Version nhận được NHỎ HƠN latest -> Đây là version cũ đến out-of-order
+                            schemaState.put(schemaKey, schemaJson);
+                            deprecatedState.put(schemaKey, ctx.currentProcessingTime());
+                            LOG.info("Received out-of-order old schema version: {}, immediately deprecating it",
+                                    schemaKey);
+                        } else {
+                            // Bằng nhau (replay)
+                            schemaState.put(schemaKey, schemaJson);
+                        }
                     }
-                }
 
-                // Thực hiện xóa khỏi State
-                for (String key : keysToRemove) {
-                    schemaState.remove(key);
-                    deprecatedState.remove(key);
-                    LOG.info("Cleaned up expired old schema: {}", key);
+                    // Chạy vòng lặp dọn dẹp các schema đã bị deprecated quá 5 phút
+                    long currentTime = ctx.currentProcessingTime();
+                    List<String> keysToRemove = new ArrayList<>();
+                    for (Map.Entry<String, Long> entry : deprecatedState.entries()) {
+                        if (currentTime - entry.getValue() > 5 * 60 * 1000L) {
+                            keysToRemove.add(entry.getKey());
+                        }
+                    }
+
+                    // Thực hiện xóa khỏi State
+                    for (String key : keysToRemove) {
+                        schemaState.remove(key);
+                        deprecatedState.remove(key);
+                        LOG.info("Cleaned up expired old schema: {}", key);
+                    }
                 }
             }
         } catch (Exception e) {
