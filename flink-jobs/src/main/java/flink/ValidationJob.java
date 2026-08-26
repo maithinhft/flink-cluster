@@ -1,6 +1,5 @@
 package flink;
 
-import flink.config.EnvLoader;
 import flink.operators.SchemaValidationBroadcastProcessFunction;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
@@ -30,11 +29,8 @@ public class ValidationJob {
         // truy cập nếu cần
         env.getConfig().setGlobalJobParameters(parameters);
 
-        // Đọc cấu hình từ Tham số dòng lệnh (--bootstrap.servers), nếu không truyền thì
-        // Fallback về EnvLoader (Dành cho test local)
-        String defaultBootstrap = EnvLoader.get("SERVER_IP", "127.0.0.1") + ":"
-                + EnvLoader.get("KAFKA_PORT", "9092");
-        String bootstrapServers = parameters.get("bootstrap.servers", defaultBootstrap);
+        // Đọc cấu hình từ Tham số dòng lệnh (--bootstrap.servers)
+        String bootstrapServers = parameters.get("bootstrap.servers", "kafka:29092");
 
         String eventsTopicPattern = parameters.get("events.topic.pattern", "events.*");
         String schemaTopic = parameters.get("schema.topic", "schema_registry");

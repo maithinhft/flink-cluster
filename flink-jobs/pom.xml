@@ -22,7 +22,6 @@
         <flink.kafka.version>3.3.0-1.20</flink.kafka.version>
 
         <jackson.version>2.16.1</jackson.version>
-        <dotenv.version>3.0.0</dotenv.version>
     </properties>
 
 
@@ -69,15 +68,7 @@
         </dependency>
 
 
-        <!-- ===================================================== -->
-        <!-- Environment variables -->
-        <!-- ===================================================== -->
 
-        <dependency>
-            <groupId>io.github.cdimascio</groupId>
-            <artifactId>dotenv-java</artifactId>
-            <version>${dotenv.version}</version>
-        </dependency>
 
 
         <!-- ===================================================== -->
@@ -222,31 +213,6 @@
 
     </build>
 
-    <!-- Thêm Profile để chạy local không bị lỗi thiếu thư viện Flink -->
-    <profiles>
-        <profile>
-            <id>local</id>
-            <dependencies>
-                <dependency>
-                    <groupId>org.apache.flink</groupId>
-                    <artifactId>flink-streaming-java</artifactId>
-                    <version>${flink.version}</version>
-                    <scope>compile</scope>
-                </dependency>
-                <dependency>
-                    <groupId>org.apache.flink</groupId>
-                    <artifactId>flink-clients</artifactId>
-                    <version>${flink.version}</version>
-                    <scope>compile</scope>
-                </dependency>
-                <dependency>
-                    <groupId>org.apache.flink</groupId>
-                    <artifactId>flink-connector-base</artifactId>
-                    <version>${flink.version}</version>
-                    <scope>compile</scope>
-                </dependency>
-            </dependencies>
-        </profile>
-    </profiles>
+
 
 </project>
