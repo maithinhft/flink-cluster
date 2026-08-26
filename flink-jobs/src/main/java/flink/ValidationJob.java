@@ -55,7 +55,11 @@ public class ValidationJob {
 
         // Biến luồng Schema thành Broadcast Stream
         BroadcastStream<String> broadcastSchemaStream = schemaStream
-                .broadcast(SchemaValidationBroadcastProcessFunction.SCHEMA_STATE_DESCRIPTOR);
+                .broadcast(
+                        SchemaValidationBroadcastProcessFunction.SCHEMA_STATE_DESCRIPTOR,
+                        SchemaValidationBroadcastProcessFunction.LATEST_VERSION_DESCRIPTOR,
+                        SchemaValidationBroadcastProcessFunction.DEPRECATED_SCHEMAS_DESCRIPTOR
+                );
 
         // 2. Tạo Kafka Source để đọc Event Data từ NHIỀU TOPIC dựa trên Regex Pattern
         KafkaSource<String> eventSource = KafkaSource.<String>builder()
