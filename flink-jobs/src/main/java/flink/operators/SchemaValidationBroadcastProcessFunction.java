@@ -23,12 +23,15 @@ public class SchemaValidationBroadcastProcessFunction extends BroadcastProcessFu
     private static final Logger LOG = LoggerFactory.getLogger(SchemaValidationBroadcastProcessFunction.class);
     private static final ObjectMapper mapper = new ObjectMapper();
 
-    // MapStateDescriptor để định nghĩa cấu trúc lưu trữ Schema (Key: Tên schema,
-    // Value: Nội dung JSON của Schema)
     public static final MapStateDescriptor<String, String> SCHEMA_STATE_DESCRIPTOR = new MapStateDescriptor<>(
             "schemaBroadcastState", Types.STRING, Types.STRING);
 
-    // OutputTag để rẽ nhánh dữ liệu bẩn ra luồng riêng (Side Output)
+    public static final MapStateDescriptor<String, Long> DEPRECATED_SCHEMAS_DESCRIPTOR = new MapStateDescriptor<>(
+            "deprecatedSchemas", Types.STRING, Types.LONG);
+
+    public static final MapStateDescriptor<String, String> LATEST_VERSION_DESCRIPTOR = new MapStateDescriptor<>(
+            "latestSchemaVersions", Types.STRING, Types.STRING);
+
     public static final OutputTag<String> DIRTY_DATA_TAG = new OutputTag<String>("dirty-events") {
     };
 
@@ -37,30 +40,27 @@ public class SchemaValidationBroadcastProcessFunction extends BroadcastProcessFu
         try {
             JsonNode eventNode = mapper.readTree(eventJson);
 
-            // Xác định source_system và action để suy ra Schema Key (VD: crm_login)
-            if (!eventNode.has("source_system") || !eventNode.has("event_type")) {
-                // Thiếu thông tin cơ bản để map schema -> Đẩy thẳng vào DIRTY
-                ((ObjectNode) eventNode).put("error_reason", "Missing source_system or action for schema mapping");
+            if (!eventNode.has("source_system") || !eventNode.has("event_type") || !eventNode.has("schema_version")) {
+                ((ObjectNode) eventNode).put("error_reason",
+                        "Missing source_system or action or version for schema mapping");
                 ctx.output(DIRTY_DATA_TAG, mapper.writeValueAsString(eventNode));
                 return;
             }
 
             String sourceName = eventNode.get("source_system").asText();
-            String action = eventNode.get("event_type").asText();
-            String schemaKey = sourceName + "_" + action;
+            String eventType = eventNode.get("event_type").asText();
+            String version = eventNode.get("schema_version").asText();
+            String schemaKey = sourceName + "_" + eventType + "_" + version;
 
             ReadOnlyBroadcastState<String, String> schemaState = ctx.getBroadcastState(SCHEMA_STATE_DESCRIPTOR);
             String schemaJson = schemaState.get(schemaKey);
 
             if (schemaJson == null) {
-                // Nếu chưa nhận được schema từ Broadcast, có thể tạm coi là hợp lệ hoặc không.
-                // Ở đây ta ghi nhận lỗi thiếu schema.
                 ((ObjectNode) eventNode).put("error_reason", "Schema not found for key: " + schemaKey);
                 ctx.output(DIRTY_DATA_TAG, mapper.writeValueAsString(eventNode));
                 return;
             }
 
-            // Parse schema để kiểm tra các trường
             JsonNode schemaNode = mapper.readTree(schemaJson);
             JsonNode fieldsNode = schemaNode.get("fields");
             if (fieldsNode == null) {
@@ -69,16 +69,14 @@ public class SchemaValidationBroadcastProcessFunction extends BroadcastProcessFu
             }
 
             List<String> missingFields = new ArrayList<>();
-            // Event payload is a flat JSON, so the fields are at the root of the eventNode
             JsonNode eventFields = eventNode;
-            
+
             Iterator<Map.Entry<String, JsonNode>> fieldsIter = fieldsNode.fields();
             while (fieldsIter.hasNext()) {
                 Map.Entry<String, JsonNode> fieldEntry = fieldsIter.next();
                 String fieldName = fieldEntry.getKey();
                 JsonNode fieldDef = fieldEntry.getValue();
 
-                // Kiểm tra cờ required
                 if (fieldDef.has("required") && fieldDef.get("required").asBoolean()) {
                     if (!eventFields.has(fieldName) || eventFields.get(fieldName).isNull()) {
                         missingFields.add(fieldName);
@@ -87,17 +85,14 @@ public class SchemaValidationBroadcastProcessFunction extends BroadcastProcessFu
             }
 
             if (!missingFields.isEmpty()) {
-                // Sự kiện thiếu trường bắt buộc -> DIRTY DATA
                 ((ObjectNode) eventNode).put("error_reason",
                         "Missing required fields: " + String.join(", ", missingFields));
                 ctx.output(DIRTY_DATA_TAG, mapper.writeValueAsString(eventNode));
             } else {
-                // Dữ liệu Sạch -> Đẩy ra luồng chính
                 out.collect(eventJson);
             }
 
         } catch (Exception e) {
-            // Lỗi parse JSON -> Chắc chắn là DIRTY DATA
             LOG.warn("Failed to parse event JSON", e);
             ObjectNode errorNode = mapper.createObjectNode();
             errorNode.put("original_payload", eventJson);
@@ -106,35 +101,85 @@ public class SchemaValidationBroadcastProcessFunction extends BroadcastProcessFu
         }
     }
 
+    private int compareVersions(String v1, String v2) {
+        try {
+            String[] parts1 = v1.split("\\.");
+            String[] parts2 = v2.split("\\.");
+            int length = Math.max(parts1.length, parts2.length);
+            for (int i = 0; i < length; i++) {
+                int p1 = i < parts1.length ? Integer.parseInt(parts1[i]) : 0;
+                int p2 = i < parts2.length ? Integer.parseInt(parts2[i]) : 0;
+                if (p1 != p2) {
+                    return Integer.compare(p1, p2);
+                }
+            }
+            return 0;
+        } catch (Exception e) {
+            return v1.compareTo(v2);
+        }
+    }
+
     @Override
     public void processBroadcastElement(String messageJson, Context ctx, Collector<String> out) throws Exception {
         try {
             JsonNode messageNode = mapper.readTree(messageJson);
-            
-            String schemaKey;
-            String schemaJson;
 
-            // Hỗ trợ luồng dữ liệu mới từ PostgreSQL CDC
-            if (messageNode.has("schema_payload") && messageNode.has("schema_id")) {
-                schemaKey = messageNode.get("schema_id").asText();
-                schemaJson = messageNode.get("schema_payload").asText(); // Debezium convert JSONB thành String
-            } else {
-                // Hỗ trợ ngược cho luồng dữ liệu cũ bắn trực tiếp lên Kafka
-                schemaJson = messageJson;
-                if (messageNode.has("name") && "unified_dictionary".equals(messageNode.get("name").asText())) {
-                    schemaKey = "unified_schema";
+            if (messageNode.has("schema_payload") && messageNode.has("schema_id")
+                    && messageNode.get("schema_payload").has("version")) {
+
+                String schemaId = messageNode.get("schema_id").asText();
+                String version = messageNode.get("schema_payload").get("version").asText();
+                String schemaKey = schemaId + "_" + version;
+                String schemaJson = messageNode.get("schema_payload").asText();
+
+                BroadcastState<String, String> schemaState = ctx.getBroadcastState(SCHEMA_STATE_DESCRIPTOR);
+                BroadcastState<String, String> latestVersionState = ctx.getBroadcastState(LATEST_VERSION_DESCRIPTOR);
+                BroadcastState<String, Long> deprecatedState = ctx.getBroadcastState(DEPRECATED_SCHEMAS_DESCRIPTOR);
+
+                String currentLatestVersion = latestVersionState.get(schemaId);
+
+                if (currentLatestVersion == null) {
+                    latestVersionState.put(schemaId, version);
+                    schemaState.put(schemaKey, schemaJson);
+                    LOG.info("Received and cached initial schema for key: {}", schemaKey);
                 } else {
-                    String sourceName = messageNode.has("source_name") ? messageNode.get("source_name").asText() : "unknown";
-                    String action = messageNode.has("action") ? messageNode.get("action").asText() : "unknown";
-                    schemaKey = sourceName + "_" + action;
+                    int cmp = compareVersions(version, currentLatestVersion);
+                    if (cmp > 0) {
+                        // Version mới thực sự lớn hơn -> Đánh dấu version cũ là deprecated
+                        String oldSchemaKey = schemaId + "_" + currentLatestVersion;
+                        deprecatedState.put(oldSchemaKey, ctx.currentProcessingTime());
+                        LOG.info("Deprecated old schema version: {}", oldSchemaKey);
+
+                        latestVersionState.put(schemaId, version);
+                        schemaState.put(schemaKey, schemaJson);
+                        LOG.info("Received and cached newer schema for key: {}", schemaKey);
+                    } else if (cmp < 0) {
+                        // Version nhận được NHỎ HƠN latest -> Đây là version cũ đến out-of-order
+                        schemaState.put(schemaKey, schemaJson);
+                        deprecatedState.put(schemaKey, ctx.currentProcessingTime());
+                        LOG.info("Received out-of-order old schema version: {}, immediately deprecating it", schemaKey);
+                    } else {
+                        // Bằng nhau (replay)
+                        schemaState.put(schemaKey, schemaJson);
+                    }
+                }
+
+                // Chạy vòng lặp dọn dẹp các schema đã bị deprecated quá 5 phút
+                long currentTime = ctx.currentProcessingTime();
+                List<String> keysToRemove = new ArrayList<>();
+                for (Map.Entry<String, Long> entry : deprecatedState.entries()) {
+                    if (currentTime - entry.getValue() > 5 * 60 * 1000L) {
+                        keysToRemove.add(entry.getKey());
+                    }
+                }
+
+                // Thực hiện xóa khỏi State
+                for (String key : keysToRemove) {
+                    schemaState.remove(key);
+                    deprecatedState.remove(key);
+                    LOG.info("Cleaned up expired old schema: {}", key);
                 }
             }
-
-            BroadcastState<String, String> broadcastState = ctx.getBroadcastState(SCHEMA_STATE_DESCRIPTOR);
-            broadcastState.put(schemaKey, schemaJson);
-            
-            LOG.info("Received and cached schema for key: {}", schemaKey);
-            
         } catch (Exception e) {
             LOG.error("Failed to parse and store schema from Broadcast Stream", e);
         }
