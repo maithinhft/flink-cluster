@@ -8,8 +8,7 @@
             "type": "string",
             "description": "Unique identifier for the event",
             "format": "UUID",
-            "required": true,
-            "filterable": true
+            "required": true
         },
         "event_type": {
             "type": "string",
@@ -24,14 +23,12 @@
                 "support_ticket_created",
                 "support_ticket_resolved"
             ],
-            "required": true,
-            "filterable": true
+            "required": true
         },
         "entity_id": {
             "type": "string",
             "description": "Customer identifier (unique ID of the customer)",
-            "required": true,
-            "filterable": true
+            "required": true
         },
         "source_system": {
             "type": "string",
@@ -41,61 +38,51 @@
                 "crm",
                 "payment"
             ],
-            "required": true,
-            "filterable": true
+            "required": true
         },
         "schema_version": {
             "type": "string",
             "description": "Version of the event schema",
             "default": "1.0",
-            "required": true,
-            "filterable": true
+            "required": true
         },
         "event_time": {
             "type": "string",
             "description": "Timestamp when the event actually occurred at the source",
             "format": "ISO-8601",
-            "required": true,
-            "filterable": true
+            "required": true
         },
         "source_id": {
             "type": "string",
-            "description": "Original record ID in the source system",
-            "filterable": true
+            "description": "Original record ID in the source system"
         },
         "trace_id": {
             "type": "string",
             "description": "Distributed tracing ID for the request flow",
-            "format": "UUID",
-            "filterable": true
+            "format": "UUID"
         },
         "correlation_id": {
             "type": "string",
             "description": "Identifier linking multiple related events together",
-            "format": "UUID",
-            "filterable": true
+            "format": "UUID"
         },
         "user_first_name": {
             "type": "string",
-            "description": "User's first name",
-            "filterable": true
+            "description": "User's first name"
         },
         "user_last_name": {
             "type": "string",
-            "description": "User's last name",
-            "filterable": true
+            "description": "User's last name"
         },
         "user_email": {
             "type": "string",
             "description": "User's email address",
-            "format": "Email",
-            "filterable": true
+            "format": "Email"
         },
         "user_phone": {
             "type": "string",
             "description": "User's phone number",
-            "format": "E.164",
-            "filterable": true
+            "format": "E.164"
         },
         "user_gender": {
             "type": "string",
@@ -105,174 +92,29 @@
                 "F",
                 "O",
                 "U"
-            ],
-            "filterable": true
+            ]
         },
         "user_date_of_birth": {
             "type": "string",
             "description": "User's date of birth",
-            "format": "YYYY-MM-DD",
-            "filterable": true
+            "format": "YYYY-MM-DD"
         },
         "user_nationality": {
             "type": "string",
-            "description": "User's nationality",
-            "filterable": true
+            "description": "User's nationality"
         },
         "opt_in_email": {
             "type": "boolean",
-            "description": "Whether user has opted in to email communications",
-            "filterable": true
+            "description": "Whether user has opted in to email communications"
         },
         "opt_in_sms": {
             "type": "boolean",
-            "description": "Whether user has opted in to SMS communications",
-            "filterable": true
+            "description": "Whether user has opted in to SMS communications"
         },
         "opt_in_push": {
             "type": "boolean",
-            "description": "Whether user has opted in to push notifications",
-            "filterable": true
+            "description": "Whether user has opted in to push notifications"
         }
     },
-    "metrics": [
-        {
-            "metric_id": "count_event_id",
-            "source_field": "event_id",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "count_event_type",
-            "source_field": "event_type",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "count_entity_id",
-            "source_field": "entity_id",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "count_source_system",
-            "source_field": "source_system",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "count_schema_version",
-            "source_field": "schema_version",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "count_event_time",
-            "source_field": "event_time",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "max_event_time",
-            "source_field": "event_time",
-            "aggregation": "MAX",
-            "filter": null
-        },
-        {
-            "metric_id": "min_event_time",
-            "source_field": "event_time",
-            "aggregation": "MIN",
-            "filter": null
-        },
-        {
-            "metric_id": "count_source_id",
-            "source_field": "source_id",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "count_trace_id",
-            "source_field": "trace_id",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "count_correlation_id",
-            "source_field": "correlation_id",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "count_user_first_name",
-            "source_field": "user_first_name",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "count_user_last_name",
-            "source_field": "user_last_name",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "count_user_email",
-            "source_field": "user_email",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "count_user_phone",
-            "source_field": "user_phone",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "count_user_gender",
-            "source_field": "user_gender",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "count_user_date_of_birth",
-            "source_field": "user_date_of_birth",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "max_user_date_of_birth",
-            "source_field": "user_date_of_birth",
-            "aggregation": "MAX",
-            "filter": null
-        },
-        {
-            "metric_id": "min_user_date_of_birth",
-            "source_field": "user_date_of_birth",
-            "aggregation": "MIN",
-            "filter": null
-        },
-        {
-            "metric_id": "count_user_nationality",
-            "source_field": "user_nationality",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "count_opt_in_email",
-            "source_field": "opt_in_email",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "count_opt_in_sms",
-            "source_field": "opt_in_sms",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "count_opt_in_push",
-            "source_field": "opt_in_push",
-            "aggregation": "COUNT",
-            "filter": null
-        }
-    ]
+    "metrics": []
 }

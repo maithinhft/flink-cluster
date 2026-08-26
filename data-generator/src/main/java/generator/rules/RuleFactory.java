@@ -58,6 +58,20 @@ public class RuleFactory {
         int slide = size == 86400 ? 300 : (size == 3600 ? 300 : size);
         String windowType = size == slide ? "tumbling" : "sliding";
 
+        String filterJson = "null";
+        if (RandomUtils.RANDOM.nextBoolean()) {
+            int tagIdx = RandomUtils.RANDOM.nextInt(RuleConfig.TAG_FIELDS.length);
+            String tagField = RuleConfig.TAG_FIELDS[tagIdx];
+            String tagValue = RandomUtils.randomElement(RuleConfig.TAG_VALUES[tagIdx]);
+            filterJson = """
+                    {
+                      "type": "RAW_FIELD",
+                      "field": "%s",
+                      "operator": "EQ",
+                      "value": "%s"
+                    }""".formatted(tagField, tagValue);
+        }
+
         return """
                 {
                   "type": "AGGREGATION",
@@ -68,9 +82,10 @@ public class RuleFactory {
                     "size_seconds": %d,
                     "slide_seconds": %d
                   },
+                  "filter": %s,
                   "operator": "%s",
                   "value": %d
-                }""".formatted(field, function, windowType, size, slide, RandomUtils.randomElement(RuleConfig.NUMERIC_OPS),
+                }""".formatted(field, function, windowType, size, slide, filterJson, RandomUtils.randomElement(RuleConfig.NUMERIC_OPS),
                 RandomUtils.RANDOM.nextInt(10_000) + 1);
     }
 

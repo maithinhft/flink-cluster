@@ -1,339 +1,340 @@
 {
-  "_comment": "Rule Definition Schema - Ring Buffer Window Aggregation (max 24h, bucket 5 phút)",
-  "database_table": "rule_definitions",
-  "ring_buffer_constraints": {
-    "_comment": "Ràng buộc cố định của Ring Buffer trong hệ thống",
-    "max_window_size_seconds": 86400,
-    "bucket_size_seconds": 300,
-    "total_buckets": 288,
-    "description": "Ring buffer chia 24 giờ thành 288 bucket (mỗi bucket 5 phút). Window size phải là bội số của bucket_size và không vượt quá max_window_size."
-  },
-  "fields": {
-    "rule_id": {
-      "type": "string (UUID)",
-      "description": "Định danh duy nhất của rule"
+    "_comment": "Rule Definition Schema - Ring Buffer Window Aggregation (max 24h, bucket 5 ph\u00fat)",
+    "database_table": "rule_definitions",
+    "ring_buffer_constraints": {
+        "_comment": "R\u00e0ng bu\u1ed9c c\u1ed1 \u0111\u1ecbnh c\u1ee7a Ring Buffer trong h\u1ec7 th\u1ed1ng",
+        "max_window_size_seconds": 86400,
+        "bucket_size_seconds": 300,
+        "total_buckets": 288,
+        "description": "Ring buffer chia 24 gi\u1edd th\u00e0nh 288 bucket (m\u1ed7i bucket 5 ph\u00fat). Window size ph\u1ea3i l\u00e0 b\u1ed9i s\u1ed1 c\u1ee7a bucket_size v\u00e0 kh\u00f4ng v\u01b0\u1ee3t qu\u00e1 max_window_size."
     },
-    "name": {
-      "type": "string",
-      "description": "Tên gợi nhớ của rule (VD: high_value_segment, fraud_alert)"
-    },
-    "priority": {
-      "type": "integer",
-      "description": "Độ ưu tiên của rule khi có xung đột (số càng lớn ưu tiên càng cao)",
-      "default": 0
-    },
-    "cooldown_seconds": {
-      "type": "integer",
-      "description": "Thời gian làm nguội (tính bằng giây). Nếu rule thỏa mãn, nó sẽ không được kích hoạt lại trên cùng một entity_id trong khoảng thời gian này.",
-      "examples": [
-        0,
-        60,
-        300,
-        3600
-      ]
-    },
-    "version": {
-      "type": "integer",
-      "description": "Phiên bản của rule (dùng để quản lý vòng đời và cache)"
-    },
-    "enabled": {
-      "type": "boolean",
-      "description": "Trạng thái kích hoạt của rule",
-      "default": true
-    },
-    "created_at": {
-      "type": "string",
-      "description": "Thời điểm tạo rule",
-      "format": "ISO-8601"
-    },
-    "updated_at": {
-      "type": "string",
-      "description": "Thời điểm cập nhật rule gần nhất",
-      "format": "ISO-8601"
-    },
-    "user_id": {
-      "type": "string",
-      "description": "ID của người tạo rule"
-    },
-    "rule_json": {
-      "type": "JSON object",
-      "description": "Cây điều kiện logic (Condition Tree) của rule. Xem cấu trúc chi tiết bên dưới."
-    }
-  },
-  "rule_json_structure": {
-    "_comment": "Cấu trúc đệ quy của cây điều kiện bên trong trường `rule_json`",
-    "Node": {
-      "description": "Một Node có thể là LogicalNode (AND, OR, NOT) hoặc LeafNode (AGGREGATION, RAW_FIELD)",
-      "LogicalNode": {
-        "operator": {
-          "type": "string",
-          "allowed_values": [
-            "AND",
-            "OR",
-            "NOT"
-          ]
+    "fields": {
+        "rule_id": {
+            "type": "string (UUID)",
+            "description": "\u0110\u1ecbnh danh duy nh\u1ea5t c\u1ee7a rule"
         },
-        "children": {
-          "type": "array of Node",
-          "description": "Danh sách các Node con. Nếu operator là NOT, mảng này chỉ có 1 phần tử."
+        "name": {
+            "type": "string",
+            "description": "T\u00ean g\u1ee3i nh\u1edb c\u1ee7a rule (VD: high_value_segment, fraud_alert)"
+        },
+        "priority": {
+            "type": "integer",
+            "description": "\u0110\u1ed9 \u01b0u ti\u00ean c\u1ee7a rule khi c\u00f3 xung \u0111\u1ed9t (s\u1ed1 c\u00e0ng l\u1edbn \u01b0u ti\u00ean c\u00e0ng cao)",
+            "default": 0
+        },
+        "cooldown_seconds": {
+            "type": "integer",
+            "description": "Th\u1eddi gian l\u00e0m ngu\u1ed9i (t\u00ednh b\u1eb1ng gi\u00e2y). N\u1ebfu rule th\u1ecfa m\u00e3n, n\u00f3 s\u1ebd kh\u00f4ng \u0111\u01b0\u1ee3c k\u00edch ho\u1ea1t l\u1ea1i tr\u00ean c\u00f9ng m\u1ed9t entity_id trong kho\u1ea3ng th\u1eddi gian n\u00e0y.",
+            "examples": [
+                0,
+                60,
+                300,
+                3600
+            ]
+        },
+        "version": {
+            "type": "integer",
+            "description": "Phi\u00ean b\u1ea3n c\u1ee7a rule (d\u00f9ng \u0111\u1ec3 qu\u1ea3n l\u00fd v\u00f2ng \u0111\u1eddi v\u00e0 cache)"
+        },
+        "enabled": {
+            "type": "boolean",
+            "description": "Tr\u1ea1ng th\u00e1i k\u00edch ho\u1ea1t c\u1ee7a rule",
+            "default": true
+        },
+        "created_at": {
+            "type": "string",
+            "description": "Th\u1eddi \u0111i\u1ec3m t\u1ea1o rule",
+            "format": "ISO-8601"
+        },
+        "updated_at": {
+            "type": "string",
+            "description": "Th\u1eddi \u0111i\u1ec3m c\u1eadp nh\u1eadt rule g\u1ea7n nh\u1ea5t",
+            "format": "ISO-8601"
+        },
+        "user_id": {
+            "type": "string",
+            "description": "ID c\u1ee7a ng\u01b0\u1eddi t\u1ea1o rule"
+        },
+        "rule_json": {
+            "type": "JSON object",
+            "description": "C\u00e2y \u0111i\u1ec1u ki\u1ec7n logic (Condition Tree) c\u1ee7a rule. Xem c\u1ea5u tr\u00fac chi ti\u1ebft b\u00ean d\u01b0\u1edbi."
         }
-      },
-      "LeafNode_Aggregation": {
-        "description": "Điều kiện dựa trên giá trị tổng hợp qua Ring Buffer. Window size phải là bội số của 300s và tối đa 86400s (24h).",
-        "type": {
-          "type": "string",
-          "value": "AGGREGATION"
-        },
-        "field": {
-          "type": "string",
-          "description": "Tên trường dữ liệu cần tổng hợp. Phải tồn tại trong source schema và có phép tổng hợp tương ứng trong supported_state_strategies."
-        },
-        "function": {
-          "type": "string",
-          "description": "Phép tổng hợp trên ring buffer",
-          "allowed_values": [
-            "SUM",
-            "COUNT",
-            "AVG",
-            "MAX",
-            "MIN"
-          ]
-        },
-        "source_system": {
-          "type": "string",
-          "description": "Nguồn dữ liệu chứa trường cần tổng hợp",
-          "allowed_values": [
-            "ecommerce",
-            "crm",
-            "payment"
-          ],
-          "required": false
-        },
-        "window": {
-          "type": "object",
-          "description": "Cấu hình cửa sổ. size_seconds và slide_seconds phải là bội số của 300 (bucket 5 phút). size_seconds tối đa 86400 (24h).",
-          "properties": {
-            "type": {
-              "type": "string",
-              "allowed_values": [
-                "sliding",
-                "tumbling"
-              ]
+    },
+    "rule_json_structure": {
+        "_comment": "C\u1ea5u tr\u00fac \u0111\u1ec7 quy c\u1ee7a c\u00e2y \u0111i\u1ec1u ki\u1ec7n b\u00ean trong tr\u01b0\u1eddng `rule_json`",
+        "Node": {
+            "description": "M\u1ed9t Node c\u00f3 th\u1ec3 l\u00e0 LogicalNode (AND, OR, NOT) ho\u1eb7c LeafNode (AGGREGATION, RAW_FIELD)",
+            "LogicalNode": {
+                "operator": {
+                    "type": "string",
+                    "allowed_values": [
+                        "AND",
+                        "OR",
+                        "NOT"
+                    ]
+                },
+                "children": {
+                    "type": "array of Node",
+                    "description": "Danh s\u00e1ch c\u00e1c Node con. N\u1ebfu operator l\u00e0 NOT, m\u1ea3ng n\u00e0y ch\u1ec9 c\u00f3 1 ph\u1ea7n t\u1eed."
+                }
             },
-            "size_seconds": {
-              "type": "integer",
-              "description": "Kích thước cửa sổ (bội số của 300, tối đa 86400)",
-              "min": 300,
-              "max": 86400
+            "LeafNode_Aggregation": {
+                "description": "\u0110i\u1ec1u ki\u1ec7n d\u1ef1a tr\u00ean gi\u00e1 tr\u1ecb t\u1ed5ng h\u1ee3p qua Ring Buffer. Window size ph\u1ea3i l\u00e0 b\u1ed9i s\u1ed1 c\u1ee7a 300s v\u00e0 t\u1ed1i \u0111a 86400s (24h).",
+                "type": {
+                    "type": "string",
+                    "value": "AGGREGATION"
+                },
+                "field": {
+                    "type": "string",
+                    "description": "T\u00ean tr\u01b0\u1eddng d\u1eef li\u1ec7u c\u1ea7n t\u1ed5ng h\u1ee3p. Ph\u1ea3i t\u1ed3n t\u1ea1i trong source schema v\u00e0 c\u00f3 ph\u00e9p t\u1ed5ng h\u1ee3p t\u01b0\u01a1ng \u1ee9ng trong supported_state_strategies."
+                },
+                "function": {
+                    "type": "string",
+                    "description": "Ph\u00e9p t\u1ed5ng h\u1ee3p tr\u00ean ring buffer",
+                    "allowed_values": [
+                        "SUM",
+                        "COUNT",
+                        "AVG",
+                        "MAX",
+                        "MIN"
+                    ]
+                },
+                "source_system": {
+                    "type": "string",
+                    "description": "Ngu\u1ed3n d\u1eef li\u1ec7u ch\u1ee9a tr\u01b0\u1eddng c\u1ea7n t\u1ed5ng h\u1ee3p",
+                    "allowed_values": [
+                        "ecommerce",
+                        "crm",
+                        "payment"
+                    ],
+                    "required": false
+                },
+                "window": {
+                    "type": "object",
+                    "description": "C\u1ea5u h\u00ecnh c\u1eeda s\u1ed5. size_seconds v\u00e0 slide_seconds ph\u1ea3i l\u00e0 b\u1ed9i s\u1ed1 c\u1ee7a 300 (bucket 5 ph\u00fat). size_seconds t\u1ed1i \u0111a 86400 (24h).",
+                    "properties": {
+                        "type": {
+                            "type": "string",
+                            "allowed_values": [
+                                "sliding",
+                                "tumbling"
+                            ]
+                        },
+                        "size_seconds": {
+                            "type": "integer",
+                            "description": "K\u00edch th\u01b0\u1edbc c\u1eeda s\u1ed5 (b\u1ed9i s\u1ed1 c\u1ee7a 300, t\u1ed1i \u0111a 86400)",
+                            "min": 300,
+                            "max": 86400
+                        },
+                        "slide_seconds": {
+                            "type": "integer",
+                            "description": "B\u01b0\u1edbc tr\u01b0\u1ee3t (b\u1ed9i s\u1ed1 c\u1ee7a 300). V\u1edbi tumbling window th\u00ec b\u1eb1ng size_seconds.",
+                            "min": 300,
+                            "max": 86400
+                        }
+                    }
+                },
+                "filter": {
+                    "type": "object",
+                    "description": "\u0110i\u1ec1u ki\u1ec7n l\u1ecdc event tr\u01b0\u1edbc khi t\u1ed5ng h\u1ee3p (t\u00f9y ch\u1ecdn). C\u1ea5u tr\u00fac gi\u1ed1ng LeafNode_RawField.",
+                    "required": false
+                },
+                "operator": {
+                    "type": "string",
+                    "allowed_values": [
+                        "GT",
+                        "GTE",
+                        "LT",
+                        "LTE",
+                        "EQ",
+                        "NEQ"
+                    ]
+                },
+                "value": {
+                    "type": "number",
+                    "description": "Ng\u01b0\u1ee1ng gi\u00e1 tr\u1ecb \u0111\u1ec3 so s\u00e1nh v\u1edbi k\u1ebft qu\u1ea3 t\u1ed5ng h\u1ee3p"
+                }
             },
-            "slide_seconds": {
-              "type": "integer",
-              "description": "Bước trượt (bội số của 300). Với tumbling window thì bằng size_seconds.",
-              "min": 300,
-              "max": 86400
+            "LeafNode_RawField": {
+                "description": "\u0110i\u1ec1u ki\u1ec7n d\u1ef1a tr\u00ean gi\u00e1 tr\u1ecb tr\u01b0\u1eddng th\u00f4 c\u1ee7a s\u1ef1 ki\u1ec7n hi\u1ec7n t\u1ea1i",
+                "type": {
+                    "type": "string",
+                    "value": "RAW_FIELD"
+                },
+                "field": {
+                    "type": "string",
+                    "description": "T\u00ean tr\u01b0\u1eddng trong source schema"
+                },
+                "operator": {
+                    "type": "string",
+                    "allowed_values": [
+                        "EQ",
+                        "NEQ",
+                        "GT",
+                        "GTE",
+                        "LT",
+                        "LTE",
+                        "IN",
+                        "BETWEEN",
+                        "CONTAINS"
+                    ]
+                },
+                "value": {
+                    "type": "any",
+                    "description": "Gi\u00e1 tr\u1ecb so s\u00e1nh"
+                }
             }
-          }
-        },
-        "filter": {
-          "type": "object",
-          "description": "Điều kiện lọc event trước khi tổng hợp (tùy chọn). Cấu trúc giống LeafNode_RawField.",
-          "required": false
-        },
-        "operator": {
-          "type": "string",
-          "allowed_values": [
-            "GT",
-            "GTE",
-            "LT",
-            "LTE",
-            "EQ",
-            "NEQ"
-          ]
-        },
-        "value": {
-          "type": "number",
-          "description": "Ngưỡng giá trị để so sánh với kết quả tổng hợp"
         }
-      },
-      "LeafNode_RawField": {
-        "description": "Điều kiện dựa trên giá trị trường thô của sự kiện hiện tại",
-        "type": {
-          "type": "string",
-          "value": "RAW_FIELD"
-        },
-        "field": {
-          "type": "string",
-          "description": "Tên trường trong source schema"
-        },
-        "operator": {
-          "type": "string",
-          "allowed_values": [
-            "EQ",
-            "NEQ",
-            "GT",
-            "GTE",
-            "LT",
-            "LTE",
-            "IN",
-            "BETWEEN",
-            "CONTAINS"
-          ]
-        },
-        "value": {
-          "type": "any",
-          "description": "Giá trị so sánh"
-        }
-      }
-    }
-  },
-  "example_rules": {
-    "_comment": "Các ví dụ rule trong phạm vi ring buffer 24h / bucket 5 phút",
-    "high_value_24h": {
-      "_description": "Khách hàng chi tiêu cao: Tổng chi tiêu >= 5 triệu VND trong 24h VÀ có >= 3 đơn hoàn thành",
-      "operator": "AND",
-      "children": [
-        {
-          "type": "AGGREGATION",
-          "field": "total_amount",
-          "function": "SUM",
-          "source_system": "ecommerce",
-          "window": {
-            "type": "sliding",
-            "size_seconds": 86400,
-            "slide_seconds": 300
-          },
-          "operator": "GTE",
-          "value": 5000000
-        },
-        {
-          "type": "AGGREGATION",
-          "field": "order_status",
-          "function": "COUNT",
-          "source_system": "ecommerce",
-          "window": {
-            "type": "sliding",
-            "size_seconds": 86400,
-            "slide_seconds": 300
-          },
-          "filter": {
-            "field": "order_status",
-            "operator": "EQ",
-            "value": "completed"
-          },
-          "operator": "GTE",
-          "value": 3
-        }
-      ]
     },
-    "fraud_alert": {
-      "_description": "Cảnh báo gian lận: > 5 giao dịch thất bại trong 1 giờ HOẶC giao dịch không có 3DS và không khớp ZIP",
-      "operator": "OR",
-      "children": [
-        {
-          "type": "AGGREGATION",
-          "field": "transaction_status",
-          "function": "COUNT",
-          "source_system": "payment",
-          "window": {
-            "type": "sliding",
-            "size_seconds": 3600,
-            "slide_seconds": 300
-          },
-          "filter": {
-            "field": "transaction_status",
-            "operator": "EQ",
-            "value": "failed"
-          },
-          "operator": "GT",
-          "value": 5
+    "example_rules": {
+        "_comment": "C\u00e1c v\u00ed d\u1ee5 rule trong ph\u1ea1m vi ring buffer 24h / bucket 5 ph\u00fat",
+        "high_value_24h": {
+            "_description": "Kh\u00e1ch h\u00e0ng chi ti\u00eau cao: T\u1ed5ng chi ti\u00eau >= 5 tri\u1ec7u VND trong 24h V\u00c0 c\u00f3 >= 3 \u0111\u01a1n ho\u00e0n th\u00e0nh",
+            "operator": "AND",
+            "children": [
+                {
+                    "type": "AGGREGATION",
+                    "field": "total_amount",
+                    "function": "SUM",
+                    "source_system": "ecommerce",
+                    "window": {
+                        "type": "sliding",
+                        "size_seconds": 86400,
+                        "slide_seconds": 300
+                    },
+                    "operator": "GTE",
+                    "value": 5000000
+                },
+                {
+                    "type": "AGGREGATION",
+                    "field": "order_status",
+                    "function": "COUNT",
+                    "source_system": "ecommerce",
+                    "window": {
+                        "type": "sliding",
+                        "size_seconds": 86400,
+                        "slide_seconds": 300
+                    },
+                    "filter": {
+                        "field": "order_status",
+                        "operator": "EQ",
+                        "value": "completed"
+                    },
+                    "operator": "GTE",
+                    "value": 3
+                }
+            ]
         },
-        {
-          "operator": "AND",
-          "children": [
-            {
-              "type": "RAW_FIELD",
-              "field": "is_3ds_verified",
-              "operator": "EQ",
-              "value": false
-            },
-            {
-              "type": "RAW_FIELD",
-              "field": "billing_zip_match",
-              "operator": "EQ",
-              "value": false
-            }
-          ]
+        "fraud_alert": {
+            "_description": "C\u1ea3nh b\u00e1o gian l\u1eadn: > 5 giao d\u1ecbch th\u1ea5t b\u1ea1i trong 1 gi\u1edd HO\u1eb6C giao d\u1ecbch kh\u00f4ng c\u00f3 3DS v\u00e0 kh\u00f4ng kh\u1edbp ZIP",
+            "operator": "OR",
+            "children": [
+                {
+                    "type": "AGGREGATION",
+                    "field": "transaction_status",
+                    "function": "COUNT",
+                    "source_system": "payment",
+                    "window": {
+                        "type": "sliding",
+                        "size_seconds": 3600,
+                        "slide_seconds": 300
+                    },
+                    "filter": {
+                        "field": "transaction_status",
+                        "operator": "EQ",
+                        "value": "failed"
+                    },
+                    "operator": "GT",
+                    "value": 5
+                },
+                {
+                    "operator": "AND",
+                    "children": [
+                        {
+                            "type": "RAW_FIELD",
+                            "field": "is_3ds_verified",
+                            "operator": "EQ",
+                            "value": false
+                        },
+                        {
+                            "type": "RAW_FIELD",
+                            "field": "billing_zip_match",
+                            "operator": "EQ",
+                            "value": false
+                        }
+                    ]
+                }
+            ]
+        },
+        "inactive_customer": {
+            "_description": "Kh\u00e1ch h\u00e0ng kh\u00f4ng ho\u1ea1t \u0111\u1ed9ng: 0 event t\u1eeb ecommerce trong 12 gi\u1edd g\u1ea7n nh\u1ea5t V\u00c0 \u0111i\u1ec3m h\u00e0i l\u00f2ng g\u1ea7n nh\u1ea5t < 2",
+            "operator": "AND",
+            "children": [
+                {
+                    "type": "AGGREGATION",
+                    "field": "event_id",
+                    "function": "COUNT",
+                    "source_system": "ecommerce",
+                    "window": {
+                        "type": "tumbling",
+                        "size_seconds": 43200,
+                        "slide_seconds": 43200
+                    },
+                    "operator": "EQ",
+                    "value": 0
+                },
+                {
+                    "type": "AGGREGATION",
+                    "field": "satisfaction_score",
+                    "function": "MIN",
+                    "source_system": "crm",
+                    "window": {
+                        "type": "sliding",
+                        "size_seconds": 86400,
+                        "slide_seconds": 300
+                    },
+                    "operator": "LT",
+                    "value": 2
+                }
+            ]
+        },
+        "frequent_buyer": {
+            "_description": "Kh\u00e1ch mua s\u1eafm th\u01b0\u1eddng xuy\u00ean: >= 5 \u0111\u01a1n h\u00e0ng trong 6 gi\u1edd V\u00c0 gi\u00e1 tr\u1ecb trung b\u00ecnh \u0111\u01a1n >= 500.000 VND",
+            "operator": "AND",
+            "children": [
+                {
+                    "type": "AGGREGATION",
+                    "field": "order_id",
+                    "function": "COUNT",
+                    "source_system": "ecommerce",
+                    "window": {
+                        "type": "sliding",
+                        "size_seconds": 21600,
+                        "slide_seconds": 300
+                    },
+                    "filter": {
+                        "field": "order_status",
+                        "operator": "EQ",
+                        "value": "completed"
+                    },
+                    "operator": "GTE",
+                    "value": 5
+                },
+                {
+                    "type": "AGGREGATION",
+                    "field": "total_amount",
+                    "function": "AVG",
+                    "source_system": "ecommerce",
+                    "window": {
+                        "type": "sliding",
+                        "size_seconds": 21600,
+                        "slide_seconds": 300
+                    },
+                    "operator": "GTE",
+                    "value": 500000
+                }
+            ]
         }
-      ]
     },
-    "inactive_customer": {
-      "_description": "Khách hàng không hoạt động: 0 event từ ecommerce trong 12 giờ gần nhất VÀ điểm hài lòng gần nhất < 2",
-      "operator": "AND",
-      "children": [
-        {
-          "type": "AGGREGATION",
-          "field": "event_id",
-          "function": "COUNT",
-          "source_system": "ecommerce",
-          "window": {
-            "type": "tumbling",
-            "size_seconds": 43200,
-            "slide_seconds": 43200
-          },
-          "operator": "EQ",
-          "value": 0
-        },
-        {
-          "type": "AGGREGATION",
-          "field": "satisfaction_score",
-          "function": "MIN",
-          "source_system": "crm",
-          "window": {
-            "type": "sliding",
-            "size_seconds": 86400,
-            "slide_seconds": 300
-          },
-          "operator": "LT",
-          "value": 2
-        }
-      ]
-    },
-    "frequent_buyer": {
-      "_description": "Khách mua sắm thường xuyên: >= 5 đơn hàng trong 6 giờ VÀ giá trị trung bình đơn >= 500.000 VND",
-      "operator": "AND",
-      "children": [
-        {
-          "type": "AGGREGATION",
-          "field": "order_id",
-          "function": "COUNT",
-          "source_system": "ecommerce",
-          "window": {
-            "type": "sliding",
-            "size_seconds": 21600,
-            "slide_seconds": 300
-          },
-          "filter": {
-            "field": "order_status",
-            "operator": "EQ",
-            "value": "completed"
-          },
-          "operator": "GTE",
-          "value": 5
-        },
-        {
-          "type": "AGGREGATION",
-          "field": "total_amount",
-          "function": "AVG",
-          "source_system": "ecommerce",
-          "window": {
-            "type": "sliding",
-            "size_seconds": 21600,
-            "slide_seconds": 300
-          },
-          "operator": "GTE",
-          "value": 500000
-        }
-      ]
-    }
-  }
+    "metrics": []
 }

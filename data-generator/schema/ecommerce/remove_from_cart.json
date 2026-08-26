@@ -8,8 +8,7 @@
             "type": "string",
             "description": "Unique identifier for the event",
             "format": "UUID",
-            "required": true,
-            "filterable": true
+            "required": true
         },
         "event_type": {
             "type": "string",
@@ -23,14 +22,12 @@
                 "order_completed",
                 "order_cancelled"
             ],
-            "required": true,
-            "filterable": true
+            "required": true
         },
         "entity_id": {
             "type": "string",
             "description": "Customer identifier (unique ID of the customer)",
-            "required": true,
-            "filterable": true
+            "required": true
         },
         "source_system": {
             "type": "string",
@@ -40,56 +37,47 @@
                 "crm",
                 "payment"
             ],
-            "required": true,
-            "filterable": true
+            "required": true
         },
         "schema_version": {
             "type": "string",
             "description": "Version of the event schema",
             "default": "1.0",
-            "required": true,
-            "filterable": true
+            "required": true
         },
         "event_time": {
             "type": "string",
             "description": "Timestamp when the event actually occurred at the source",
             "format": "ISO-8601",
-            "required": true,
-            "filterable": true
+            "required": true
         },
         "source_id": {
             "type": "string",
-            "description": "Original record ID in the source system",
-            "filterable": true
+            "description": "Original record ID in the source system"
         },
         "trace_id": {
             "type": "string",
             "description": "Distributed tracing ID for the request flow",
-            "format": "UUID",
-            "filterable": true
+            "format": "UUID"
         },
         "correlation_id": {
             "type": "string",
             "description": "Identifier linking multiple related events together",
-            "format": "UUID",
-            "filterable": true
+            "format": "UUID"
         },
         "cart_id": {
             "type": "string",
             "description": "Shopping cart identifier",
-            "required": true,
-            "filterable": true
+            "required": true
         },
         "product_id": {
             "type": "string",
             "description": "Unique product identifier",
-            "required": true,
-            "filterable": true
+            "required": true
         },
         "product_name": {
             "type": "string",
-            "description": "Display name of the product",
-            "filterable": true
+            "description": "Display name of the product"
         },
         "product_category": {
             "type": "string",
@@ -103,188 +91,87 @@
                 "sports",
                 "beauty",
                 "automotive"
-            ],
-            "filterable": true
+            ]
         },
         "product_subcategory": {
             "type": "string",
-            "description": "Sub-category of the product",
-            "filterable": true
+            "description": "Sub-category of the product"
         },
         "product_sku": {
             "type": "string",
-            "description": "Stock Keeping Unit (SKU)",
-            "filterable": true
+            "description": "Stock Keeping Unit (SKU)"
         },
         "product_brand": {
             "type": "string",
-            "description": "Brand name of the product",
-            "filterable": true
+            "description": "Brand name of the product"
         },
         "unit_price": {
             "type": "double",
             "description": "Price per single unit of the product",
-            "min": 0.0,
-            "filterable": true
+            "min": 0.0
         },
         "quantity": {
             "type": "integer",
             "description": "Quantity purchased or interacted with",
             "min": 1,
-            "required": true,
-            "filterable": true
+            "required": true
         },
         "warranty_period_months": {
             "type": "integer",
             "description": "Warranty duration in months",
-            "min": 0,
-            "filterable": true
+            "min": 0
         }
     },
     "metrics": [
-        {
-            "metric_id": "count_event_id",
-            "source_field": "event_id",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "count_event_type",
-            "source_field": "event_type",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "count_entity_id",
-            "source_field": "entity_id",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "count_source_system",
-            "source_field": "source_system",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "count_schema_version",
-            "source_field": "schema_version",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "count_event_time",
-            "source_field": "event_time",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "max_event_time",
-            "source_field": "event_time",
-            "aggregation": "MAX",
-            "filter": null
-        },
-        {
-            "metric_id": "min_event_time",
-            "source_field": "event_time",
-            "aggregation": "MIN",
-            "filter": null
-        },
-        {
-            "metric_id": "count_source_id",
-            "source_field": "source_id",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "count_trace_id",
-            "source_field": "trace_id",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "count_correlation_id",
-            "source_field": "correlation_id",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "count_cart_id",
-            "source_field": "cart_id",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "count_product_id",
-            "source_field": "product_id",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "count_product_name",
-            "source_field": "product_name",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "count_product_category",
-            "source_field": "product_category",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "count_product_subcategory",
-            "source_field": "product_subcategory",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "count_product_sku",
-            "source_field": "product_sku",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "count_product_brand",
-            "source_field": "product_brand",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "sum_unit_price",
-            "source_field": "unit_price",
-            "aggregation": "SUM",
-            "filter": null
-        },
-        {
-            "metric_id": "count_unit_price",
-            "source_field": "unit_price",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "avg_unit_price",
-            "source_field": "unit_price",
-            "aggregation": "AVG",
-            "filter": null
-        },
-        {
-            "metric_id": "max_unit_price",
-            "source_field": "unit_price",
-            "aggregation": "MAX",
-            "filter": null
-        },
-        {
-            "metric_id": "min_unit_price",
-            "source_field": "unit_price",
-            "aggregation": "MIN",
-            "filter": null
-        },
         {
             "metric_id": "sum_quantity",
             "source_field": "quantity",
             "aggregation": "SUM",
             "filter": null
+        },
+        {
+            "metric_id": "sum_quantity_where_product_category_electronics",
+            "source_field": "quantity",
+            "aggregation": "SUM",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "electronics"
+            }
+        },
+        {
+            "metric_id": "sum_quantity_where_product_category_books",
+            "source_field": "quantity",
+            "aggregation": "SUM",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "books"
+            }
+        },
+        {
+            "metric_id": "sum_quantity_where_product_category_fashion",
+            "source_field": "quantity",
+            "aggregation": "SUM",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "fashion"
+            }
+        },
+        {
+            "metric_id": "sum_quantity_where_product_category_food",
+            "source_field": "quantity",
+            "aggregation": "SUM",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "food"
+            }
         },
         {
             "metric_id": "count_quantity",
@@ -293,10 +180,98 @@
             "filter": null
         },
         {
+            "metric_id": "count_quantity_where_product_category_electronics",
+            "source_field": "quantity",
+            "aggregation": "COUNT",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "electronics"
+            }
+        },
+        {
+            "metric_id": "count_quantity_where_product_category_books",
+            "source_field": "quantity",
+            "aggregation": "COUNT",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "books"
+            }
+        },
+        {
+            "metric_id": "count_quantity_where_product_category_fashion",
+            "source_field": "quantity",
+            "aggregation": "COUNT",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "fashion"
+            }
+        },
+        {
+            "metric_id": "count_quantity_where_product_category_food",
+            "source_field": "quantity",
+            "aggregation": "COUNT",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "food"
+            }
+        },
+        {
             "metric_id": "avg_quantity",
             "source_field": "quantity",
             "aggregation": "AVG",
             "filter": null
+        },
+        {
+            "metric_id": "avg_quantity_where_product_category_electronics",
+            "source_field": "quantity",
+            "aggregation": "AVG",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "electronics"
+            }
+        },
+        {
+            "metric_id": "avg_quantity_where_product_category_books",
+            "source_field": "quantity",
+            "aggregation": "AVG",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "books"
+            }
+        },
+        {
+            "metric_id": "avg_quantity_where_product_category_fashion",
+            "source_field": "quantity",
+            "aggregation": "AVG",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "fashion"
+            }
+        },
+        {
+            "metric_id": "avg_quantity_where_product_category_food",
+            "source_field": "quantity",
+            "aggregation": "AVG",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "food"
+            }
         },
         {
             "metric_id": "max_quantity",
@@ -305,40 +280,348 @@
             "filter": null
         },
         {
+            "metric_id": "max_quantity_where_product_category_electronics",
+            "source_field": "quantity",
+            "aggregation": "MAX",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "electronics"
+            }
+        },
+        {
+            "metric_id": "max_quantity_where_product_category_books",
+            "source_field": "quantity",
+            "aggregation": "MAX",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "books"
+            }
+        },
+        {
+            "metric_id": "max_quantity_where_product_category_fashion",
+            "source_field": "quantity",
+            "aggregation": "MAX",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "fashion"
+            }
+        },
+        {
+            "metric_id": "max_quantity_where_product_category_food",
+            "source_field": "quantity",
+            "aggregation": "MAX",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "food"
+            }
+        },
+        {
             "metric_id": "min_quantity",
             "source_field": "quantity",
             "aggregation": "MIN",
             "filter": null
         },
         {
-            "metric_id": "sum_warranty_period_months",
-            "source_field": "warranty_period_months",
+            "metric_id": "min_quantity_where_product_category_electronics",
+            "source_field": "quantity",
+            "aggregation": "MIN",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "electronics"
+            }
+        },
+        {
+            "metric_id": "min_quantity_where_product_category_books",
+            "source_field": "quantity",
+            "aggregation": "MIN",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "books"
+            }
+        },
+        {
+            "metric_id": "min_quantity_where_product_category_fashion",
+            "source_field": "quantity",
+            "aggregation": "MIN",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "fashion"
+            }
+        },
+        {
+            "metric_id": "min_quantity_where_product_category_food",
+            "source_field": "quantity",
+            "aggregation": "MIN",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "food"
+            }
+        },
+        {
+            "metric_id": "sum_unit_price",
+            "source_field": "unit_price",
             "aggregation": "SUM",
             "filter": null
         },
         {
-            "metric_id": "count_warranty_period_months",
-            "source_field": "warranty_period_months",
+            "metric_id": "sum_unit_price_where_product_category_electronics",
+            "source_field": "unit_price",
+            "aggregation": "SUM",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "electronics"
+            }
+        },
+        {
+            "metric_id": "sum_unit_price_where_product_category_books",
+            "source_field": "unit_price",
+            "aggregation": "SUM",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "books"
+            }
+        },
+        {
+            "metric_id": "sum_unit_price_where_product_category_fashion",
+            "source_field": "unit_price",
+            "aggregation": "SUM",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "fashion"
+            }
+        },
+        {
+            "metric_id": "sum_unit_price_where_product_category_food",
+            "source_field": "unit_price",
+            "aggregation": "SUM",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "food"
+            }
+        },
+        {
+            "metric_id": "count_unit_price",
+            "source_field": "unit_price",
             "aggregation": "COUNT",
             "filter": null
         },
         {
-            "metric_id": "avg_warranty_period_months",
-            "source_field": "warranty_period_months",
+            "metric_id": "count_unit_price_where_product_category_electronics",
+            "source_field": "unit_price",
+            "aggregation": "COUNT",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "electronics"
+            }
+        },
+        {
+            "metric_id": "count_unit_price_where_product_category_books",
+            "source_field": "unit_price",
+            "aggregation": "COUNT",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "books"
+            }
+        },
+        {
+            "metric_id": "count_unit_price_where_product_category_fashion",
+            "source_field": "unit_price",
+            "aggregation": "COUNT",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "fashion"
+            }
+        },
+        {
+            "metric_id": "count_unit_price_where_product_category_food",
+            "source_field": "unit_price",
+            "aggregation": "COUNT",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "food"
+            }
+        },
+        {
+            "metric_id": "avg_unit_price",
+            "source_field": "unit_price",
             "aggregation": "AVG",
             "filter": null
         },
         {
-            "metric_id": "max_warranty_period_months",
-            "source_field": "warranty_period_months",
+            "metric_id": "avg_unit_price_where_product_category_electronics",
+            "source_field": "unit_price",
+            "aggregation": "AVG",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "electronics"
+            }
+        },
+        {
+            "metric_id": "avg_unit_price_where_product_category_books",
+            "source_field": "unit_price",
+            "aggregation": "AVG",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "books"
+            }
+        },
+        {
+            "metric_id": "avg_unit_price_where_product_category_fashion",
+            "source_field": "unit_price",
+            "aggregation": "AVG",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "fashion"
+            }
+        },
+        {
+            "metric_id": "avg_unit_price_where_product_category_food",
+            "source_field": "unit_price",
+            "aggregation": "AVG",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "food"
+            }
+        },
+        {
+            "metric_id": "max_unit_price",
+            "source_field": "unit_price",
             "aggregation": "MAX",
             "filter": null
         },
         {
-            "metric_id": "min_warranty_period_months",
-            "source_field": "warranty_period_months",
+            "metric_id": "max_unit_price_where_product_category_electronics",
+            "source_field": "unit_price",
+            "aggregation": "MAX",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "electronics"
+            }
+        },
+        {
+            "metric_id": "max_unit_price_where_product_category_books",
+            "source_field": "unit_price",
+            "aggregation": "MAX",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "books"
+            }
+        },
+        {
+            "metric_id": "max_unit_price_where_product_category_fashion",
+            "source_field": "unit_price",
+            "aggregation": "MAX",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "fashion"
+            }
+        },
+        {
+            "metric_id": "max_unit_price_where_product_category_food",
+            "source_field": "unit_price",
+            "aggregation": "MAX",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "food"
+            }
+        },
+        {
+            "metric_id": "min_unit_price",
+            "source_field": "unit_price",
             "aggregation": "MIN",
             "filter": null
+        },
+        {
+            "metric_id": "min_unit_price_where_product_category_electronics",
+            "source_field": "unit_price",
+            "aggregation": "MIN",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "electronics"
+            }
+        },
+        {
+            "metric_id": "min_unit_price_where_product_category_books",
+            "source_field": "unit_price",
+            "aggregation": "MIN",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "books"
+            }
+        },
+        {
+            "metric_id": "min_unit_price_where_product_category_fashion",
+            "source_field": "unit_price",
+            "aggregation": "MIN",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "fashion"
+            }
+        },
+        {
+            "metric_id": "min_unit_price_where_product_category_food",
+            "source_field": "unit_price",
+            "aggregation": "MIN",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "food"
+            }
         }
     ]
 }

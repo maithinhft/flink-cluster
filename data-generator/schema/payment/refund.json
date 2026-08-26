@@ -8,8 +8,7 @@
             "type": "string",
             "description": "Unique identifier for the event",
             "format": "UUID",
-            "required": true,
-            "filterable": true
+            "required": true
         },
         "event_type": {
             "type": "string",
@@ -21,14 +20,12 @@
                 "refund",
                 "chargeback"
             ],
-            "required": true,
-            "filterable": true
+            "required": true
         },
         "entity_id": {
             "type": "string",
             "description": "Customer identifier (unique ID of the customer)",
-            "required": true,
-            "filterable": true
+            "required": true
         },
         "source_system": {
             "type": "string",
@@ -38,45 +35,38 @@
                 "crm",
                 "payment"
             ],
-            "required": true,
-            "filterable": true
+            "required": true
         },
         "schema_version": {
             "type": "string",
             "description": "Version of the event schema",
             "default": "1.0",
-            "required": true,
-            "filterable": true
+            "required": true
         },
         "event_time": {
             "type": "string",
             "description": "Timestamp when the event actually occurred at the source",
             "format": "ISO-8601",
-            "required": true,
-            "filterable": true
+            "required": true
         },
         "source_id": {
             "type": "string",
-            "description": "Original record ID in the source system",
-            "filterable": true
+            "description": "Original record ID in the source system"
         },
         "trace_id": {
             "type": "string",
             "description": "Distributed tracing ID for the request flow",
-            "format": "UUID",
-            "filterable": true
+            "format": "UUID"
         },
         "correlation_id": {
             "type": "string",
             "description": "Identifier linking multiple related events together",
-            "format": "UUID",
-            "filterable": true
+            "format": "UUID"
         },
         "transaction_id": {
             "type": "string",
             "description": "Unique identifier for the payment transaction",
-            "required": true,
-            "filterable": true
+            "required": true
         },
         "payment_gateway": {
             "type": "string",
@@ -87,8 +77,7 @@
                 "vnpay",
                 "momo"
             ],
-            "required": true,
-            "filterable": true
+            "required": true
         },
         "transaction_status": {
             "type": "string",
@@ -99,94 +88,8 @@
                 "failed",
                 "reversed"
             ],
-            "required": true,
-            "filterable": true
+            "required": true
         }
     },
-    "metrics": [
-        {
-            "metric_id": "count_event_id",
-            "source_field": "event_id",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "count_event_type",
-            "source_field": "event_type",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "count_entity_id",
-            "source_field": "entity_id",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "count_source_system",
-            "source_field": "source_system",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "count_schema_version",
-            "source_field": "schema_version",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "count_event_time",
-            "source_field": "event_time",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "max_event_time",
-            "source_field": "event_time",
-            "aggregation": "MAX",
-            "filter": null
-        },
-        {
-            "metric_id": "min_event_time",
-            "source_field": "event_time",
-            "aggregation": "MIN",
-            "filter": null
-        },
-        {
-            "metric_id": "count_source_id",
-            "source_field": "source_id",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "count_trace_id",
-            "source_field": "trace_id",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "count_correlation_id",
-            "source_field": "correlation_id",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "count_transaction_id",
-            "source_field": "transaction_id",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "count_payment_gateway",
-            "source_field": "payment_gateway",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "count_transaction_status",
-            "source_field": "transaction_status",
-            "aggregation": "COUNT",
-            "filter": null
-        }
-    ]
+    "metrics": []
 }
