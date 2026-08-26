@@ -69,6 +69,8 @@ public class SchemaValidationBroadcastProcessFunction extends BroadcastProcessFu
             }
 
             List<String> missingFields = new ArrayList<>();
+            List<String> invalidTypeFields = new ArrayList<>();
+            List<String> invalidConstraintFields = new ArrayList<>();
             JsonNode eventFields = eventNode;
 
             Iterator<Map.Entry<String, JsonNode>> fieldsIter = fieldsNode.fields();
@@ -77,16 +79,64 @@ public class SchemaValidationBroadcastProcessFunction extends BroadcastProcessFu
                 String fieldName = fieldEntry.getKey();
                 JsonNode fieldDef = fieldEntry.getValue();
 
+                boolean isPresent = eventFields.has(fieldName) && !eventFields.get(fieldName).isNull();
+
                 if (fieldDef.has("required") && fieldDef.get("required").asBoolean()) {
-                    if (!eventFields.has(fieldName) || eventFields.get(fieldName).isNull()) {
+                    if (!isPresent) {
                         missingFields.add(fieldName);
+                    }
+                }
+
+                if (isPresent) {
+                    JsonNode val = eventFields.get(fieldName);
+                    
+                    // Validate Type
+                    if (fieldDef.has("type")) {
+                        String type = fieldDef.get("type").asText();
+                        if (type.equals("string") && !val.isTextual()) {
+                            invalidTypeFields.add(fieldName + " (expected string)");
+                        } else if (type.equals("integer") && !val.isIntegralNumber()) {
+                            invalidTypeFields.add(fieldName + " (expected integer)");
+                        } else if (type.equals("number") && !val.isNumber()) {
+                            invalidTypeFields.add(fieldName + " (expected number)");
+                        } else if (type.equals("boolean") && !val.isBoolean()) {
+                            invalidTypeFields.add(fieldName + " (expected boolean)");
+                        }
+                    }
+
+                    // Validate Constraints
+                    if (fieldDef.has("min") && val.isNumber()) {
+                        if (val.asDouble() < fieldDef.get("min").asDouble()) {
+                            invalidConstraintFields.add(fieldName + " (< min " + fieldDef.get("min").asText() + ")");
+                        }
+                    }
+                    if (fieldDef.has("max") && val.isNumber()) {
+                        if (val.asDouble() > fieldDef.get("max").asDouble()) {
+                            invalidConstraintFields.add(fieldName + " (> max " + fieldDef.get("max").asText() + ")");
+                        }
+                    }
+                    if (fieldDef.has("allowed_values")) {
+                        boolean matched = false;
+                        for (JsonNode allowedVal : fieldDef.get("allowed_values")) {
+                            if (val.asText().equals(allowedVal.asText())) {
+                                matched = true;
+                                break;
+                            }
+                        }
+                        if (!matched) {
+                            invalidConstraintFields.add(fieldName + " (not in allowed_values)");
+                        }
                     }
                 }
             }
 
-            if (!missingFields.isEmpty()) {
-                ((ObjectNode) eventNode).put("error_reason",
-                        "Missing required fields: " + String.join(", ", missingFields));
+            if (!missingFields.isEmpty() || !invalidTypeFields.isEmpty() || !invalidConstraintFields.isEmpty()) {
+                List<String> reasons = new ArrayList<>();
+                if (!missingFields.isEmpty()) reasons.add("Missing: " + String.join(", ", missingFields));
+                if (!invalidTypeFields.isEmpty()) reasons.add("Invalid Type: " + String.join(", ", invalidTypeFields));
+                if (!invalidConstraintFields.isEmpty()) reasons.add("Constraint: " + String.join(", ", invalidConstraintFields));
+                
+                ((ObjectNode) eventNode).put("error_reason", String.join(" | ", reasons));
                 ctx.output(DIRTY_DATA_TAG, mapper.writeValueAsString(eventNode));
             } else {
                 out.collect(eventJson);
