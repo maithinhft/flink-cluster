@@ -86,6 +86,12 @@
     },
     "metrics": [
         {
+            "metric_id": "count_events",
+            "source_field": "event_id",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
             "metric_id": "sum_satisfaction_score",
             "source_field": "satisfaction_score",
             "aggregation": "SUM",

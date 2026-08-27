@@ -91,21 +91,49 @@
     },
     "metrics": [
         {
-            "metric_id": "sum_loyalty_points",
-            "source_field": "loyalty_points",
-            "aggregation": "SUM",
+            "metric_id": "count_events",
+            "source_field": "event_id",
+            "aggregation": "COUNT",
             "filter": null
         },
         {
-            "metric_id": "sum_loyalty_points_where_subscription_tier_free",
-            "source_field": "loyalty_points",
-            "aggregation": "SUM",
+            "metric_id": "count_events_where_subscription_tier_premium",
+            "source_field": "event_id",
+            "aggregation": "COUNT",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "subscription_tier",
+                "operator": "EQ",
+                "value": "premium"
+            }
+        },
+        {
+            "metric_id": "count_events_where_subscription_tier_free",
+            "source_field": "event_id",
+            "aggregation": "COUNT",
             "filter": {
                 "type": "RAW_FIELD",
                 "field": "subscription_tier",
                 "operator": "EQ",
                 "value": "free"
             }
+        },
+        {
+            "metric_id": "count_events_where_subscription_tier_basic",
+            "source_field": "event_id",
+            "aggregation": "COUNT",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "subscription_tier",
+                "operator": "EQ",
+                "value": "basic"
+            }
+        },
+        {
+            "metric_id": "sum_loyalty_points",
+            "source_field": "loyalty_points",
+            "aggregation": "SUM",
+            "filter": null
         },
         {
             "metric_id": "sum_loyalty_points_where_subscription_tier_premium",
@@ -116,6 +144,17 @@
                 "field": "subscription_tier",
                 "operator": "EQ",
                 "value": "premium"
+            }
+        },
+        {
+            "metric_id": "sum_loyalty_points_where_subscription_tier_free",
+            "source_field": "loyalty_points",
+            "aggregation": "SUM",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "subscription_tier",
+                "operator": "EQ",
+                "value": "free"
             }
         },
         {
@@ -136,17 +175,6 @@
             "filter": null
         },
         {
-            "metric_id": "count_loyalty_points_where_subscription_tier_free",
-            "source_field": "loyalty_points",
-            "aggregation": "COUNT",
-            "filter": {
-                "type": "RAW_FIELD",
-                "field": "subscription_tier",
-                "operator": "EQ",
-                "value": "free"
-            }
-        },
-        {
             "metric_id": "count_loyalty_points_where_subscription_tier_premium",
             "source_field": "loyalty_points",
             "aggregation": "COUNT",
@@ -155,6 +183,17 @@
                 "field": "subscription_tier",
                 "operator": "EQ",
                 "value": "premium"
+            }
+        },
+        {
+            "metric_id": "count_loyalty_points_where_subscription_tier_free",
+            "source_field": "loyalty_points",
+            "aggregation": "COUNT",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "subscription_tier",
+                "operator": "EQ",
+                "value": "free"
             }
         },
         {
@@ -175,17 +214,6 @@
             "filter": null
         },
         {
-            "metric_id": "avg_loyalty_points_where_subscription_tier_free",
-            "source_field": "loyalty_points",
-            "aggregation": "AVG",
-            "filter": {
-                "type": "RAW_FIELD",
-                "field": "subscription_tier",
-                "operator": "EQ",
-                "value": "free"
-            }
-        },
-        {
             "metric_id": "avg_loyalty_points_where_subscription_tier_premium",
             "source_field": "loyalty_points",
             "aggregation": "AVG",
@@ -194,6 +222,17 @@
                 "field": "subscription_tier",
                 "operator": "EQ",
                 "value": "premium"
+            }
+        },
+        {
+            "metric_id": "avg_loyalty_points_where_subscription_tier_free",
+            "source_field": "loyalty_points",
+            "aggregation": "AVG",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "subscription_tier",
+                "operator": "EQ",
+                "value": "free"
             }
         },
         {
@@ -214,17 +253,6 @@
             "filter": null
         },
         {
-            "metric_id": "max_loyalty_points_where_subscription_tier_free",
-            "source_field": "loyalty_points",
-            "aggregation": "MAX",
-            "filter": {
-                "type": "RAW_FIELD",
-                "field": "subscription_tier",
-                "operator": "EQ",
-                "value": "free"
-            }
-        },
-        {
             "metric_id": "max_loyalty_points_where_subscription_tier_premium",
             "source_field": "loyalty_points",
             "aggregation": "MAX",
@@ -233,6 +261,17 @@
                 "field": "subscription_tier",
                 "operator": "EQ",
                 "value": "premium"
+            }
+        },
+        {
+            "metric_id": "max_loyalty_points_where_subscription_tier_free",
+            "source_field": "loyalty_points",
+            "aggregation": "MAX",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "subscription_tier",
+                "operator": "EQ",
+                "value": "free"
             }
         },
         {
@@ -253,17 +292,6 @@
             "filter": null
         },
         {
-            "metric_id": "min_loyalty_points_where_subscription_tier_free",
-            "source_field": "loyalty_points",
-            "aggregation": "MIN",
-            "filter": {
-                "type": "RAW_FIELD",
-                "field": "subscription_tier",
-                "operator": "EQ",
-                "value": "free"
-            }
-        },
-        {
             "metric_id": "min_loyalty_points_where_subscription_tier_premium",
             "source_field": "loyalty_points",
             "aggregation": "MIN",
@@ -272,6 +300,17 @@
                 "field": "subscription_tier",
                 "operator": "EQ",
                 "value": "premium"
+            }
+        },
+        {
+            "metric_id": "min_loyalty_points_where_subscription_tier_free",
+            "source_field": "loyalty_points",
+            "aggregation": "MIN",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "subscription_tier",
+                "operator": "EQ",
+                "value": "free"
             }
         },
         {

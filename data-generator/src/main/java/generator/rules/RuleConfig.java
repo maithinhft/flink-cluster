@@ -22,7 +22,7 @@ public class RuleConfig {
     // ============================================================
     public static final String[] TAG_FIELDS = {
             "product_category", "payment_method", "order_status",
-            "account_status", "subscription_tier", "support_ticket_status", "transaction_status"
+            "account_status", "subscription_tier", "support_ticket_status", "transaction_status", "payment_gateway"
     };
 
     public static final String[][] TAG_VALUES = {
@@ -32,7 +32,8 @@ public class RuleConfig {
             { "active", "suspended", "closed" },
             { "free", "basic", "premium" },
             { "open", "in_progress", "resolved" },
-            { "pending", "success", "failed" }
+            { "pending", "success", "failed" },
+            { "stripe", "paypal", "vnpay", "momo" }
     };
 
     public static final String[] NUM_FIELDS = {

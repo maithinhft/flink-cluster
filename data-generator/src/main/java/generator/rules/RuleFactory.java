@@ -47,11 +47,51 @@ public class RuleFactory {
 
     private static String generateLeafClause() {
         double r = RandomUtils.RANDOM.nextDouble();
-        if (r < 0.33)
+        if (r < 0.25)
             return generateAggregationClause();
-        else if (r < 0.66)
+        else if (r < 0.50)
             return generateEventCountAggregationClause();
+        else if (r < 0.75)
+            return generateSourceSystemCountAggregationClause();
         return generateRawFieldClause();
+    }
+
+    private static String generateSourceSystemCountAggregationClause() {
+        String sourceSystem = RandomUtils.randomElement("ecommerce", "crm", "payment");
+        int size = RandomUtils.randomInt(300, 3600, 21600, 86400);
+        int slide = size == 86400 ? 300 : (size == 3600 ? 300 : size);
+        String windowType = size == slide ? "tumbling" : "sliding";
+
+        String filterJson = "null";
+        if (RandomUtils.RANDOM.nextBoolean()) {
+            int tagIdx = RandomUtils.RANDOM.nextInt(RuleConfig.TAG_FIELDS.length);
+            String tagField = RuleConfig.TAG_FIELDS[tagIdx];
+            String tagValue = RandomUtils.randomElement(RuleConfig.TAG_VALUES[tagIdx]);
+            filterJson = """
+                    {
+                      "type": "RAW_FIELD",
+                      "field": "%s",
+                      "operator": "EQ",
+                      "value": "%s"
+                    }""".formatted(tagField, tagValue);
+        }
+
+        return """
+                {
+                  "type": "AGGREGATION",
+                  "field": "event_id",
+                  "function": "COUNT",
+                  "source_system": "%s",
+                  "window": {
+                    "type": "%s",
+                    "size_seconds": %d,
+                    "slide_seconds": %d
+                  },
+                  "filter": %s,
+                  "operator": "%s",
+                  "value": %d
+                }""".formatted(sourceSystem, windowType, size, slide, filterJson, RandomUtils.randomElement(RuleConfig.NUMERIC_OPS),
+                RandomUtils.RANDOM.nextInt(50) + 1);
     }
 
     private static String generateEventCountAggregationClause() {

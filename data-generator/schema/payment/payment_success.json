@@ -110,5 +110,122 @@
             "description": "Flag indicating if billing zip matched card records"
         }
     },
-    "metrics": []
+    "metrics": [
+        {
+            "metric_id": "count_events",
+            "source_field": "event_id",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_events_where_payment_method_wallet",
+            "source_field": "event_id",
+            "aggregation": "COUNT",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "payment_method",
+                "operator": "EQ",
+                "value": "wallet"
+            }
+        },
+        {
+            "metric_id": "count_events_where_payment_method_credit_card",
+            "source_field": "event_id",
+            "aggregation": "COUNT",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "payment_method",
+                "operator": "EQ",
+                "value": "credit_card"
+            }
+        },
+        {
+            "metric_id": "count_events_where_payment_method_bank_transfer",
+            "source_field": "event_id",
+            "aggregation": "COUNT",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "payment_method",
+                "operator": "EQ",
+                "value": "bank_transfer"
+            }
+        },
+        {
+            "metric_id": "count_events_where_transaction_status_pending",
+            "source_field": "event_id",
+            "aggregation": "COUNT",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "transaction_status",
+                "operator": "EQ",
+                "value": "pending"
+            }
+        },
+        {
+            "metric_id": "count_events_where_transaction_status_success",
+            "source_field": "event_id",
+            "aggregation": "COUNT",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "transaction_status",
+                "operator": "EQ",
+                "value": "success"
+            }
+        },
+        {
+            "metric_id": "count_events_where_transaction_status_failed",
+            "source_field": "event_id",
+            "aggregation": "COUNT",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "transaction_status",
+                "operator": "EQ",
+                "value": "failed"
+            }
+        },
+        {
+            "metric_id": "count_events_where_payment_gateway_vnpay",
+            "source_field": "event_id",
+            "aggregation": "COUNT",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "payment_gateway",
+                "operator": "EQ",
+                "value": "vnpay"
+            }
+        },
+        {
+            "metric_id": "count_events_where_payment_gateway_momo",
+            "source_field": "event_id",
+            "aggregation": "COUNT",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "payment_gateway",
+                "operator": "EQ",
+                "value": "momo"
+            }
+        },
+        {
+            "metric_id": "count_events_where_payment_gateway_stripe",
+            "source_field": "event_id",
+            "aggregation": "COUNT",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "payment_gateway",
+                "operator": "EQ",
+                "value": "stripe"
+            }
+        },
+        {
+            "metric_id": "count_events_where_payment_gateway_paypal",
+            "source_field": "event_id",
+            "aggregation": "COUNT",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "payment_gateway",
+                "operator": "EQ",
+                "value": "paypal"
+            }
+        }
+    ]
 }

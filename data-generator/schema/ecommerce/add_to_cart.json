@@ -125,6 +125,56 @@
     },
     "metrics": [
         {
+            "metric_id": "count_events",
+            "source_field": "event_id",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_events_where_product_category_electronics",
+            "source_field": "event_id",
+            "aggregation": "COUNT",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "electronics"
+            }
+        },
+        {
+            "metric_id": "count_events_where_product_category_food",
+            "source_field": "event_id",
+            "aggregation": "COUNT",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "food"
+            }
+        },
+        {
+            "metric_id": "count_events_where_product_category_fashion",
+            "source_field": "event_id",
+            "aggregation": "COUNT",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "fashion"
+            }
+        },
+        {
+            "metric_id": "count_events_where_product_category_books",
+            "source_field": "event_id",
+            "aggregation": "COUNT",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "books"
+            }
+        },
+        {
             "metric_id": "sum_quantity",
             "source_field": "quantity",
             "aggregation": "SUM",
@@ -142,14 +192,14 @@
             }
         },
         {
-            "metric_id": "sum_quantity_where_product_category_books",
+            "metric_id": "sum_quantity_where_product_category_food",
             "source_field": "quantity",
             "aggregation": "SUM",
             "filter": {
                 "type": "RAW_FIELD",
                 "field": "product_category",
                 "operator": "EQ",
-                "value": "books"
+                "value": "food"
             }
         },
         {
@@ -164,14 +214,14 @@
             }
         },
         {
-            "metric_id": "sum_quantity_where_product_category_food",
+            "metric_id": "sum_quantity_where_product_category_books",
             "source_field": "quantity",
             "aggregation": "SUM",
             "filter": {
                 "type": "RAW_FIELD",
                 "field": "product_category",
                 "operator": "EQ",
-                "value": "food"
+                "value": "books"
             }
         },
         {
@@ -192,14 +242,14 @@
             }
         },
         {
-            "metric_id": "count_quantity_where_product_category_books",
+            "metric_id": "count_quantity_where_product_category_food",
             "source_field": "quantity",
             "aggregation": "COUNT",
             "filter": {
                 "type": "RAW_FIELD",
                 "field": "product_category",
                 "operator": "EQ",
-                "value": "books"
+                "value": "food"
             }
         },
         {
@@ -214,14 +264,14 @@
             }
         },
         {
-            "metric_id": "count_quantity_where_product_category_food",
+            "metric_id": "count_quantity_where_product_category_books",
             "source_field": "quantity",
             "aggregation": "COUNT",
             "filter": {
                 "type": "RAW_FIELD",
                 "field": "product_category",
                 "operator": "EQ",
-                "value": "food"
+                "value": "books"
             }
         },
         {
@@ -242,14 +292,14 @@
             }
         },
         {
-            "metric_id": "avg_quantity_where_product_category_books",
+            "metric_id": "avg_quantity_where_product_category_food",
             "source_field": "quantity",
             "aggregation": "AVG",
             "filter": {
                 "type": "RAW_FIELD",
                 "field": "product_category",
                 "operator": "EQ",
-                "value": "books"
+                "value": "food"
             }
         },
         {
@@ -264,14 +314,14 @@
             }
         },
         {
-            "metric_id": "avg_quantity_where_product_category_food",
+            "metric_id": "avg_quantity_where_product_category_books",
             "source_field": "quantity",
             "aggregation": "AVG",
             "filter": {
                 "type": "RAW_FIELD",
                 "field": "product_category",
                 "operator": "EQ",
-                "value": "food"
+                "value": "books"
             }
         },
         {
@@ -292,14 +342,14 @@
             }
         },
         {
-            "metric_id": "max_quantity_where_product_category_books",
+            "metric_id": "max_quantity_where_product_category_food",
             "source_field": "quantity",
             "aggregation": "MAX",
             "filter": {
                 "type": "RAW_FIELD",
                 "field": "product_category",
                 "operator": "EQ",
-                "value": "books"
+                "value": "food"
             }
         },
         {
@@ -314,14 +364,14 @@
             }
         },
         {
-            "metric_id": "max_quantity_where_product_category_food",
+            "metric_id": "max_quantity_where_product_category_books",
             "source_field": "quantity",
             "aggregation": "MAX",
             "filter": {
                 "type": "RAW_FIELD",
                 "field": "product_category",
                 "operator": "EQ",
-                "value": "food"
+                "value": "books"
             }
         },
         {
@@ -342,14 +392,14 @@
             }
         },
         {
-            "metric_id": "min_quantity_where_product_category_books",
+            "metric_id": "min_quantity_where_product_category_food",
             "source_field": "quantity",
             "aggregation": "MIN",
             "filter": {
                 "type": "RAW_FIELD",
                 "field": "product_category",
                 "operator": "EQ",
-                "value": "books"
+                "value": "food"
             }
         },
         {
@@ -364,14 +414,14 @@
             }
         },
         {
-            "metric_id": "min_quantity_where_product_category_food",
+            "metric_id": "min_quantity_where_product_category_books",
             "source_field": "quantity",
             "aggregation": "MIN",
             "filter": {
                 "type": "RAW_FIELD",
                 "field": "product_category",
                 "operator": "EQ",
-                "value": "food"
+                "value": "books"
             }
         },
         {
@@ -392,14 +442,14 @@
             }
         },
         {
-            "metric_id": "sum_unit_price_where_product_category_books",
+            "metric_id": "sum_unit_price_where_product_category_food",
             "source_field": "unit_price",
             "aggregation": "SUM",
             "filter": {
                 "type": "RAW_FIELD",
                 "field": "product_category",
                 "operator": "EQ",
-                "value": "books"
+                "value": "food"
             }
         },
         {
@@ -414,14 +464,14 @@
             }
         },
         {
-            "metric_id": "sum_unit_price_where_product_category_food",
+            "metric_id": "sum_unit_price_where_product_category_books",
             "source_field": "unit_price",
             "aggregation": "SUM",
             "filter": {
                 "type": "RAW_FIELD",
                 "field": "product_category",
                 "operator": "EQ",
-                "value": "food"
+                "value": "books"
             }
         },
         {
@@ -442,14 +492,14 @@
             }
         },
         {
-            "metric_id": "count_unit_price_where_product_category_books",
+            "metric_id": "count_unit_price_where_product_category_food",
             "source_field": "unit_price",
             "aggregation": "COUNT",
             "filter": {
                 "type": "RAW_FIELD",
                 "field": "product_category",
                 "operator": "EQ",
-                "value": "books"
+                "value": "food"
             }
         },
         {
@@ -464,14 +514,14 @@
             }
         },
         {
-            "metric_id": "count_unit_price_where_product_category_food",
+            "metric_id": "count_unit_price_where_product_category_books",
             "source_field": "unit_price",
             "aggregation": "COUNT",
             "filter": {
                 "type": "RAW_FIELD",
                 "field": "product_category",
                 "operator": "EQ",
-                "value": "food"
+                "value": "books"
             }
         },
         {
@@ -492,14 +542,14 @@
             }
         },
         {
-            "metric_id": "avg_unit_price_where_product_category_books",
+            "metric_id": "avg_unit_price_where_product_category_food",
             "source_field": "unit_price",
             "aggregation": "AVG",
             "filter": {
                 "type": "RAW_FIELD",
                 "field": "product_category",
                 "operator": "EQ",
-                "value": "books"
+                "value": "food"
             }
         },
         {
@@ -514,14 +564,14 @@
             }
         },
         {
-            "metric_id": "avg_unit_price_where_product_category_food",
+            "metric_id": "avg_unit_price_where_product_category_books",
             "source_field": "unit_price",
             "aggregation": "AVG",
             "filter": {
                 "type": "RAW_FIELD",
                 "field": "product_category",
                 "operator": "EQ",
-                "value": "food"
+                "value": "books"
             }
         },
         {
@@ -542,14 +592,14 @@
             }
         },
         {
-            "metric_id": "max_unit_price_where_product_category_books",
+            "metric_id": "max_unit_price_where_product_category_food",
             "source_field": "unit_price",
             "aggregation": "MAX",
             "filter": {
                 "type": "RAW_FIELD",
                 "field": "product_category",
                 "operator": "EQ",
-                "value": "books"
+                "value": "food"
             }
         },
         {
@@ -564,14 +614,14 @@
             }
         },
         {
-            "metric_id": "max_unit_price_where_product_category_food",
+            "metric_id": "max_unit_price_where_product_category_books",
             "source_field": "unit_price",
             "aggregation": "MAX",
             "filter": {
                 "type": "RAW_FIELD",
                 "field": "product_category",
                 "operator": "EQ",
-                "value": "food"
+                "value": "books"
             }
         },
         {
@@ -592,14 +642,14 @@
             }
         },
         {
-            "metric_id": "min_unit_price_where_product_category_books",
+            "metric_id": "min_unit_price_where_product_category_food",
             "source_field": "unit_price",
             "aggregation": "MIN",
             "filter": {
                 "type": "RAW_FIELD",
                 "field": "product_category",
                 "operator": "EQ",
-                "value": "books"
+                "value": "food"
             }
         },
         {
@@ -614,14 +664,14 @@
             }
         },
         {
-            "metric_id": "min_unit_price_where_product_category_food",
+            "metric_id": "min_unit_price_where_product_category_books",
             "source_field": "unit_price",
             "aggregation": "MIN",
             "filter": {
                 "type": "RAW_FIELD",
                 "field": "product_category",
                 "operator": "EQ",
-                "value": "food"
+                "value": "books"
             }
         }
     ]

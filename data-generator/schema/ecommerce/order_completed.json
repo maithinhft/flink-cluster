@@ -83,5 +83,67 @@
             "required": true
         }
     },
-    "metrics": []
+    "metrics": [
+        {
+            "metric_id": "count_events",
+            "source_field": "event_id",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_events_where_order_status_cancelled",
+            "source_field": "event_id",
+            "aggregation": "COUNT",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "order_status",
+                "operator": "EQ",
+                "value": "cancelled"
+            }
+        },
+        {
+            "metric_id": "count_events_where_order_status_shipped",
+            "source_field": "event_id",
+            "aggregation": "COUNT",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "order_status",
+                "operator": "EQ",
+                "value": "shipped"
+            }
+        },
+        {
+            "metric_id": "count_events_where_order_status_completed",
+            "source_field": "event_id",
+            "aggregation": "COUNT",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "order_status",
+                "operator": "EQ",
+                "value": "completed"
+            }
+        },
+        {
+            "metric_id": "count_events_where_order_status_paid",
+            "source_field": "event_id",
+            "aggregation": "COUNT",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "order_status",
+                "operator": "EQ",
+                "value": "paid"
+            }
+        },
+        {
+            "metric_id": "count_events_where_order_status_created",
+            "source_field": "event_id",
+            "aggregation": "COUNT",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "order_status",
+                "operator": "EQ",
+                "value": "created"
+            }
+        }
+    ]
 }

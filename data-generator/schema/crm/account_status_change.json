@@ -82,5 +82,34 @@
             "required": true
         }
     },
-    "metrics": []
+    "metrics": [
+        {
+            "metric_id": "count_events",
+            "source_field": "event_id",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "count_events_where_account_status_suspended",
+            "source_field": "event_id",
+            "aggregation": "COUNT",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "account_status",
+                "operator": "EQ",
+                "value": "suspended"
+            }
+        },
+        {
+            "metric_id": "count_events_where_account_status_active",
+            "source_field": "event_id",
+            "aggregation": "COUNT",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "account_status",
+                "operator": "EQ",
+                "value": "active"
+            }
+        }
+    ]
 }
