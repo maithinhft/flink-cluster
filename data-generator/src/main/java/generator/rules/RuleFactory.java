@@ -62,18 +62,33 @@ public class RuleFactory {
         int slide = size == 86400 ? 300 : (size == 3600 ? 300 : size);
         String windowType = size == slide ? "tumbling" : "sliding";
 
-        String filterJson = "null";
+        String finalFilterJson = """
+                    {
+                      "type": "RAW_FIELD",
+                      "field": "source_system",
+                      "operator": "EQ",
+                      "value": "%s"
+                    }""".formatted(sourceSystem);
+
         if (RandomUtils.RANDOM.nextBoolean()) {
             int tagIdx = RandomUtils.RANDOM.nextInt(RuleConfig.TAG_FIELDS.length);
             String tagField = RuleConfig.TAG_FIELDS[tagIdx];
             String tagValue = RandomUtils.randomElement(RuleConfig.TAG_VALUES[tagIdx]);
-            filterJson = """
+            String tagFilterJson = """
                     {
                       "type": "RAW_FIELD",
                       "field": "%s",
                       "operator": "EQ",
                       "value": "%s"
                     }""".formatted(tagField, tagValue);
+            finalFilterJson = """
+                    {
+                      "operator": "AND",
+                      "children": [
+                        %s,
+                        %s
+                      ]
+                    }""".formatted(finalFilterJson, tagFilterJson);
         }
 
         return """
@@ -81,7 +96,6 @@ public class RuleFactory {
                   "type": "AGGREGATION",
                   "field": "event_id",
                   "function": "COUNT",
-                  "source_system": "%s",
                   "window": {
                     "type": "%s",
                     "size_seconds": %d,
@@ -90,7 +104,7 @@ public class RuleFactory {
                   "filter": %s,
                   "operator": "%s",
                   "value": %d
-                }""".formatted(sourceSystem, windowType, size, slide, filterJson, RandomUtils.randomElement(RuleConfig.NUMERIC_OPS),
+                }""".formatted(windowType, size, slide, finalFilterJson, RandomUtils.randomElement(RuleConfig.NUMERIC_OPS),
                 RandomUtils.RANDOM.nextInt(50) + 1);
     }
 
@@ -100,18 +114,33 @@ public class RuleFactory {
         int slide = size == 86400 ? 300 : (size == 3600 ? 300 : size);
         String windowType = size == slide ? "tumbling" : "sliding";
 
-        String filterJson = "null";
+        String finalFilterJson = """
+                    {
+                      "type": "RAW_FIELD",
+                      "field": "event_type",
+                      "operator": "EQ",
+                      "value": "%s"
+                    }""".formatted(eventType);
+
         if (RandomUtils.RANDOM.nextBoolean()) {
             int tagIdx = RandomUtils.RANDOM.nextInt(RuleConfig.TAG_FIELDS.length);
             String tagField = RuleConfig.TAG_FIELDS[tagIdx];
             String tagValue = RandomUtils.randomElement(RuleConfig.TAG_VALUES[tagIdx]);
-            filterJson = """
+            String tagFilterJson = """
                     {
                       "type": "RAW_FIELD",
                       "field": "%s",
                       "operator": "EQ",
                       "value": "%s"
                     }""".formatted(tagField, tagValue);
+            finalFilterJson = """
+                    {
+                      "operator": "AND",
+                      "children": [
+                        %s,
+                        %s
+                      ]
+                    }""".formatted(finalFilterJson, tagFilterJson);
         }
 
         return """
@@ -119,7 +148,6 @@ public class RuleFactory {
                   "type": "AGGREGATION",
                   "field": "event_id",
                   "function": "COUNT",
-                  "event_type": "%s",
                   "window": {
                     "type": "%s",
                     "size_seconds": %d,
@@ -128,7 +156,7 @@ public class RuleFactory {
                   "filter": %s,
                   "operator": "%s",
                   "value": %d
-                }""".formatted(eventType, windowType, size, slide, filterJson, RandomUtils.randomElement(RuleConfig.NUMERIC_OPS),
+                }""".formatted(windowType, size, slide, finalFilterJson, RandomUtils.randomElement(RuleConfig.NUMERIC_OPS),
                 RandomUtils.RANDOM.nextInt(20) + 1);
     }
 
