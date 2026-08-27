@@ -132,12 +132,13 @@
                         "LT",
                         "LTE",
                         "EQ",
-                        "NEQ"
+                        "NEQ",
+                        "BETWEEN"
                     ]
                 },
                 "value": {
-                    "type": "number",
-                    "description": "Ngưỡng giá trị để so sánh với kết quả tổng hợp"
+                    "type": "any",
+                    "description": "Ngưỡng giá trị để so sánh với kết quả tổng hợp. Có thể là một số (number) hoặc mảng 2 phần tử [min, max] nếu dùng toán tử BETWEEN."
                 }
             },
             "LeafNode_RawField": {

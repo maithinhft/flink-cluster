@@ -56,6 +56,35 @@ public class RuleFactory {
         return generateRawFieldClause();
     }
 
+    private static String formatAggregationResult(String field, String function, String windowType, int size, int slide, String filterJson, int baseVal) {
+        String operator;
+        String valueStr;
+        if (RandomUtils.RANDOM.nextDouble() < 0.2) {
+            operator = "BETWEEN";
+            int lo = RandomUtils.RANDOM.nextInt(baseVal) + 1;
+            int hi = lo + RandomUtils.RANDOM.nextInt(baseVal) + 1;
+            valueStr = "[" + lo + ", " + hi + "]";
+        } else {
+            operator = RandomUtils.randomElement(RuleConfig.NUMERIC_OPS);
+            valueStr = String.valueOf(RandomUtils.RANDOM.nextInt(baseVal) + 1);
+        }
+
+        return """
+                {
+                  "type": "AGGREGATION",
+                  "field": "%s",
+                  "function": "%s",
+                  "window": {
+                    "type": "%s",
+                    "size_seconds": %d,
+                    "slide_seconds": %d
+                  },
+                  "filter": %s,
+                  "operator": "%s",
+                  "value": %s
+                }""".formatted(field, function, windowType, size, slide, filterJson, operator, valueStr);
+    }
+
     private static String generateSourceSystemCountAggregationClause() {
         String sourceSystem = RandomUtils.randomElement("ecommerce", "crm", "payment");
         int size = RandomUtils.randomInt(300, 3600, 21600, 86400);
@@ -91,21 +120,7 @@ public class RuleFactory {
                     }""".formatted(finalFilterJson, tagFilterJson);
         }
 
-        return """
-                {
-                  "type": "AGGREGATION",
-                  "field": "event_id",
-                  "function": "COUNT",
-                  "window": {
-                    "type": "%s",
-                    "size_seconds": %d,
-                    "slide_seconds": %d
-                  },
-                  "filter": %s,
-                  "operator": "%s",
-                  "value": %d
-                }""".formatted(windowType, size, slide, finalFilterJson, RandomUtils.randomElement(RuleConfig.NUMERIC_OPS),
-                RandomUtils.RANDOM.nextInt(50) + 1);
+        return formatAggregationResult("event_id", "COUNT", windowType, size, slide, finalFilterJson, 50);
     }
 
     private static String generateEventCountAggregationClause() {
@@ -143,21 +158,7 @@ public class RuleFactory {
                     }""".formatted(finalFilterJson, tagFilterJson);
         }
 
-        return """
-                {
-                  "type": "AGGREGATION",
-                  "field": "event_id",
-                  "function": "COUNT",
-                  "window": {
-                    "type": "%s",
-                    "size_seconds": %d,
-                    "slide_seconds": %d
-                  },
-                  "filter": %s,
-                  "operator": "%s",
-                  "value": %d
-                }""".formatted(windowType, size, slide, finalFilterJson, RandomUtils.randomElement(RuleConfig.NUMERIC_OPS),
-                RandomUtils.RANDOM.nextInt(20) + 1);
+        return formatAggregationResult("event_id", "COUNT", windowType, size, slide, finalFilterJson, 20);
     }
 
     private static String generateAggregationClause() {
@@ -181,21 +182,7 @@ public class RuleFactory {
                     }""".formatted(tagField, tagValue);
         }
 
-        return """
-                {
-                  "type": "AGGREGATION",
-                  "field": "%s",
-                  "function": "%s",
-                  "window": {
-                    "type": "%s",
-                    "size_seconds": %d,
-                    "slide_seconds": %d
-                  },
-                  "filter": %s,
-                  "operator": "%s",
-                  "value": %d
-                }""".formatted(field, function, windowType, size, slide, filterJson, RandomUtils.randomElement(RuleConfig.NUMERIC_OPS),
-                RandomUtils.RANDOM.nextInt(10_000) + 1);
+        return formatAggregationResult(field, function, windowType, size, slide, filterJson, 10_000);
     }
 
     private static String generateRawFieldClause() {
