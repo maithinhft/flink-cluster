@@ -18,7 +18,6 @@ public class RuleDao {
                 rule_id,
                 name,
                 rule_json,
-                priority,
                 cooldown_seconds,
                 version,
                 enabled,
@@ -26,7 +25,7 @@ public class RuleDao {
                 updated_at,
                 user_id
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """;
 
     private static final String[] USER_IDS = {
@@ -40,7 +39,6 @@ public class RuleDao {
                 UUID ruleId = UUID.randomUUID();
                 String name = RuleConfig.RULE_PREFIXES[RandomUtils.RANDOM.nextInt(RuleConfig.RULE_PREFIXES.length)] + "_" + (i + 1);
                 String ruleJson = RuleFactory.generateConditionTree(2 + RandomUtils.RANDOM.nextInt(3)); // depth 2-4
-                int priority = RandomUtils.RANDOM.nextInt(100);
                 long cooldownSeconds = RandomUtils.randomLong(0L, 60L, 300L, 900L, 3600L);
                 long version = 1 + RandomUtils.RANDOM.nextInt(9);
                 boolean enabled = RandomUtils.RANDOM.nextDouble() < 0.95;
@@ -59,13 +57,12 @@ public class RuleDao {
                 jsonObject.setValue(ruleJson);
                 ps.setObject(3, jsonObject);
 
-                ps.setInt(4, priority);
-                ps.setLong(5, cooldownSeconds);
-                ps.setLong(6, version);
-                ps.setBoolean(7, enabled);
-                ps.setTimestamp(8, createdAt);
-                ps.setTimestamp(9, updatedAt);
-                ps.setString(10, userId);
+                ps.setLong(4, cooldownSeconds);
+                ps.setLong(5, version);
+                ps.setBoolean(6, enabled);
+                ps.setTimestamp(7, createdAt);
+                ps.setTimestamp(8, updatedAt);
+                ps.setString(9, userId);
 
                 ps.addBatch();
 

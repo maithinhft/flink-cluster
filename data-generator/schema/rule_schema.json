@@ -17,11 +17,6 @@
       "type": "string",
       "description": "Tên gợi nhớ của rule (VD: high_value_segment, fraud_alert)"
     },
-    "priority": {
-      "type": "integer",
-      "description": "Độ ưu tiên của rule khi có xung đột (số càng lớn ưu tiên càng cao)",
-      "default": 0
-    },
     "cooldown_seconds": {
       "type": "integer",
       "description": "Thời gian làm nguội (tính bằng giây). Nếu rule thỏa mãn, nó sẽ không được kích hoạt lại trên cùng một entity_id trong khoảng thời gian này.",
@@ -107,6 +102,11 @@
             "crm",
             "payment"
           ],
+          "required": false
+        },
+        "event_type": {
+          "type": "string",
+          "description": "Loại sự kiện cụ thể cần đếm hoặc tổng hợp (VD: payment_success, order_completed).",
           "required": false
         },
         "window": {
