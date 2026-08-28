@@ -9,3 +9,5 @@ schema.json
 .env
 
 test.*
+
+*.py
