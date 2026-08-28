@@ -25,8 +25,6 @@ CREATE TABLE IF NOT EXISTS rule_definitions (
 
     rule_json JSONB NOT NULL,
 
-    priority INTEGER NOT NULL DEFAULT 0,
-
     cooldown_seconds BIGINT NOT NULL DEFAULT 0,
 
     version BIGINT NOT NULL,

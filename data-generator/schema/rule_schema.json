@@ -107,13 +107,19 @@
                         },
                         "size_seconds": {
                             "type": "integer",
-                            "description": "Kích thước cửa sổ (bội số của 300, tối đa 86400)",
+                            "description": "Kích thước của từng cửa sổ con (micro-window) cần quét (bội số của 300, tối đa 86400)",
                             "min": 300,
                             "max": 86400
                         },
                         "slide_seconds": {
                             "type": "integer",
                             "description": "Bước trượt (bội số của 300). Với tumbling window thì bằng size_seconds.",
+                            "min": 300,
+                            "max": 86400
+                        },
+                        "lookback_seconds": {
+                            "type": "integer",
+                            "description": "Khoảng thời gian nhìn ngược về quá khứ (bội số của 300). Phải lớn hơn hoặc bằng size_seconds và tối đa 86400 (24h).",
                             "min": 300,
                             "max": 86400
                         }
@@ -185,7 +191,8 @@
                     "window": {
                         "type": "sliding",
                         "size_seconds": 86400,
-                        "slide_seconds": 300
+                        "slide_seconds": 300,
+                        "lookback_seconds": 259200
                     },
                     "operator": "GTE",
                     "value": 5000000,
@@ -203,7 +210,8 @@
                     "window": {
                         "type": "sliding",
                         "size_seconds": 86400,
-                        "slide_seconds": 300
+                        "slide_seconds": 300,
+                        "lookback_seconds": 259200
                     },
                     "operator": "GTE",
                     "value": 3,
@@ -237,7 +245,8 @@
                     "window": {
                         "type": "sliding",
                         "size_seconds": 3600,
-                        "slide_seconds": 300
+                        "slide_seconds": 300,
+                        "lookback_seconds": 10800
                     },
                     "operator": "GT",
                     "value": 5,
@@ -288,7 +297,8 @@
                     "window": {
                         "type": "tumbling",
                         "size_seconds": 43200,
-                        "slide_seconds": 43200
+                        "slide_seconds": 43200,
+                        "lookback_seconds": 43200
                     },
                     "operator": "EQ",
                     "value": 0,
@@ -306,7 +316,8 @@
                     "window": {
                         "type": "sliding",
                         "size_seconds": 86400,
-                        "slide_seconds": 300
+                        "slide_seconds": 300,
+                        "lookback_seconds": 259200
                     },
                     "operator": "LT",
                     "value": 2,
@@ -330,7 +341,8 @@
                     "window": {
                         "type": "sliding",
                         "size_seconds": 21600,
-                        "slide_seconds": 300
+                        "slide_seconds": 300,
+                        "lookback_seconds": 64800
                     },
                     "operator": "GTE",
                     "value": 5,
@@ -358,7 +370,8 @@
                     "window": {
                         "type": "sliding",
                         "size_seconds": 21600,
-                        "slide_seconds": 300
+                        "slide_seconds": 300,
+                        "lookback_seconds": 64800
                     },
                     "operator": "GTE",
                     "value": 500000,

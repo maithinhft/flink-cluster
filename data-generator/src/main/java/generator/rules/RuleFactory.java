@@ -56,7 +56,7 @@ public class RuleFactory {
         return generateRawFieldClause();
     }
 
-    private static String formatAggregationResult(String field, String function, String windowType, int size, int slide, String filterJson, int baseVal) {
+    private static String formatAggregationResult(String field, String function, String windowType, int lookback, int size, int slide, String filterJson, int baseVal) {
         String operator;
         String valueStr;
         if (RandomUtils.RANDOM.nextDouble() < 0.2) {
@@ -76,13 +76,14 @@ public class RuleFactory {
                   "function": "%s",
                   "window": {
                     "type": "%s",
+                    "lookback_seconds": %d,
                     "size_seconds": %d,
                     "slide_seconds": %d
                   },
                   "filter": %s,
                   "operator": "%s",
                   "value": %s
-                }""".formatted(field, function, windowType, size, slide, filterJson, operator, valueStr);
+                }""".formatted(field, function, windowType, lookback, size, slide, filterJson, operator, valueStr);
     }
 
     private static String generateSourceSystemCountAggregationClause() {
@@ -90,6 +91,8 @@ public class RuleFactory {
         int size = RandomUtils.randomInt(300, 3600, 21600, 86400);
         int slide = size == 86400 ? 300 : (size == 3600 ? 300 : size);
         String windowType = size == slide ? "tumbling" : "sliding";
+        int maxMultipliers = 86400 / size;
+        int lookback = size * (RandomUtils.RANDOM.nextInt(maxMultipliers) + 1);
 
         String finalFilterJson = """
                     {
@@ -120,7 +123,7 @@ public class RuleFactory {
                     }""".formatted(finalFilterJson, tagFilterJson);
         }
 
-        return formatAggregationResult("event_id", "COUNT", windowType, size, slide, finalFilterJson, 50);
+        return formatAggregationResult("event_id", "COUNT", windowType, lookback, size, slide, finalFilterJson, 50);
     }
 
     private static String generateEventCountAggregationClause() {
@@ -128,6 +131,8 @@ public class RuleFactory {
         int size = RandomUtils.randomInt(300, 3600, 21600, 86400);
         int slide = size == 86400 ? 300 : (size == 3600 ? 300 : size);
         String windowType = size == slide ? "tumbling" : "sliding";
+        int maxMultipliers = 86400 / size;
+        int lookback = size * (RandomUtils.RANDOM.nextInt(maxMultipliers) + 1);
 
         String finalFilterJson = """
                     {
@@ -158,7 +163,7 @@ public class RuleFactory {
                     }""".formatted(finalFilterJson, tagFilterJson);
         }
 
-        return formatAggregationResult("event_id", "COUNT", windowType, size, slide, finalFilterJson, 20);
+        return formatAggregationResult("event_id", "COUNT", windowType, lookback, size, slide, finalFilterJson, 20);
     }
 
     private static String generateAggregationClause() {
@@ -167,6 +172,8 @@ public class RuleFactory {
         int size = RandomUtils.randomInt(300, 3600, 21600, 86400);
         int slide = size == 86400 ? 300 : (size == 3600 ? 300 : size);
         String windowType = size == slide ? "tumbling" : "sliding";
+        int maxMultipliers = 86400 / size;
+        int lookback = size * (RandomUtils.RANDOM.nextInt(maxMultipliers) + 1);
 
         String filterJson = "null";
         if (RandomUtils.RANDOM.nextBoolean()) {
@@ -182,7 +189,7 @@ public class RuleFactory {
                     }""".formatted(tagField, tagValue);
         }
 
-        return formatAggregationResult(field, function, windowType, size, slide, filterJson, 10_000);
+        return formatAggregationResult(field, function, windowType, lookback, size, slide, filterJson, 10_000);
     }
 
     private static String generateRawFieldClause() {
