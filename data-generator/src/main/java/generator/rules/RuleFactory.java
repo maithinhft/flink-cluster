@@ -6,278 +6,299 @@ import java.util.Set;
 
 public class RuleFactory {
 
-    public static String generateConditionTree(int maxDepth) {
-        return generateNode(0, maxDepth);
+  public static String generateTopLevelRuleJson(int maxDepth) {
+    int numTriggers = 1 + RandomUtils.RANDOM.nextInt(3);
+    Set<String> triggers = new LinkedHashSet<>();
+    while (triggers.size() < numTriggers) {
+      triggers.add(RandomUtils.randomElement(RuleConfig.EVENT_TYPES));
     }
 
-    private static String generateNode(int currentDepth, int maxDepth) {
-        if (currentDepth >= maxDepth || (currentDepth > 0 && RandomUtils.RANDOM.nextDouble() < 0.4)) {
-            return generateLeafClause();
-        }
+    String conditionTree = generateConditionTree(maxDepth);
+    String indentedCondition = conditionTree.replaceAll("(?m)^", "    ");
 
-        String operator;
-        double r = RandomUtils.RANDOM.nextDouble();
-        if (r < 0.45)
-            operator = "AND";
-        else if (r < 0.90)
-            operator = "OR";
-        else
-            operator = "NOT";
+    String triggersJson = "\"" + String.join("\", \"", triggers) + "\"";
 
-        if ("NOT".equals(operator)) {
-            return """
-                    {
-                      "operator": "NOT",
-                      "children": [%s]
-                    }""".formatted(generateNode(currentDepth + 1, maxDepth));
-        }
+    return """
+        {
+          "trigger_events": [%s],
+          "condition": %s
+        }""".formatted(triggersJson, indentedCondition.trim());
+  }
 
-        int numChildren = 2 + RandomUtils.RANDOM.nextInt(3);
-        StringBuilder sb = new StringBuilder();
-        sb.append("{\n  \"operator\": \"").append(operator).append("\",\n  \"children\": [\n");
+  public static String generateConditionTree(int maxDepth) {
+    return generateNode(0, maxDepth);
+  }
 
-        for (int i = 0; i < numChildren; i++) {
-            if (i > 0)
-                sb.append(",\n");
-            sb.append("    ").append(generateNode(currentDepth + 1, maxDepth));
-        }
-        sb.append("\n  ]\n}");
-        return sb.toString();
+  private static String generateNode(int currentDepth, int maxDepth) {
+    if (currentDepth >= maxDepth || (currentDepth > 0 && RandomUtils.RANDOM.nextDouble() < 0.4)) {
+      return generateLeafClause();
     }
 
-    private static String generateLeafClause() {
-        double r = RandomUtils.RANDOM.nextDouble();
-        if (r < 0.25)
-            return generateAggregationClause();
-        else if (r < 0.50)
-            return generateEventCountAggregationClause();
-        else if (r < 0.75)
-            return generateSourceSystemCountAggregationClause();
-        return generateRawFieldClause();
+    String operator;
+    double r = RandomUtils.RANDOM.nextDouble();
+    if (r < 0.45)
+      operator = "AND";
+    else if (r < 0.90)
+      operator = "OR";
+    else
+      operator = "NOT";
+
+    if ("NOT".equals(operator)) {
+      return """
+          {
+            "operator": "NOT",
+            "children": [%s]
+          }""".formatted(generateNode(currentDepth + 1, maxDepth));
     }
 
-    private static String formatAggregationResult(String field, String function, String windowType, int lookback, int size, int slide, String filterJson, int baseVal) {
-        String operator;
-        String valueStr;
-        if (RandomUtils.RANDOM.nextDouble() < 0.2) {
-            operator = "BETWEEN";
-            int lo = RandomUtils.RANDOM.nextInt(baseVal) + 1;
-            int hi = lo + RandomUtils.RANDOM.nextInt(baseVal) + 1;
-            valueStr = "[" + lo + ", " + hi + "]";
-        } else {
-            operator = RandomUtils.randomElement(RuleConfig.NUMERIC_OPS);
-            valueStr = String.valueOf(RandomUtils.RANDOM.nextInt(baseVal) + 1);
-        }
+    int numChildren = 2 + RandomUtils.RANDOM.nextInt(3);
+    StringBuilder sb = new StringBuilder();
+    sb.append("{\n  \"operator\": \"").append(operator).append("\",\n  \"children\": [\n");
 
+    for (int i = 0; i < numChildren; i++) {
+      if (i > 0)
+        sb.append(",\n");
+      sb.append("    ").append(generateNode(currentDepth + 1, maxDepth));
+    }
+    sb.append("\n  ]\n}");
+    return sb.toString();
+  }
+
+  private static String generateLeafClause() {
+    double r = RandomUtils.RANDOM.nextDouble();
+    if (r < 0.25)
+      return generateAggregationClause();
+    else if (r < 0.50)
+      return generateEventCountAggregationClause();
+    else if (r < 0.75)
+      return generateSourceSystemCountAggregationClause();
+    return generateRawFieldClause();
+  }
+
+  private static String formatAggregationResult(String field, String function, String windowType, int lookback,
+      int size, int slide, String filterJson, int baseVal) {
+    String operator;
+    String valueStr;
+    if (RandomUtils.RANDOM.nextDouble() < 0.2) {
+      operator = "BETWEEN";
+      int lo = RandomUtils.RANDOM.nextInt(baseVal) + 1;
+      int hi = lo + RandomUtils.RANDOM.nextInt(baseVal) + 1;
+      valueStr = "[" + lo + ", " + hi + "]";
+    } else {
+      operator = RandomUtils.randomElement(RuleConfig.NUMERIC_OPS);
+      valueStr = String.valueOf(RandomUtils.RANDOM.nextInt(baseVal) + 1);
+    }
+
+    return """
+        {
+          "type": "AGGREGATION",
+          "field": "%s",
+          "function": "%s",
+          "window": {
+            "type": "%s",
+            "lookback_seconds": %d,
+            "size_seconds": %d,
+            "slide_seconds": %d
+          },
+          "filter": %s,
+          "operator": "%s",
+          "value": %s
+        }""".formatted(field, function, windowType, lookback, size, slide, filterJson, operator, valueStr);
+  }
+
+  private static String generateSourceSystemCountAggregationClause() {
+    String sourceSystem = RandomUtils.randomElement("ecommerce", "crm", "payment");
+    int size = RandomUtils.randomInt(300, 3600, 21600, 86400);
+    int slide = size == 86400 ? 300 : (size == 3600 ? 300 : size);
+    String windowType = size == slide ? "tumbling" : "sliding";
+    int maxMultipliers = 86400 / size;
+    int lookback = size * (RandomUtils.RANDOM.nextInt(maxMultipliers) + 1);
+
+    String finalFilterJson = """
+        {
+          "type": "RAW_FIELD",
+          "field": "source_system",
+          "operator": "EQ",
+          "value": "%s"
+        }""".formatted(sourceSystem);
+
+    if (RandomUtils.RANDOM.nextBoolean()) {
+      int tagIdx = RandomUtils.RANDOM.nextInt(RuleConfig.TAG_FIELDS.length);
+      String tagField = RuleConfig.TAG_FIELDS[tagIdx];
+      String tagValue = RandomUtils.randomElement(RuleConfig.TAG_VALUES[tagIdx]);
+      String tagFilterJson = """
+          {
+            "type": "RAW_FIELD",
+            "field": "%s",
+            "operator": "EQ",
+            "value": "%s"
+          }""".formatted(tagField, tagValue);
+      finalFilterJson = """
+          {
+            "operator": "AND",
+            "children": [
+              %s,
+              %s
+            ]
+          }""".formatted(finalFilterJson, tagFilterJson);
+    }
+
+    return formatAggregationResult("event_id", "COUNT", windowType, lookback, size, slide, finalFilterJson, 50);
+  }
+
+  private static String generateEventCountAggregationClause() {
+    String eventType = RandomUtils.randomElement(RuleConfig.EVENT_TYPES);
+    int size = RandomUtils.randomInt(300, 3600, 21600, 86400);
+    int slide = size == 86400 ? 300 : (size == 3600 ? 300 : size);
+    String windowType = size == slide ? "tumbling" : "sliding";
+    int maxMultipliers = 86400 / size;
+    int lookback = size * (RandomUtils.RANDOM.nextInt(maxMultipliers) + 1);
+
+    String finalFilterJson = """
+        {
+          "type": "RAW_FIELD",
+          "field": "event_type",
+          "operator": "EQ",
+          "value": "%s"
+        }""".formatted(eventType);
+
+    if (RandomUtils.RANDOM.nextBoolean()) {
+      int tagIdx = RandomUtils.RANDOM.nextInt(RuleConfig.TAG_FIELDS.length);
+      String tagField = RuleConfig.TAG_FIELDS[tagIdx];
+      String tagValue = RandomUtils.randomElement(RuleConfig.TAG_VALUES[tagIdx]);
+      String tagFilterJson = """
+          {
+            "type": "RAW_FIELD",
+            "field": "%s",
+            "operator": "EQ",
+            "value": "%s"
+          }""".formatted(tagField, tagValue);
+      finalFilterJson = """
+          {
+            "operator": "AND",
+            "children": [
+              %s,
+              %s
+            ]
+          }""".formatted(finalFilterJson, tagFilterJson);
+    }
+
+    return formatAggregationResult("event_id", "COUNT", windowType, lookback, size, slide, finalFilterJson, 20);
+  }
+
+  private static String generateAggregationClause() {
+    String function = RandomUtils.randomElement("SUM", "COUNT", "AVG", "MAX", "MIN");
+    String field = RandomUtils.randomElement(RuleConfig.NUM_FIELDS);
+    int size = RandomUtils.randomInt(300, 3600, 21600, 86400);
+    int slide = size == 86400 ? 300 : (size == 3600 ? 300 : size);
+    String windowType = size == slide ? "tumbling" : "sliding";
+    int maxMultipliers = 86400 / size;
+    int lookback = size * (RandomUtils.RANDOM.nextInt(maxMultipliers) + 1);
+
+    String filterJson = "null";
+    if (RandomUtils.RANDOM.nextBoolean()) {
+      int tagIdx = RandomUtils.RANDOM.nextInt(RuleConfig.TAG_FIELDS.length);
+      String tagField = RuleConfig.TAG_FIELDS[tagIdx];
+      String tagValue = RandomUtils.randomElement(RuleConfig.TAG_VALUES[tagIdx]);
+      filterJson = """
+          {
+            "type": "RAW_FIELD",
+            "field": "%s",
+            "operator": "EQ",
+            "value": "%s"
+          }""".formatted(tagField, tagValue);
+    }
+
+    return formatAggregationResult(field, function, windowType, lookback, size, slide, filterJson, 10_000);
+  }
+
+  private static String generateRawFieldClause() {
+    double r = RandomUtils.RANDOM.nextDouble();
+
+    if (r < 0.40) {
+      // String exact match (Tag)
+      int tagIdx = RandomUtils.RANDOM.nextInt(RuleConfig.TAG_FIELDS.length);
+      String field = RuleConfig.TAG_FIELDS[tagIdx];
+      String[] pool = RuleConfig.TAG_VALUES[tagIdx];
+
+      double opRoll = RandomUtils.RANDOM.nextDouble();
+      if (opRoll < 0.5) {
         return """
-                {
-                  "type": "AGGREGATION",
-                  "field": "%s",
-                  "function": "%s",
-                  "window": {
-                    "type": "%s",
-                    "lookback_seconds": %d,
-                    "size_seconds": %d,
-                    "slide_seconds": %d
-                  },
-                  "filter": %s,
-                  "operator": "%s",
-                  "value": %s
-                }""".formatted(field, function, windowType, lookback, size, slide, filterJson, operator, valueStr);
+            {
+              "type": "RAW_FIELD",
+              "field": "%s",
+              "operator": "EQ",
+              "value": "%s"
+            }""".formatted(field, RandomUtils.randomElement(pool));
+      } else if (opRoll < 0.8) {
+        int count = 2 + RandomUtils.RANDOM.nextInt(3);
+        Set<String> vals = new LinkedHashSet<>();
+        while (vals.size() < count && vals.size() < pool.length)
+          vals.add(RandomUtils.randomElement(pool));
+        return """
+            {
+              "type": "RAW_FIELD",
+              "field": "%s",
+              "operator": "IN",
+              "value": ["%s"]
+            }""".formatted(field, String.join("\", \"", vals));
+      } else {
+        return """
+            {
+              "type": "RAW_FIELD",
+              "field": "%s",
+              "operator": "NEQ",
+              "value": "%s"
+            }""".formatted(field, RandomUtils.randomElement(pool));
+      }
+
+    } else if (r < 0.75) {
+      // Numeric field
+      String field = RandomUtils.randomElement(RuleConfig.NUM_FIELDS);
+      if (RandomUtils.RANDOM.nextDouble() < 0.2) {
+        int lo = RandomUtils.RANDOM.nextInt(5000) + 1;
+        int hi = lo + RandomUtils.RANDOM.nextInt(5000) + 1;
+        return """
+            {
+              "type": "RAW_FIELD",
+              "field": "%s",
+              "operator": "BETWEEN",
+              "value": [%d, %d]
+            }""".formatted(field, lo, hi);
+      } else {
+        return """
+            {
+              "type": "RAW_FIELD",
+              "field": "%s",
+              "operator": "%s",
+              "value": %d
+            }""".formatted(field, RandomUtils.randomElement(RuleConfig.NUMERIC_OPS),
+            RandomUtils.RANDOM.nextInt(10_000) + 1);
+      }
+
+    } else if (r < 0.90) {
+      // Boolean field
+      String field = RandomUtils.randomElement("opt_in_email", "opt_in_sms", "opt_in_push", "is_3ds_verified",
+          "billing_zip_match");
+      return """
+          {
+            "type": "RAW_FIELD",
+            "field": "%s",
+            "operator": "EQ",
+            "value": %s
+          }""".formatted(field, RandomUtils.RANDOM.nextBoolean());
+
+    } else {
+      // String CONTAINS
+      String field = RandomUtils.randomElement(
+          "user_email", "user_first_name", "user_last_name", "product_name");
+      return """
+          {
+            "type": "RAW_FIELD",
+            "field": "%s",
+            "operator": "CONTAINS",
+            "value": "example"
+          }""".formatted(field);
     }
-
-    private static String generateSourceSystemCountAggregationClause() {
-        String sourceSystem = RandomUtils.randomElement("ecommerce", "crm", "payment");
-        int size = RandomUtils.randomInt(300, 3600, 21600, 86400);
-        int slide = size == 86400 ? 300 : (size == 3600 ? 300 : size);
-        String windowType = size == slide ? "tumbling" : "sliding";
-        int maxMultipliers = 86400 / size;
-        int lookback = size * (RandomUtils.RANDOM.nextInt(maxMultipliers) + 1);
-
-        String finalFilterJson = """
-                    {
-                      "type": "RAW_FIELD",
-                      "field": "source_system",
-                      "operator": "EQ",
-                      "value": "%s"
-                    }""".formatted(sourceSystem);
-
-        if (RandomUtils.RANDOM.nextBoolean()) {
-            int tagIdx = RandomUtils.RANDOM.nextInt(RuleConfig.TAG_FIELDS.length);
-            String tagField = RuleConfig.TAG_FIELDS[tagIdx];
-            String tagValue = RandomUtils.randomElement(RuleConfig.TAG_VALUES[tagIdx]);
-            String tagFilterJson = """
-                    {
-                      "type": "RAW_FIELD",
-                      "field": "%s",
-                      "operator": "EQ",
-                      "value": "%s"
-                    }""".formatted(tagField, tagValue);
-            finalFilterJson = """
-                    {
-                      "operator": "AND",
-                      "children": [
-                        %s,
-                        %s
-                      ]
-                    }""".formatted(finalFilterJson, tagFilterJson);
-        }
-
-        return formatAggregationResult("event_id", "COUNT", windowType, lookback, size, slide, finalFilterJson, 50);
-    }
-
-    private static String generateEventCountAggregationClause() {
-        String eventType = RandomUtils.randomElement(RuleConfig.EVENT_TYPES);
-        int size = RandomUtils.randomInt(300, 3600, 21600, 86400);
-        int slide = size == 86400 ? 300 : (size == 3600 ? 300 : size);
-        String windowType = size == slide ? "tumbling" : "sliding";
-        int maxMultipliers = 86400 / size;
-        int lookback = size * (RandomUtils.RANDOM.nextInt(maxMultipliers) + 1);
-
-        String finalFilterJson = """
-                    {
-                      "type": "RAW_FIELD",
-                      "field": "event_type",
-                      "operator": "EQ",
-                      "value": "%s"
-                    }""".formatted(eventType);
-
-        if (RandomUtils.RANDOM.nextBoolean()) {
-            int tagIdx = RandomUtils.RANDOM.nextInt(RuleConfig.TAG_FIELDS.length);
-            String tagField = RuleConfig.TAG_FIELDS[tagIdx];
-            String tagValue = RandomUtils.randomElement(RuleConfig.TAG_VALUES[tagIdx]);
-            String tagFilterJson = """
-                    {
-                      "type": "RAW_FIELD",
-                      "field": "%s",
-                      "operator": "EQ",
-                      "value": "%s"
-                    }""".formatted(tagField, tagValue);
-            finalFilterJson = """
-                    {
-                      "operator": "AND",
-                      "children": [
-                        %s,
-                        %s
-                      ]
-                    }""".formatted(finalFilterJson, tagFilterJson);
-        }
-
-        return formatAggregationResult("event_id", "COUNT", windowType, lookback, size, slide, finalFilterJson, 20);
-    }
-
-    private static String generateAggregationClause() {
-        String function = RandomUtils.randomElement("SUM", "COUNT", "AVG", "MAX", "MIN");
-        String field = RandomUtils.randomElement(RuleConfig.NUM_FIELDS); 
-        int size = RandomUtils.randomInt(300, 3600, 21600, 86400);
-        int slide = size == 86400 ? 300 : (size == 3600 ? 300 : size);
-        String windowType = size == slide ? "tumbling" : "sliding";
-        int maxMultipliers = 86400 / size;
-        int lookback = size * (RandomUtils.RANDOM.nextInt(maxMultipliers) + 1);
-
-        String filterJson = "null";
-        if (RandomUtils.RANDOM.nextBoolean()) {
-            int tagIdx = RandomUtils.RANDOM.nextInt(RuleConfig.TAG_FIELDS.length);
-            String tagField = RuleConfig.TAG_FIELDS[tagIdx];
-            String tagValue = RandomUtils.randomElement(RuleConfig.TAG_VALUES[tagIdx]);
-            filterJson = """
-                    {
-                      "type": "RAW_FIELD",
-                      "field": "%s",
-                      "operator": "EQ",
-                      "value": "%s"
-                    }""".formatted(tagField, tagValue);
-        }
-
-        return formatAggregationResult(field, function, windowType, lookback, size, slide, filterJson, 10_000);
-    }
-
-    private static String generateRawFieldClause() {
-        double r = RandomUtils.RANDOM.nextDouble();
-
-        if (r < 0.40) {
-            // String exact match (Tag)
-            int tagIdx = RandomUtils.RANDOM.nextInt(RuleConfig.TAG_FIELDS.length);
-            String field = RuleConfig.TAG_FIELDS[tagIdx];
-            String[] pool = RuleConfig.TAG_VALUES[tagIdx];
-
-            double opRoll = RandomUtils.RANDOM.nextDouble();
-            if (opRoll < 0.5) {
-                return """
-                        {
-                          "type": "RAW_FIELD",
-                          "field": "%s",
-                          "operator": "EQ",
-                          "value": "%s"
-                        }""".formatted(field, RandomUtils.randomElement(pool));
-            } else if (opRoll < 0.8) {
-                int count = 2 + RandomUtils.RANDOM.nextInt(3);
-                Set<String> vals = new LinkedHashSet<>();
-                while (vals.size() < count && vals.size() < pool.length)
-                    vals.add(RandomUtils.randomElement(pool));
-                return """
-                        {
-                          "type": "RAW_FIELD",
-                          "field": "%s",
-                          "operator": "IN",
-                          "value": ["%s"]
-                        }""".formatted(field, String.join("\", \"", vals));
-            } else {
-                return """
-                        {
-                          "type": "RAW_FIELD",
-                          "field": "%s",
-                          "operator": "NEQ",
-                          "value": "%s"
-                        }""".formatted(field, RandomUtils.randomElement(pool));
-            }
-
-        } else if (r < 0.75) {
-            // Numeric field
-            String field = RandomUtils.randomElement(RuleConfig.NUM_FIELDS);
-            if (RandomUtils.RANDOM.nextDouble() < 0.2) {
-                int lo = RandomUtils.RANDOM.nextInt(5000) + 1;
-                int hi = lo + RandomUtils.RANDOM.nextInt(5000) + 1;
-                return """
-                        {
-                          "type": "RAW_FIELD",
-                          "field": "%s",
-                          "operator": "BETWEEN",
-                          "value": [%d, %d]
-                        }""".formatted(field, lo, hi);
-            } else {
-                return """
-                        {
-                          "type": "RAW_FIELD",
-                          "field": "%s",
-                          "operator": "%s",
-                          "value": %d
-                        }""".formatted(field, RandomUtils.randomElement(RuleConfig.NUMERIC_OPS), RandomUtils.RANDOM.nextInt(10_000) + 1);
-            }
-
-        } else if (r < 0.90) {
-            // Boolean field
-            String field = RandomUtils.randomElement("opt_in_email", "opt_in_sms", "opt_in_push", "is_3ds_verified",
-                    "billing_zip_match");
-            return """
-                    {
-                      "type": "RAW_FIELD",
-                      "field": "%s",
-                      "operator": "EQ",
-                      "value": %s
-                    }""".formatted(field, RandomUtils.RANDOM.nextBoolean());
-
-        } else {
-            // String CONTAINS
-            String field = RandomUtils.randomElement(
-                    "user_email", "user_first_name", "user_last_name", "product_name");
-            return """
-                    {
-                      "type": "RAW_FIELD",
-                      "field": "%s",
-                      "operator": "CONTAINS",
-                      "value": "example"
-                    }""".formatted(field);
-        }
-    }
+  }
 }

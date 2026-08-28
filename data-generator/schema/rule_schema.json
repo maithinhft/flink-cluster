@@ -52,10 +52,23 @@
         },
         "rule_json": {
             "type": "JSON object",
-            "description": "Cây điều kiện logic (Condition Tree) của rule. Xem cấu trúc chi tiết bên dưới."
+            "description": "Cấu trúc JSON lưu trữ TopLevelRule bao gồm trigger_events và condition."
         }
     },
     "rule_json_structure": {
+        "TopLevelRule": {
+            "description": "Cấu trúc ngoài cùng của rule_json",
+            "properties": {
+                "trigger_events": {
+                    "type": "array of string",
+                    "description": "Danh sách các sự kiện kích hoạt rule này. Flink sẽ dùng mảng này để định tuyến (route) event."
+                },
+                "condition": {
+                    "type": "Node",
+                    "description": "Cây điều kiện logic (Node)"
+                }
+            }
+        },
         "_comment": "Cấu trúc đệ quy của cây điều kiện bên trong trường `rule_json`",
         "Node": {
             "description": "Một Node có thể là LogicalNode (AND, OR, NOT) hoặc LeafNode (AGGREGATION, RAW_FIELD)",
@@ -179,210 +192,240 @@
         }
     },
     "example_rules": {
-        "_comment": "Các ví dụ rule trong phạm vi ring buffer 24h / bucket 5 phút",
+        "_comment": {
+            "trigger_events": [
+                "payment_success",
+                "payment_failed"
+            ],
+            "condition": "Các ví dụ rule trong phạm vi ring buffer 24h / bucket 5 phút"
+        },
         "high_value_24h": {
-            "_description": "Khách hàng chi tiêu cao: Tổng chi tiêu >= 5 triệu VND trong 24h VÀ có >= 3 đơn hoàn thành",
-            "operator": "AND",
-            "children": [
-                {
-                    "type": "AGGREGATION",
-                    "field": "total_amount",
-                    "function": "SUM",
-                    "window": {
-                        "type": "sliding",
-                        "size_seconds": 86400,
-                        "slide_seconds": 300,
-                        "lookback_seconds": 259200
+            "trigger_events": [
+                "payment_success",
+                "payment_failed"
+            ],
+            "condition": {
+                "_description": "Khách hàng chi tiêu cao: Tổng chi tiêu >= 5 triệu VND trong 24h VÀ có >= 3 đơn hoàn thành",
+                "operator": "AND",
+                "children": [
+                    {
+                        "type": "AGGREGATION",
+                        "field": "total_amount",
+                        "function": "SUM",
+                        "window": {
+                            "type": "sliding",
+                            "size_seconds": 86400,
+                            "slide_seconds": 300,
+                            "lookback_seconds": 259200
+                        },
+                        "operator": "GTE",
+                        "value": 5000000,
+                        "filter": {
+                            "type": "RAW_FIELD",
+                            "field": "source_system",
+                            "operator": "EQ",
+                            "value": "ecommerce"
+                        }
                     },
-                    "operator": "GTE",
-                    "value": 5000000,
-                    "filter": {
-                        "type": "RAW_FIELD",
-                        "field": "source_system",
-                        "operator": "EQ",
-                        "value": "ecommerce"
+                    {
+                        "type": "AGGREGATION",
+                        "field": "order_status",
+                        "function": "COUNT",
+                        "window": {
+                            "type": "sliding",
+                            "size_seconds": 86400,
+                            "slide_seconds": 300,
+                            "lookback_seconds": 259200
+                        },
+                        "operator": "GTE",
+                        "value": 3,
+                        "filter": {
+                            "operator": "AND",
+                            "children": [
+                                {
+                                    "type": "RAW_FIELD",
+                                    "field": "source_system",
+                                    "operator": "EQ",
+                                    "value": "ecommerce"
+                                },
+                                {
+                                    "field": "order_status",
+                                    "operator": "EQ",
+                                    "value": "completed"
+                                }
+                            ]
+                        }
                     }
-                },
-                {
-                    "type": "AGGREGATION",
-                    "field": "order_status",
-                    "function": "COUNT",
-                    "window": {
-                        "type": "sliding",
-                        "size_seconds": 86400,
-                        "slide_seconds": 300,
-                        "lookback_seconds": 259200
-                    },
-                    "operator": "GTE",
-                    "value": 3,
-                    "filter": {
-                        "operator": "AND",
-                        "children": [
-                            {
-                                "type": "RAW_FIELD",
-                                "field": "source_system",
-                                "operator": "EQ",
-                                "value": "ecommerce"
-                            },
-                            {
-                                "field": "order_status",
-                                "operator": "EQ",
-                                "value": "completed"
-                            }
-                        ]
-                    }
-                }
-            ]
+                ]
+            }
         },
         "fraud_alert": {
-            "_description": "Cảnh báo gian lận: > 5 giao dịch thất bại trong 1 giờ HOẶC giao dịch không có 3DS và không khớp ZIP",
-            "operator": "OR",
-            "children": [
-                {
-                    "type": "AGGREGATION",
-                    "field": "transaction_status",
-                    "function": "COUNT",
-                    "window": {
-                        "type": "sliding",
-                        "size_seconds": 3600,
-                        "slide_seconds": 300,
-                        "lookback_seconds": 10800
+            "trigger_events": [
+                "payment_success",
+                "payment_failed"
+            ],
+            "condition": {
+                "_description": "Cảnh báo gian lận: > 5 giao dịch thất bại trong 1 giờ HOẶC giao dịch không có 3DS và không khớp ZIP",
+                "operator": "OR",
+                "children": [
+                    {
+                        "type": "AGGREGATION",
+                        "field": "transaction_status",
+                        "function": "COUNT",
+                        "window": {
+                            "type": "sliding",
+                            "size_seconds": 3600,
+                            "slide_seconds": 300,
+                            "lookback_seconds": 10800
+                        },
+                        "operator": "GT",
+                        "value": 5,
+                        "filter": {
+                            "operator": "AND",
+                            "children": [
+                                {
+                                    "type": "RAW_FIELD",
+                                    "field": "source_system",
+                                    "operator": "EQ",
+                                    "value": "payment"
+                                },
+                                {
+                                    "field": "transaction_status",
+                                    "operator": "EQ",
+                                    "value": "failed"
+                                }
+                            ]
+                        }
                     },
-                    "operator": "GT",
-                    "value": 5,
-                    "filter": {
+                    {
                         "operator": "AND",
                         "children": [
                             {
                                 "type": "RAW_FIELD",
-                                "field": "source_system",
+                                "field": "is_3ds_verified",
                                 "operator": "EQ",
-                                "value": "payment"
+                                "value": false
                             },
                             {
-                                "field": "transaction_status",
+                                "type": "RAW_FIELD",
+                                "field": "billing_zip_match",
                                 "operator": "EQ",
-                                "value": "failed"
+                                "value": false
                             }
                         ]
                     }
-                },
-                {
-                    "operator": "AND",
-                    "children": [
-                        {
-                            "type": "RAW_FIELD",
-                            "field": "is_3ds_verified",
-                            "operator": "EQ",
-                            "value": false
-                        },
-                        {
-                            "type": "RAW_FIELD",
-                            "field": "billing_zip_match",
-                            "operator": "EQ",
-                            "value": false
-                        }
-                    ]
-                }
-            ]
+                ]
+            }
         },
         "inactive_customer": {
-            "_description": "Khách hàng không hoạt động: 0 event từ ecommerce trong 12 giờ gần nhất VÀ điểm hài lòng gần nhất < 2",
-            "operator": "AND",
-            "children": [
-                {
-                    "type": "AGGREGATION",
-                    "field": "event_id",
-                    "function": "COUNT",
-                    "window": {
-                        "type": "tumbling",
-                        "size_seconds": 43200,
-                        "slide_seconds": 43200,
-                        "lookback_seconds": 43200
-                    },
-                    "operator": "EQ",
-                    "value": 0,
-                    "filter": {
-                        "type": "RAW_FIELD",
-                        "field": "source_system",
+            "trigger_events": [
+                "payment_success",
+                "payment_failed"
+            ],
+            "condition": {
+                "_description": "Khách hàng không hoạt động: 0 event từ ecommerce trong 12 giờ gần nhất VÀ điểm hài lòng gần nhất < 2",
+                "operator": "AND",
+                "children": [
+                    {
+                        "type": "AGGREGATION",
+                        "field": "event_id",
+                        "function": "COUNT",
+                        "window": {
+                            "type": "tumbling",
+                            "size_seconds": 43200,
+                            "slide_seconds": 43200,
+                            "lookback_seconds": 43200
+                        },
                         "operator": "EQ",
-                        "value": "ecommerce"
-                    }
-                },
-                {
-                    "type": "AGGREGATION",
-                    "field": "satisfaction_score",
-                    "function": "MIN",
-                    "window": {
-                        "type": "sliding",
-                        "size_seconds": 86400,
-                        "slide_seconds": 300,
-                        "lookback_seconds": 259200
+                        "value": 0,
+                        "filter": {
+                            "type": "RAW_FIELD",
+                            "field": "source_system",
+                            "operator": "EQ",
+                            "value": "ecommerce"
+                        }
                     },
-                    "operator": "LT",
-                    "value": 2,
-                    "filter": {
-                        "type": "RAW_FIELD",
-                        "field": "source_system",
-                        "operator": "EQ",
-                        "value": "crm"
+                    {
+                        "type": "AGGREGATION",
+                        "field": "satisfaction_score",
+                        "function": "MIN",
+                        "window": {
+                            "type": "sliding",
+                            "size_seconds": 86400,
+                            "slide_seconds": 300,
+                            "lookback_seconds": 259200
+                        },
+                        "operator": "LT",
+                        "value": 2,
+                        "filter": {
+                            "type": "RAW_FIELD",
+                            "field": "source_system",
+                            "operator": "EQ",
+                            "value": "crm"
+                        }
                     }
-                }
-            ]
+                ]
+            }
         },
         "frequent_buyer": {
-            "_description": "Khách mua sắm thường xuyên: >= 5 đơn hàng trong 6 giờ VÀ giá trị trung bình đơn >= 500.000 VND",
-            "operator": "AND",
-            "children": [
-                {
-                    "type": "AGGREGATION",
-                    "field": "order_id",
-                    "function": "COUNT",
-                    "window": {
-                        "type": "sliding",
-                        "size_seconds": 21600,
-                        "slide_seconds": 300,
-                        "lookback_seconds": 64800
+            "trigger_events": [
+                "payment_success",
+                "payment_failed"
+            ],
+            "condition": {
+                "_description": "Khách mua sắm thường xuyên: >= 5 đơn hàng trong 6 giờ VÀ giá trị trung bình đơn >= 500.000 VND",
+                "operator": "AND",
+                "children": [
+                    {
+                        "type": "AGGREGATION",
+                        "field": "order_id",
+                        "function": "COUNT",
+                        "window": {
+                            "type": "sliding",
+                            "size_seconds": 21600,
+                            "slide_seconds": 300,
+                            "lookback_seconds": 64800
+                        },
+                        "operator": "GTE",
+                        "value": 5,
+                        "filter": {
+                            "operator": "AND",
+                            "children": [
+                                {
+                                    "type": "RAW_FIELD",
+                                    "field": "source_system",
+                                    "operator": "EQ",
+                                    "value": "ecommerce"
+                                },
+                                {
+                                    "field": "order_status",
+                                    "operator": "EQ",
+                                    "value": "completed"
+                                }
+                            ]
+                        }
                     },
-                    "operator": "GTE",
-                    "value": 5,
-                    "filter": {
-                        "operator": "AND",
-                        "children": [
-                            {
-                                "type": "RAW_FIELD",
-                                "field": "source_system",
-                                "operator": "EQ",
-                                "value": "ecommerce"
-                            },
-                            {
-                                "field": "order_status",
-                                "operator": "EQ",
-                                "value": "completed"
-                            }
-                        ]
+                    {
+                        "type": "AGGREGATION",
+                        "field": "total_amount",
+                        "function": "AVG",
+                        "window": {
+                            "type": "sliding",
+                            "size_seconds": 21600,
+                            "slide_seconds": 300,
+                            "lookback_seconds": 64800
+                        },
+                        "operator": "GTE",
+                        "value": 500000,
+                        "filter": {
+                            "type": "RAW_FIELD",
+                            "field": "source_system",
+                            "operator": "EQ",
+                            "value": "ecommerce"
+                        }
                     }
-                },
-                {
-                    "type": "AGGREGATION",
-                    "field": "total_amount",
-                    "function": "AVG",
-                    "window": {
-                        "type": "sliding",
-                        "size_seconds": 21600,
-                        "slide_seconds": 300,
-                        "lookback_seconds": 64800
-                    },
-                    "operator": "GTE",
-                    "value": 500000,
-                    "filter": {
-                        "type": "RAW_FIELD",
-                        "field": "source_system",
-                        "operator": "EQ",
-                        "value": "ecommerce"
-                    }
-                }
-            ]
+                ]
+            }
         }
     },
     "metrics": []

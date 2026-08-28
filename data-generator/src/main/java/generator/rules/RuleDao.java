@@ -38,7 +38,7 @@ public class RuleDao {
             for (int i = 0; i < count; i++) {
                 UUID ruleId = UUID.randomUUID();
                 String name = RuleConfig.RULE_PREFIXES[RandomUtils.RANDOM.nextInt(RuleConfig.RULE_PREFIXES.length)] + "_" + (i + 1);
-                String ruleJson = RuleFactory.generateConditionTree(2 + RandomUtils.RANDOM.nextInt(3)); // depth 2-4
+                String ruleJson = RuleFactory.generateTopLevelRuleJson(2 + RandomUtils.RANDOM.nextInt(3)); // depth 2-4
                 long cooldownSeconds = RandomUtils.randomLong(0L, 60L, 300L, 900L, 3600L);
                 long version = 1 + RandomUtils.RANDOM.nextInt(9);
                 boolean enabled = RandomUtils.RANDOM.nextDouble() < 0.95;
