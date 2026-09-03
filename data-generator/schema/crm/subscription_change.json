@@ -94,17 +94,44 @@
             "metric_id": "count_events",
             "source_field": "event_id",
             "aggregation": "COUNT",
-            "filter": null
+            "filter": {
+                "operator": "AND",
+                "children": [
+                    {
+                        "type": "RAW_FIELD",
+                        "field": "source_system",
+                        "operator": "EQ",
+                        "value": "crm"
+                    },
+                    {
+                        "type": "RAW_FIELD",
+                        "field": "event_type",
+                        "operator": "EQ",
+                        "value": "subscription_change"
+                    }
+                ]
+            }
         },
         {
             "metric_id": "count_events_where_subscription_tier_premium",
             "source_field": "event_id",
             "aggregation": "COUNT",
             "filter": {
-                "type": "RAW_FIELD",
-                "field": "subscription_tier",
-                "operator": "EQ",
-                "value": "premium"
+                "operator": "AND",
+                "children": [
+                    {
+                        "type": "RAW_FIELD",
+                        "field": "source_system",
+                        "operator": "EQ",
+                        "value": "crm"
+                    },
+                    {
+                        "type": "RAW_FIELD",
+                        "field": "event_type",
+                        "operator": "EQ",
+                        "value": "subscription_change"
+                    }
+                ]
             }
         },
         {
@@ -112,10 +139,21 @@
             "source_field": "event_id",
             "aggregation": "COUNT",
             "filter": {
-                "type": "RAW_FIELD",
-                "field": "subscription_tier",
-                "operator": "EQ",
-                "value": "free"
+                "operator": "AND",
+                "children": [
+                    {
+                        "type": "RAW_FIELD",
+                        "field": "source_system",
+                        "operator": "EQ",
+                        "value": "crm"
+                    },
+                    {
+                        "type": "RAW_FIELD",
+                        "field": "event_type",
+                        "operator": "EQ",
+                        "value": "subscription_change"
+                    }
+                ]
             }
         },
         {
@@ -123,10 +161,21 @@
             "source_field": "event_id",
             "aggregation": "COUNT",
             "filter": {
-                "type": "RAW_FIELD",
-                "field": "subscription_tier",
-                "operator": "EQ",
-                "value": "basic"
+                "operator": "AND",
+                "children": [
+                    {
+                        "type": "RAW_FIELD",
+                        "field": "source_system",
+                        "operator": "EQ",
+                        "value": "crm"
+                    },
+                    {
+                        "type": "RAW_FIELD",
+                        "field": "event_type",
+                        "operator": "EQ",
+                        "value": "subscription_change"
+                    }
+                ]
             }
         },
         {

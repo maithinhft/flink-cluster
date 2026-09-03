@@ -205,17 +205,44 @@
             "metric_id": "count_events",
             "source_field": "event_id",
             "aggregation": "COUNT",
-            "filter": null
+            "filter": {
+                "operator": "AND",
+                "children": [
+                    {
+                        "type": "RAW_FIELD",
+                        "field": "source_system",
+                        "operator": "EQ",
+                        "value": "ecommerce"
+                    },
+                    {
+                        "type": "RAW_FIELD",
+                        "field": "event_type",
+                        "operator": "EQ",
+                        "value": "purchase"
+                    }
+                ]
+            }
         },
         {
             "metric_id": "count_events_where_product_category_electronics",
             "source_field": "event_id",
             "aggregation": "COUNT",
             "filter": {
-                "type": "RAW_FIELD",
-                "field": "product_category",
-                "operator": "EQ",
-                "value": "electronics"
+                "operator": "AND",
+                "children": [
+                    {
+                        "type": "RAW_FIELD",
+                        "field": "source_system",
+                        "operator": "EQ",
+                        "value": "ecommerce"
+                    },
+                    {
+                        "type": "RAW_FIELD",
+                        "field": "event_type",
+                        "operator": "EQ",
+                        "value": "purchase"
+                    }
+                ]
             }
         },
         {
@@ -223,10 +250,21 @@
             "source_field": "event_id",
             "aggregation": "COUNT",
             "filter": {
-                "type": "RAW_FIELD",
-                "field": "product_category",
-                "operator": "EQ",
-                "value": "food"
+                "operator": "AND",
+                "children": [
+                    {
+                        "type": "RAW_FIELD",
+                        "field": "source_system",
+                        "operator": "EQ",
+                        "value": "ecommerce"
+                    },
+                    {
+                        "type": "RAW_FIELD",
+                        "field": "event_type",
+                        "operator": "EQ",
+                        "value": "purchase"
+                    }
+                ]
             }
         },
         {
@@ -234,10 +272,21 @@
             "source_field": "event_id",
             "aggregation": "COUNT",
             "filter": {
-                "type": "RAW_FIELD",
-                "field": "product_category",
-                "operator": "EQ",
-                "value": "fashion"
+                "operator": "AND",
+                "children": [
+                    {
+                        "type": "RAW_FIELD",
+                        "field": "source_system",
+                        "operator": "EQ",
+                        "value": "ecommerce"
+                    },
+                    {
+                        "type": "RAW_FIELD",
+                        "field": "event_type",
+                        "operator": "EQ",
+                        "value": "purchase"
+                    }
+                ]
             }
         },
         {
@@ -245,10 +294,21 @@
             "source_field": "event_id",
             "aggregation": "COUNT",
             "filter": {
-                "type": "RAW_FIELD",
-                "field": "product_category",
-                "operator": "EQ",
-                "value": "books"
+                "operator": "AND",
+                "children": [
+                    {
+                        "type": "RAW_FIELD",
+                        "field": "source_system",
+                        "operator": "EQ",
+                        "value": "ecommerce"
+                    },
+                    {
+                        "type": "RAW_FIELD",
+                        "field": "event_type",
+                        "operator": "EQ",
+                        "value": "purchase"
+                    }
+                ]
             }
         },
         {
@@ -256,10 +316,21 @@
             "source_field": "event_id",
             "aggregation": "COUNT",
             "filter": {
-                "type": "RAW_FIELD",
-                "field": "order_status",
-                "operator": "EQ",
-                "value": "cancelled"
+                "operator": "AND",
+                "children": [
+                    {
+                        "type": "RAW_FIELD",
+                        "field": "source_system",
+                        "operator": "EQ",
+                        "value": "ecommerce"
+                    },
+                    {
+                        "type": "RAW_FIELD",
+                        "field": "event_type",
+                        "operator": "EQ",
+                        "value": "purchase"
+                    }
+                ]
             }
         },
         {
@@ -267,10 +338,21 @@
             "source_field": "event_id",
             "aggregation": "COUNT",
             "filter": {
-                "type": "RAW_FIELD",
-                "field": "order_status",
-                "operator": "EQ",
-                "value": "shipped"
+                "operator": "AND",
+                "children": [
+                    {
+                        "type": "RAW_FIELD",
+                        "field": "source_system",
+                        "operator": "EQ",
+                        "value": "ecommerce"
+                    },
+                    {
+                        "type": "RAW_FIELD",
+                        "field": "event_type",
+                        "operator": "EQ",
+                        "value": "purchase"
+                    }
+                ]
             }
         },
         {
@@ -278,10 +360,21 @@
             "source_field": "event_id",
             "aggregation": "COUNT",
             "filter": {
-                "type": "RAW_FIELD",
-                "field": "order_status",
-                "operator": "EQ",
-                "value": "completed"
+                "operator": "AND",
+                "children": [
+                    {
+                        "type": "RAW_FIELD",
+                        "field": "source_system",
+                        "operator": "EQ",
+                        "value": "ecommerce"
+                    },
+                    {
+                        "type": "RAW_FIELD",
+                        "field": "event_type",
+                        "operator": "EQ",
+                        "value": "purchase"
+                    }
+                ]
             }
         },
         {
@@ -289,10 +382,21 @@
             "source_field": "event_id",
             "aggregation": "COUNT",
             "filter": {
-                "type": "RAW_FIELD",
-                "field": "order_status",
-                "operator": "EQ",
-                "value": "paid"
+                "operator": "AND",
+                "children": [
+                    {
+                        "type": "RAW_FIELD",
+                        "field": "source_system",
+                        "operator": "EQ",
+                        "value": "ecommerce"
+                    },
+                    {
+                        "type": "RAW_FIELD",
+                        "field": "event_type",
+                        "operator": "EQ",
+                        "value": "purchase"
+                    }
+                ]
             }
         },
         {
@@ -300,10 +404,21 @@
             "source_field": "event_id",
             "aggregation": "COUNT",
             "filter": {
-                "type": "RAW_FIELD",
-                "field": "order_status",
-                "operator": "EQ",
-                "value": "created"
+                "operator": "AND",
+                "children": [
+                    {
+                        "type": "RAW_FIELD",
+                        "field": "source_system",
+                        "operator": "EQ",
+                        "value": "ecommerce"
+                    },
+                    {
+                        "type": "RAW_FIELD",
+                        "field": "event_type",
+                        "operator": "EQ",
+                        "value": "purchase"
+                    }
+                ]
             }
         },
         {

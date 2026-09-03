@@ -89,7 +89,23 @@
             "metric_id": "count_events",
             "source_field": "event_id",
             "aggregation": "COUNT",
-            "filter": null
+            "filter": {
+                "operator": "AND",
+                "children": [
+                    {
+                        "type": "RAW_FIELD",
+                        "field": "source_system",
+                        "operator": "EQ",
+                        "value": "crm"
+                    },
+                    {
+                        "type": "RAW_FIELD",
+                        "field": "event_type",
+                        "operator": "EQ",
+                        "value": "support_ticket_resolved"
+                    }
+                ]
+            }
         },
         {
             "metric_id": "sum_satisfaction_score",
