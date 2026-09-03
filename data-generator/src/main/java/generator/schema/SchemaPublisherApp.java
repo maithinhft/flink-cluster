@@ -104,7 +104,7 @@ public class SchemaPublisherApp {
             String sql = "INSERT INTO schema_definitions (schema_id, schema_payload) " +
                     "VALUES (?, ?::jsonb) " +
                     "ON CONFLICT (schema_id) DO UPDATE " +
-                    "SET schema_payload = EXCLUDED.schema_payload, updated_at = CURRENT_TIMESTAMP";
+                    "SET schema_payload = EXCLUDED.schema_payload";
 
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 pstmt.setString(1, schemaId);
