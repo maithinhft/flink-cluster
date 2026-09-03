@@ -11,6 +11,7 @@ public class RuleGeneratorApp {
         String dbPassword = RuleConfig.DEFAULT_DB_PASSWORD;
         int numRules = RuleConfig.DEFAULT_NUM_RULES;
         int batchSize = RuleConfig.DEFAULT_BATCH_SIZE;
+        boolean continuous = false;
 
         for (int i = 0; i < args.length; i++) {
             switch (args[i]) {
@@ -29,19 +30,23 @@ public class RuleGeneratorApp {
                 case "--db-password":
                     dbPassword = args[++i];
                     break;
+                case "--continuous":
+                    continuous = true;
+                    break;
             }
         }
 
         System.out.println("======================================================");
         System.out.println("PostgreSQL Rule Definition Generator (Concrete Fields)");
         System.out.println("======================================================");
-        System.out.printf("Rules        : %,d%n", numRules);
+        System.out.println("======================================================");
+        System.out.printf("Rules        : %s%n", continuous ? "Continuous" : String.format("%,d", numRules));
 
         try (Connection connection = DriverManager.getConnection(dbUrl, dbUser, dbPassword)) {
             connection.setAutoCommit(false);
             long start = System.nanoTime();
 
-            RuleDao.generateAndInsertRules(connection, numRules, batchSize);
+            RuleDao.generateAndInsertRules(connection, numRules, batchSize, continuous);
 
             connection.commit();
             double elapsed = (System.nanoTime() - start) / 1_000_000_000.0;

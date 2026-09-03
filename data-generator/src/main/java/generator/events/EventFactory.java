@@ -32,7 +32,7 @@ public class EventFactory {
         String sourceSystem = SOURCE_EVENT_TYPES[sourceIdx][0];
         String eventType = SOURCE_EVENT_TYPES[sourceIdx][1 + random.nextInt(SOURCE_EVENT_TYPES[sourceIdx].length - 1)];
 
-        Instant now = Instant.now();
+        Instant now = config.getSimulatedNow();
         Instant eventTime = now.minus(random.nextInt(24 * 60), ChronoUnit.MINUTES);
         if (random.nextDouble() < config.lateEventRate) {
             eventTime = eventTime.minus(random.nextInt(120), ChronoUnit.MINUTES);

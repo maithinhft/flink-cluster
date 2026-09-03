@@ -53,7 +53,7 @@ public class EventWorker implements Runnable {
             long start = System.nanoTime();
             long sent = 0;
 
-            for (long i = 0; i < numEvents; i++) {
+            for (long i = 0; config.continuous || i < numEvents; i++) {
                 long eventId = startEventId + i;
                 String entityId = entityPool.next(random);
                 Map<String, Object> event = EventFactory.generateEvent(eventId, entityId, random, config);
@@ -62,6 +62,11 @@ public class EventWorker implements Runnable {
                 ProducerRecord<String, byte[]> record = new ProducerRecord<>(topicName, entityId, json);
                 producer.send(record);
                 sent++;
+                
+                if (config.continuous && sent % 500_000 == 0) {
+                    double elapsed = (System.nanoTime() - start) / 1_000_000_000.0;
+                    System.out.printf("Worker %d: sent %,d events (%,.0f events/s)%n", workerId, sent, sent / elapsed);
+                }
             }
 
             producer.flush();

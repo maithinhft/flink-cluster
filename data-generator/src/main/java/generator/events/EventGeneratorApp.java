@@ -14,7 +14,10 @@ public class EventGeneratorApp {
         System.out.println("======================================================================");
         System.out.printf("Kafka             : %s%n", config.bootstrapServers);
         System.out.printf("Topic             : %s%n", config.topic);
-        System.out.printf("Events            : %,d%n", config.numEvents);
+        System.out.printf("Events            : %s%n", config.continuous ? "Continuous" : String.format("%,d", config.numEvents));
+        if (config.startTime != null) {
+            System.out.printf("Start time        : %s%n", config.startTime);
+        }
         System.out.printf("Dirty data rate   : %.2f%%%n", config.dirtyRate * 100);
         System.out.printf("Entities          : %,d%n", config.numEntities);
         System.out.printf("Data skew         : %.2f%n", config.dataSkew);

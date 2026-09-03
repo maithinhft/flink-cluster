@@ -2,6 +2,8 @@ package generator.events;
 
 import generator.common.EnvLoader;
 
+import java.time.Instant;
+
 public class EventConfig {
     public String bootstrapServers = EnvLoader.get("SERVER_IP", "127.0.0.1") + ":" + EnvLoader.get("KAFKA_PORT", "9092");
     public String topic = "events";
@@ -11,6 +13,15 @@ public class EventConfig {
     public int numEntities = 100_000;
     public double dataSkew = 0.5;
     public int workers = 4;
+    public boolean continuous = false;
+    public Instant startTime = null;
+    public Instant appStartTime = Instant.now();
+
+    public Instant getSimulatedNow() {
+        if (startTime == null) return Instant.now();
+        long elapsedMillis = Instant.now().toEpochMilli() - appStartTime.toEpochMilli();
+        return startTime.plusMillis(elapsedMillis);
+    }
 
     public static EventConfig parse(String[] args) {
         EventConfig config = new EventConfig();
@@ -39,6 +50,12 @@ public class EventConfig {
                     break;
                 case "--workers":
                     config.workers = Integer.parseInt(args[++i]);
+                    break;
+                case "--continuous":
+                    config.continuous = true;
+                    break;
+                case "--start-time":
+                    config.startTime = Instant.parse(args[++i]);
                     break;
             }
         }
