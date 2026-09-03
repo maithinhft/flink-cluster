@@ -11,6 +11,7 @@
     "topic.prefix": "realtime_core",
     "schema.include.list": "public",
     "table.include.list": "public.rule_definitions,public.schema_definitions",
+    "message.key.columns": "public.rule_definitions:rule_id",
     "plugin.name": "pgoutput",
     "publication.name": "realtime_publication",
     "publication.autocreate.mode": "disabled",
