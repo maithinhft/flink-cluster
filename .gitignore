@@ -13,3 +13,7 @@ test.*
 *.py
 
 PROJECT_CONTEXT.md
+
+*.docx
+
+*.txt

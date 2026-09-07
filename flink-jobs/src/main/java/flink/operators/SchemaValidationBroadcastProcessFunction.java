@@ -64,7 +64,7 @@ public class SchemaValidationBroadcastProcessFunction extends BroadcastProcessFu
             JsonNode schemaNode = mapper.readTree(schemaJson);
             JsonNode fieldsNode = schemaNode.get("fields");
             if (fieldsNode == null) {
-                out.collect(eventJson);
+                evaluateMetricsAndCollect(eventNode, schemaNode, out);
                 return;
             }
 
@@ -90,7 +90,6 @@ public class SchemaValidationBroadcastProcessFunction extends BroadcastProcessFu
                 if (isPresent) {
                     JsonNode val = eventFields.get(fieldName);
                     
-                    // Validate Type
                     if (fieldDef.has("type")) {
                         String type = fieldDef.get("type").asText();
                         if (type.equals("string") && !val.isTextual()) {
@@ -104,7 +103,6 @@ public class SchemaValidationBroadcastProcessFunction extends BroadcastProcessFu
                         }
                     }
 
-                    // Validate Constraints
                     if (fieldDef.has("min") && val.isNumber()) {
                         if (val.asDouble() < fieldDef.get("min").asDouble()) {
                             invalidConstraintFields.add(fieldName + " (< min " + fieldDef.get("min").asText() + ")");
@@ -139,7 +137,7 @@ public class SchemaValidationBroadcastProcessFunction extends BroadcastProcessFu
                 ((ObjectNode) eventNode).put("error_reason", String.join(" | ", reasons));
                 ctx.output(DIRTY_DATA_TAG, mapper.writeValueAsString(eventNode));
             } else {
-                out.collect(eventJson);
+                evaluateMetricsAndCollect(eventNode, schemaNode, out);
             }
 
         } catch (Exception e) {
@@ -199,7 +197,6 @@ public class SchemaValidationBroadcastProcessFunction extends BroadcastProcessFu
                     } else {
                         int cmp = compareVersions(version, currentLatestVersion);
                         if (cmp > 0) {
-                            // Version mới thực sự lớn hơn -> Đánh dấu version cũ là deprecated
                             String oldSchemaKey = schemaId + "_" + currentLatestVersion;
                             deprecatedState.put(oldSchemaKey, ctx.currentProcessingTime());
                             LOG.info("Deprecated old schema version: {}", oldSchemaKey);
@@ -208,18 +205,15 @@ public class SchemaValidationBroadcastProcessFunction extends BroadcastProcessFu
                             schemaState.put(schemaKey, schemaJson);
                             LOG.info("Received and cached newer schema for key: {}", schemaKey);
                         } else if (cmp < 0) {
-                            // Version nhận được NHỎ HƠN latest -> Đây là version cũ đến out-of-order
                             schemaState.put(schemaKey, schemaJson);
                             deprecatedState.put(schemaKey, ctx.currentProcessingTime());
                             LOG.info("Received out-of-order old schema version: {}, immediately deprecating it",
                                     schemaKey);
                         } else {
-                            // Bằng nhau (replay)
                             schemaState.put(schemaKey, schemaJson);
                         }
                     }
 
-                    // Chạy vòng lặp dọn dẹp các schema đã bị deprecated quá 5 phút
                     long currentTime = ctx.currentProcessingTime();
                     List<String> keysToRemove = new ArrayList<>();
                     for (Map.Entry<String, Long> entry : deprecatedState.entries()) {
@@ -228,7 +222,6 @@ public class SchemaValidationBroadcastProcessFunction extends BroadcastProcessFu
                         }
                     }
 
-                    // Thực hiện xóa khỏi State
                     for (String key : keysToRemove) {
                         schemaState.remove(key);
                         deprecatedState.remove(key);
@@ -238,6 +231,60 @@ public class SchemaValidationBroadcastProcessFunction extends BroadcastProcessFu
             }
         } catch (Exception e) {
             LOG.error("Failed to parse and store schema from Broadcast Stream", e);
+        }
+    }
+
+    private void evaluateMetricsAndCollect(JsonNode eventNode, JsonNode schemaNode, Collector<String> out) {
+        try {
+            if (schemaNode != null && schemaNode.has("metrics")) {
+                JsonNode metricsNode = schemaNode.get("metrics");
+                if (metricsNode != null && metricsNode.isArray()) {
+                    com.fasterxml.jackson.databind.node.ArrayNode matchedMetricsArr = mapper.createArrayNode();
+                    for (JsonNode mDef : metricsNode) {
+                        String metricId = mDef.has("metric_id") ? mDef.get("metric_id").asText() : null;
+                        String sourceField = mDef.has("source_field") ? mDef.get("source_field").asText() : null;
+                        String aggregation = mDef.has("aggregation") ? mDef.get("aggregation").asText() : null;
+                        JsonNode filter = mDef.get("filter");
+
+                        if (metricId != null && aggregation != null) {
+                            if (flink.evaluators.FilterEvaluator.evaluate(filter, eventNode)) {
+                                double val = 0.0;
+                                if ("COUNT".equalsIgnoreCase(aggregation)) {
+                                    val = 1.0;
+                                } else if (sourceField != null && eventNode.has(sourceField) && !eventNode.get(sourceField).isNull()) {
+                                    JsonNode sfVal = eventNode.get(sourceField);
+                                    if (sfVal.isNumber()) {
+                                        val = sfVal.asDouble();
+                                    } else if (sfVal.isTextual()) {
+                                        try {
+                                            val = java.time.Instant.parse(sfVal.asText()).toEpochMilli();
+                                        } catch (Exception e) {
+                                            try {
+                                                val = Double.parseDouble(sfVal.asText());
+                                            } catch (Exception ignored) {
+                                                val = 0.0;
+                                            }
+                                        }
+                                    }
+                                }
+                                com.fasterxml.jackson.databind.node.ObjectNode mObj = mapper.createObjectNode();
+                                mObj.put("metric_id", metricId);
+                                mObj.put("aggregation", aggregation);
+                                mObj.put("value", val);
+                                matchedMetricsArr.add(mObj);
+                            }
+                        }
+                    }
+                    ((ObjectNode) eventNode).set("_matched_metrics", matchedMetricsArr);
+                }
+            }
+            out.collect(mapper.writeValueAsString(eventNode));
+        } catch (Exception e) {
+            LOG.error("Failed to evaluate metrics for valid event", e);
+            try {
+                out.collect(mapper.writeValueAsString(eventNode));
+            } catch (Exception ignored) {
+            }
         }
     }
 }
