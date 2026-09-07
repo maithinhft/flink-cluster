@@ -64,7 +64,7 @@ mvn exec:java -Dexec.mainClass=generator.events.EventGeneratorApp -Dexec.args="-
 
 * Sinh các Rule
 ```
-mvn exec:java -Dexec.mainClass=generator.rules.RuleGeneratorApp
+mvn exec:java -Dexec.mainClass=generator.rules.RuleGeneratorApp -Dexec.args="--num-rules 100"
 ```
 
 * Kiểm tra 1 topic trên Kafka
