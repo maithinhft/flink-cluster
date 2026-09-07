@@ -5,6 +5,9 @@ import flink.operators.SchemaValidationBroadcastProcessFunction;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.java.utils.ParameterTool;
+import org.apache.flink.connector.base.DeliveryGuarantee;
+import org.apache.flink.connector.kafka.sink.KafkaRecordSerializationSchema;
+import org.apache.flink.connector.kafka.sink.KafkaSink;
 import org.apache.flink.connector.kafka.source.KafkaSource;
 import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer;
 import org.apache.flink.streaming.api.datastream.BroadcastStream;
@@ -31,6 +34,8 @@ public class ValidationJob {
         String bootstrapServers = parameters.get("bootstrap.servers", "kafka:29092");
         String schemaTopic = parameters.get("schema.topic", "schema_registry");
         String eventsTopicPattern = parameters.get("events.topic.pattern", "events.*");
+        String resultTopic = parameters.get("result.topic", "result");
+        String dlqTopic = parameters.get("dlq.topic", "dlq");
 
         if (parameters.has("checkpoint.dir")) {
             env.getCheckpointConfig().setCheckpointStorage(parameters.get("checkpoint.dir"));
@@ -39,6 +44,8 @@ public class ValidationJob {
         LOG.info("Kafka Bootstrap Servers: {}", bootstrapServers);
         LOG.info("Schema Topic: {}", schemaTopic);
         LOG.info("Events Topic Pattern: {}", eventsTopicPattern);
+        LOG.info("Result Topic: {}", resultTopic);
+        LOG.info("DLQ Topic: {}", dlqTopic);
 
         KafkaSource<String> schemaSource = KafkaSource.<String>builder()
                 .setBootstrapServers(bootstrapServers)
@@ -97,12 +104,28 @@ public class ValidationJob {
                 .process(new SchemaValidationBroadcastProcessFunction())
                 .name("Schema Validation Operator");
 
+        KafkaSink<String> resultSink = KafkaSink.<String>builder()
+                .setBootstrapServers(bootstrapServers)
+                .setRecordSerializer(
+                        KafkaRecordSerializationSchema.builder()
+                                .setTopic(resultTopic)
+                                .setValueSerializationSchema(new SimpleStringSchema())
+                                .build())
+                .setDeliveryGuarantee(DeliveryGuarantee.AT_LEAST_ONCE)
+                .build();
+
+        KafkaSink<String> dlqSink = KafkaSink.<String>builder()
+                .setBootstrapServers(bootstrapServers)
+                .setRecordSerializer(
+                        KafkaRecordSerializationSchema.builder()
+                                .setTopic(dlqTopic)
+                                .setValueSerializationSchema(new SimpleStringSchema())
+                                .build())
+                .setDeliveryGuarantee(DeliveryGuarantee.AT_LEAST_ONCE)
+                .build();
+
         DataStream<String> dirtyEventsStream = cleanEventsStream
                 .getSideOutput(SchemaValidationBroadcastProcessFunction.DIRTY_DATA_TAG);
-        dirtyEventsStream.map(data -> {
-            LOG.info("DIRTY DATA (DLQ) -> {}", data);
-            return data;
-        }).name("Dirty Events DLQ Sink");
 
         SingleOutputStreamOperator<String> aggregatedStream = cleanEventsStream
                 .keyBy(eventJson -> {
@@ -124,15 +147,11 @@ public class ValidationJob {
 
         DataStream<String> lateEventsStream = aggregatedStream
                 .getSideOutput(BucketAggregationProcessFunction.LATE_DATA_TAG);
-        lateEventsStream.map(data -> {
-            LOG.info("LATE DATA (DLQ) -> {}", data);
-            return data;
-        }).name("Late Events DLQ Sink");
 
-        aggregatedStream.map(data -> {
-            LOG.info("AGGREGATED BUCKET EVENT -> {}", data);
-            return data;
-        }).name("Aggregated Events Sink");
+        DataStream<String> dlqStream = dirtyEventsStream.union(lateEventsStream);
+        dlqStream.sinkTo(dlqSink).name("DLQ Kafka Sink");
+
+        aggregatedStream.sinkTo(resultSink).name("Aggregated Result Kafka Sink");
 
         env.execute("Flink Event Validation & Bucket Aggregation Job");
     }
