@@ -181,17 +181,14 @@ services:
       - "9249:9249"
 
     user: "root"
-
-    command: >
-      bash -c "
-      mkdir -p /opt/flink/plugins/prometheus &&
-      wget -qO /opt/flink/plugins/prometheus/flink-metrics-prometheus-1.20.5.jar
-      https://repo1.maven.org/maven2/org/apache/flink/flink-metrics-prometheus/1.20.5/flink-metrics-prometheus-1.20.5.jar &&
-      mkdir -p /opt/flink/checkpoints &&
-      chown -R flink:flink /opt/flink/checkpoints /opt/flink/plugins &&
-      chmod -R 777 /opt/flink/checkpoints &&
-      /docker-entrypoint.sh jobmanager
-      "
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        mkdir -p /opt/flink/plugins/prometheus &&
+        wget -qO /opt/flink/plugins/prometheus/flink-metrics-prometheus-1.20.5.jar \
+          https://repo1.maven.org/maven2/org/apache/flink/flink-metrics-prometheus/1.20.5/flink-metrics-prometheus-1.20.5.jar &&
+        chown -R flink:flink /opt/flink/checkpoints &&
+        /docker-entrypoint.sh jobmanager
 
     volumes:
       - flink-checkpoints:/opt/flink/checkpoints
@@ -242,17 +239,14 @@ services:
       - jobmanager
 
     user: "root"
-
-    command: >
-      bash -c "
-      mkdir -p /opt/flink/plugins/prometheus &&
-      wget -qO /opt/flink/plugins/prometheus/flink-metrics-prometheus-1.20.5.jar
-      https://repo1.maven.org/maven2/org/apache/flink/flink-metrics-prometheus/1.20.5/flink-metrics-prometheus-1.20.5.jar &&
-      mkdir -p /opt/flink/checkpoints &&
-      chown -R flink:flink /opt/flink/checkpoints /opt/flink/plugins &&
-      chmod -R 777 /opt/flink/checkpoints &&
-      /docker-entrypoint.sh taskmanager
-      "
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        mkdir -p /opt/flink/plugins/prometheus &&
+        wget -qO /opt/flink/plugins/prometheus/flink-metrics-prometheus-1.20.5.jar \
+          https://repo1.maven.org/maven2/org/apache/flink/flink-metrics-prometheus/1.20.5/flink-metrics-prometheus-1.20.5.jar &&
+        chown -R flink:flink /opt/flink/checkpoints &&
+        /docker-entrypoint.sh taskmanager
 
     volumes:
       - flink-checkpoints:/opt/flink/checkpoints
@@ -298,17 +292,14 @@ services:
       - jobmanager
 
     user: "root"
-
-    command: >
-      bash -c "
-      mkdir -p /opt/flink/plugins/prometheus &&
-      wget -qO /opt/flink/plugins/prometheus/flink-metrics-prometheus-1.20.5.jar
-      https://repo1.maven.org/maven2/org/apache/flink/flink-metrics-prometheus/1.20.5/flink-metrics-prometheus-1.20.5.jar &&
-      mkdir -p /opt/flink/checkpoints &&
-      chown -R flink:flink /opt/flink/checkpoints /opt/flink/plugins &&
-      chmod -R 777 /opt/flink/checkpoints &&
-      /docker-entrypoint.sh taskmanager
-      "
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        mkdir -p /opt/flink/plugins/prometheus &&
+        wget -qO /opt/flink/plugins/prometheus/flink-metrics-prometheus-1.20.5.jar \
+          https://repo1.maven.org/maven2/org/apache/flink/flink-metrics-prometheus/1.20.5/flink-metrics-prometheus-1.20.5.jar &&
+        chown -R flink:flink /opt/flink/checkpoints &&
+        /docker-entrypoint.sh taskmanager
 
     volumes:
       - flink-checkpoints:/opt/flink/checkpoints
