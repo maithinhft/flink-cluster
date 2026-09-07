@@ -180,12 +180,16 @@ services:
       - "8081:8081"
       - "9249:9249"
 
+    user: "root"
+
     command: >
       bash -c "
       mkdir -p /opt/flink/plugins/prometheus &&
       wget -qO /opt/flink/plugins/prometheus/flink-metrics-prometheus-1.20.5.jar
       https://repo1.maven.org/maven2/org/apache/flink/flink-metrics-prometheus/1.20.5/flink-metrics-prometheus-1.20.5.jar &&
       mkdir -p /opt/flink/checkpoints &&
+      chown -R flink:flink /opt/flink/checkpoints /opt/flink/plugins &&
+      chmod -R 777 /opt/flink/checkpoints &&
       /docker-entrypoint.sh jobmanager
       "
 
@@ -237,12 +241,16 @@ services:
     depends_on:
       - jobmanager
 
+    user: "root"
+
     command: >
       bash -c "
       mkdir -p /opt/flink/plugins/prometheus &&
       wget -qO /opt/flink/plugins/prometheus/flink-metrics-prometheus-1.20.5.jar
       https://repo1.maven.org/maven2/org/apache/flink/flink-metrics-prometheus/1.20.5/flink-metrics-prometheus-1.20.5.jar &&
       mkdir -p /opt/flink/checkpoints &&
+      chown -R flink:flink /opt/flink/checkpoints /opt/flink/plugins &&
+      chmod -R 777 /opt/flink/checkpoints &&
       /docker-entrypoint.sh taskmanager
       "
 
@@ -289,12 +297,16 @@ services:
     depends_on:
       - jobmanager
 
+    user: "root"
+
     command: >
       bash -c "
       mkdir -p /opt/flink/plugins/prometheus &&
       wget -qO /opt/flink/plugins/prometheus/flink-metrics-prometheus-1.20.5.jar
       https://repo1.maven.org/maven2/org/apache/flink/flink-metrics-prometheus/1.20.5/flink-metrics-prometheus-1.20.5.jar &&
       mkdir -p /opt/flink/checkpoints &&
+      chown -R flink:flink /opt/flink/checkpoints /opt/flink/plugins &&
+      chmod -R 777 /opt/flink/checkpoints &&
       /docker-entrypoint.sh taskmanager
       "
 
