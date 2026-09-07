@@ -6,6 +6,12 @@ import java.util.concurrent.atomic.AtomicLong;
 public class EventGeneratorApp {
 
     public static void main(String[] args) throws Exception {
+        try {
+            ch.qos.logback.classic.Logger kafkaLogger = (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger("org.apache.kafka");
+            kafkaLogger.setLevel(ch.qos.logback.classic.Level.WARN);
+        } catch (Throwable ignored) {
+        }
+
         EventConfig config = EventConfig.parse(args);
         config.validate();
 
