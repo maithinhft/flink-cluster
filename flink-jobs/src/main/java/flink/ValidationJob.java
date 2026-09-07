@@ -32,6 +32,10 @@ public class ValidationJob {
         String schemaTopic = parameters.get("schema.topic", "schema_registry");
         String eventsTopicPattern = parameters.get("events.topic.pattern", "events.*");
 
+        if (parameters.has("checkpoint.dir")) {
+            env.getCheckpointConfig().setCheckpointStorage(parameters.get("checkpoint.dir"));
+        }
+
         LOG.info("Kafka Bootstrap Servers: {}", bootstrapServers);
         LOG.info("Schema Topic: {}", schemaTopic);
         LOG.info("Events Topic Pattern: {}", eventsTopicPattern);

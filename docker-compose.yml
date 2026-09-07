@@ -185,8 +185,12 @@ services:
       mkdir -p /opt/flink/plugins/prometheus &&
       wget -qO /opt/flink/plugins/prometheus/flink-metrics-prometheus-1.20.5.jar
       https://repo1.maven.org/maven2/org/apache/flink/flink-metrics-prometheus/1.20.5/flink-metrics-prometheus-1.20.5.jar &&
+      mkdir -p /opt/flink/checkpoints &&
       /docker-entrypoint.sh jobmanager
       "
+
+    volumes:
+      - flink-checkpoints:/opt/flink/checkpoints
 
     environment:
       - |
@@ -203,6 +207,12 @@ services:
 
         execution.checkpointing.interval: 30s
         execution.checkpointing.mode: EXACTLY_ONCE
+
+        state.backend.type: rocksdb
+        state.backend.incremental: true
+        state.checkpoint-storage: filesystem
+        state.checkpoints.dir: file:///opt/flink/checkpoints
+        state.savepoints.dir: file:///opt/flink/checkpoints/savepoints
 
     depends_on:
       kafka:
@@ -232,8 +242,12 @@ services:
       mkdir -p /opt/flink/plugins/prometheus &&
       wget -qO /opt/flink/plugins/prometheus/flink-metrics-prometheus-1.20.5.jar
       https://repo1.maven.org/maven2/org/apache/flink/flink-metrics-prometheus/1.20.5/flink-metrics-prometheus-1.20.5.jar &&
+      mkdir -p /opt/flink/checkpoints &&
       /docker-entrypoint.sh taskmanager
       "
+
+    volumes:
+      - flink-checkpoints:/opt/flink/checkpoints
 
     environment:
       - |
@@ -249,6 +263,12 @@ services:
 
         metrics.latency.interval: 5000
         metrics.latency.history-size: 128
+
+        state.backend.type: rocksdb
+        state.backend.incremental: true
+        state.checkpoint-storage: filesystem
+        state.checkpoints.dir: file:///opt/flink/checkpoints
+        state.savepoints.dir: file:///opt/flink/checkpoints/savepoints
 
     networks:
       - cluster-network
@@ -274,8 +294,12 @@ services:
       mkdir -p /opt/flink/plugins/prometheus &&
       wget -qO /opt/flink/plugins/prometheus/flink-metrics-prometheus-1.20.5.jar
       https://repo1.maven.org/maven2/org/apache/flink/flink-metrics-prometheus/1.20.5/flink-metrics-prometheus-1.20.5.jar &&
+      mkdir -p /opt/flink/checkpoints &&
       /docker-entrypoint.sh taskmanager
       "
+
+    volumes:
+      - flink-checkpoints:/opt/flink/checkpoints
 
     environment:
       - |
@@ -292,6 +316,12 @@ services:
         metrics.latency.interval: 5000
         metrics.latency.history-size: 128
 
+        state.backend.type: rocksdb
+        state.backend.incremental: true
+        state.checkpoint-storage: filesystem
+        state.checkpoints.dir: file:///opt/flink/checkpoints
+        state.savepoints.dir: file:///opt/flink/checkpoints/savepoints
+
     networks:
       - cluster-network
 
@@ -307,6 +337,9 @@ volumes:
 
   kafka-data:
     name: realtime-kafka-data
+
+  flink-checkpoints:
+    name: realtime-flink-checkpoints
 
 
 # ================================================================
