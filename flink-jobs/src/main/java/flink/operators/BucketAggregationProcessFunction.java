@@ -3,11 +3,13 @@ package flink.operators;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import flink.models.Bucket;
 import flink.models.RingBuffer;
+import org.apache.flink.api.common.state.MapState;
+import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.api.common.state.StateTtlConfig;
 import org.apache.flink.api.common.state.ValueState;
 import org.apache.flink.api.common.state.ValueStateDescriptor;
-import org.apache.flink.api.common.time.Time;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.KeyedProcessFunction;
 import org.apache.flink.util.Collector;
@@ -16,6 +18,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
+import java.time.Duration;
+import java.util.Iterator;
+import java.util.Map;
 
 /**
  * KeyedProcessFunction for aggregating cleaned events into 5-minute Ring Buffer buckets (up to 24 hours).
@@ -36,21 +41,26 @@ public class BucketAggregationProcessFunction extends KeyedProcessFunction<Strin
     public static final long LATE_TOLERANCE_MS = 60_000L; // 1 minute allowed lateness after bucket end
     public static final OutputTag<String> LATE_DATA_TAG = new OutputTag<String>("late-events") {};
 
-    private transient ValueState<RingBuffer> ringBufferState;
+    private transient MapState<Integer, Bucket> ringBufferMapState;
+    private transient ValueState<Long> lastRegisteredTimerState;
 
     @Override
     public void open(Configuration parameters) throws Exception {
-        ValueStateDescriptor<RingBuffer> descriptor =
-                new ValueStateDescriptor<>("ringBufferState", RingBuffer.class);
+        MapStateDescriptor<Integer, Bucket> mapDescriptor =
+                new MapStateDescriptor<>("ringBufferMapState", Integer.class, Bucket.class);
 
         StateTtlConfig ttlConfig = StateTtlConfig
-                .newBuilder(Time.hours(25))
+                .newBuilder(Duration.ofHours(25))
                 .setUpdateType(StateTtlConfig.UpdateType.OnCreateAndWrite)
                 .setStateVisibility(StateTtlConfig.StateVisibility.NeverReturnExpired)
                 .build();
-        descriptor.enableTimeToLive(ttlConfig);
+        mapDescriptor.enableTimeToLive(ttlConfig);
+        ringBufferMapState = getRuntimeContext().getMapState(mapDescriptor);
 
-        ringBufferState = getRuntimeContext().getState(descriptor);
+        ValueStateDescriptor<Long> timerDescriptor =
+                new ValueStateDescriptor<>("lastRegisteredTimerState", Long.class);
+        timerDescriptor.enableTimeToLive(ttlConfig);
+        lastRegisteredTimerState = getRuntimeContext().getState(timerDescriptor);
     }
 
     @Override
@@ -98,9 +108,17 @@ public class BucketAggregationProcessFunction extends KeyedProcessFunction<Strin
             return;
         }
 
-        RingBuffer ringBuffer = ringBufferState.value();
-        if (ringBuffer == null) {
-            ringBuffer = new RingBuffer();
+        int slot = RingBuffer.getSlotIndex(bucketStart);
+        Bucket bucket = ringBufferMapState.get(slot);
+
+        if (bucket == null || bucketStart > bucket.getStartTimeMs()) {
+            bucket = new Bucket(bucketStart);
+        } else if (bucketStart < bucket.getStartTimeMs()) {
+            if (eventNode.isObject()) {
+                ((ObjectNode) eventNode).put("error_reason", "Circular buffer overwrite: slot holds newer bucket");
+            }
+            ctx.output(LATE_DATA_TAG, mapper.writeValueAsString(eventNode));
+            return;
         }
 
         if (eventNode.has("_matched_metrics") && eventNode.get("_matched_metrics").isArray()) {
@@ -110,14 +128,18 @@ public class BucketAggregationProcessFunction extends KeyedProcessFunction<Strin
                 double value = m.has("value") ? m.get("value").asDouble() : 0.0;
 
                 if (metricId != null && aggregation != null) {
-                    ringBuffer.updateMetric(eventTimeMs, metricId, aggregation, value);
+                    bucket.updateMetric(metricId, aggregation, value);
                 }
             }
         }
 
-        ringBufferState.update(ringBuffer);
+        ringBufferMapState.put(slot, bucket);
 
-        ctx.timerService().registerEventTimeTimer(bucketCloseTime);
+        Long lastTimer = lastRegisteredTimerState.value();
+        if (lastTimer == null || bucketCloseTime > lastTimer) {
+            ctx.timerService().registerEventTimeTimer(bucketCloseTime);
+            lastRegisteredTimerState.update(bucketCloseTime);
+        }
 
         ObjectNode outputNode = mapper.createObjectNode();
         outputNode.put("entity_id", ctx.getCurrentKey());
@@ -125,7 +147,6 @@ public class BucketAggregationProcessFunction extends KeyedProcessFunction<Strin
         outputNode.put("bucket_start", bucketStart);
         outputNode.put("bucket_end", bucketEnd);
         outputNode.put("bucket_close_time", bucketCloseTime);
-        outputNode.put("active_buckets", ringBuffer.getActiveBucketsCount());
         outputNode.set("event", eventNode);
 
         out.collect(mapper.writeValueAsString(outputNode));
@@ -133,13 +154,16 @@ public class BucketAggregationProcessFunction extends KeyedProcessFunction<Strin
 
     @Override
     public void onTimer(long timestamp, OnTimerContext ctx, Collector<String> out) throws Exception {
-        RingBuffer ringBuffer = ringBufferState.value();
-        if (ringBuffer != null) {
-            long cutoffTime = timestamp - RingBuffer.MAX_WINDOW_MS;
-            ringBuffer.cleanup(cutoffTime);
-            ringBufferState.update(ringBuffer);
-            LOG.debug("Timer fired at {} for entity {}. Cleaned buckets <= {}", timestamp, ctx.getCurrentKey(), cutoffTime);
+        long cutoffTime = timestamp - RingBuffer.MAX_WINDOW_MS;
+        Iterator<Map.Entry<Integer, Bucket>> it = ringBufferMapState.iterator();
+        while (it.hasNext()) {
+            Map.Entry<Integer, Bucket> entry = it.next();
+            Bucket b = entry.getValue();
+            if (b != null && b.getEndTimeMs() <= cutoffTime) {
+                it.remove();
+            }
         }
+        LOG.debug("Timer fired at {} for entity {}. Cleaned buckets <= {}", timestamp, ctx.getCurrentKey(), cutoffTime);
     }
 
     private long extractEventTime(JsonNode eventNode) {

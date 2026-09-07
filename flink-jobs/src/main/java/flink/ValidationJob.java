@@ -5,6 +5,8 @@ import flink.operators.SchemaValidationBroadcastProcessFunction;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.java.utils.ParameterTool;
+import org.apache.flink.configuration.CheckpointingOptions;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.base.DeliveryGuarantee;
 import org.apache.flink.connector.kafka.sink.KafkaRecordSerializationSchema;
 import org.apache.flink.connector.kafka.sink.KafkaSink;
@@ -31,6 +33,9 @@ public class ValidationJob {
         ParameterTool parameters = ParameterTool.fromArgs(args);
         env.getConfig().setGlobalJobParameters(parameters);
 
+        int parallelism = parameters.getInt("parallelism", 4);
+        env.setParallelism(parallelism);
+
         String bootstrapServers = parameters.get("bootstrap.servers", "kafka:29092");
         String schemaTopic = parameters.get("schema.topic", "schema_registry");
         String eventsTopicPattern = parameters.get("events.topic.pattern", "events.*");
@@ -38,7 +43,9 @@ public class ValidationJob {
         String dlqTopic = parameters.get("dlq.topic", "dlq");
 
         if (parameters.has("checkpoint.dir")) {
-            env.getCheckpointConfig().setCheckpointStorage(parameters.get("checkpoint.dir"));
+            Configuration config = new Configuration();
+            config.set(CheckpointingOptions.CHECKPOINTS_DIRECTORY, parameters.get("checkpoint.dir"));
+            env.configure(config);
         }
 
         LOG.info("Kafka Bootstrap Servers: {}", bootstrapServers);
@@ -143,7 +150,8 @@ public class ValidationJob {
                     return "unknown_entity";
                 })
                 .process(new BucketAggregationProcessFunction())
-                .name("Bucket Aggregation Operator (Ring Buffer)");
+                .name("Bucket Aggregation Operator (Ring Buffer)")
+                .disableChaining();
 
         DataStream<String> lateEventsStream = aggregatedStream
                 .getSideOutput(BucketAggregationProcessFunction.LATE_DATA_TAG);
