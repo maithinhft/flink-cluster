@@ -184,10 +184,8 @@ services:
     entrypoint: ["/bin/bash", "-c"]
     command:
       - |
-        mkdir -p /opt/flink/plugins/prometheus &&
-        wget -qO /opt/flink/plugins/prometheus/flink-metrics-prometheus-1.20.5.jar \
-          https://repo1.maven.org/maven2/org/apache/flink/flink-metrics-prometheus/1.20.5/flink-metrics-prometheus-1.20.5.jar &&
-        chown -R flink:flink /opt/flink/checkpoints &&
+        ([ -f /opt/flink/plugins/metrics-prometheus/flink-metrics-prometheus-*.jar ] || [ -f /opt/flink/plugins/prometheus/flink-metrics-prometheus-*.jar ] || (mkdir -p /opt/flink/plugins/prometheus && wget -qO /opt/flink/plugins/prometheus/flink-metrics-prometheus-1.20.5.jar https://repo1.maven.org/maven2/org/apache/flink/flink-metrics-prometheus/1.20.5/flink-metrics-prometheus-1.20.5.jar)) &&
+        chown -R flink:flink /opt/flink/checkpoints 2>/dev/null || true &&
         /docker-entrypoint.sh jobmanager
 
     volumes:
@@ -242,10 +240,8 @@ services:
     entrypoint: ["/bin/bash", "-c"]
     command:
       - |
-        mkdir -p /opt/flink/plugins/prometheus &&
-        wget -qO /opt/flink/plugins/prometheus/flink-metrics-prometheus-1.20.5.jar \
-          https://repo1.maven.org/maven2/org/apache/flink/flink-metrics-prometheus/1.20.5/flink-metrics-prometheus-1.20.5.jar &&
-        chown -R flink:flink /opt/flink/checkpoints &&
+        ([ -f /opt/flink/plugins/metrics-prometheus/flink-metrics-prometheus-*.jar ] || [ -f /opt/flink/plugins/prometheus/flink-metrics-prometheus-*.jar ] || (mkdir -p /opt/flink/plugins/prometheus && wget -qO /opt/flink/plugins/prometheus/flink-metrics-prometheus-1.20.5.jar https://repo1.maven.org/maven2/org/apache/flink/flink-metrics-prometheus/1.20.5/flink-metrics-prometheus-1.20.5.jar)) &&
+        chown -R flink:flink /opt/flink/checkpoints 2>/dev/null || true &&
         /docker-entrypoint.sh taskmanager
 
     volumes:
@@ -295,10 +291,8 @@ services:
     entrypoint: ["/bin/bash", "-c"]
     command:
       - |
-        mkdir -p /opt/flink/plugins/prometheus &&
-        wget -qO /opt/flink/plugins/prometheus/flink-metrics-prometheus-1.20.5.jar \
-          https://repo1.maven.org/maven2/org/apache/flink/flink-metrics-prometheus/1.20.5/flink-metrics-prometheus-1.20.5.jar &&
-        chown -R flink:flink /opt/flink/checkpoints &&
+        ([ -f /opt/flink/plugins/metrics-prometheus/flink-metrics-prometheus-*.jar ] || [ -f /opt/flink/plugins/prometheus/flink-metrics-prometheus-*.jar ] || (mkdir -p /opt/flink/plugins/prometheus && wget -qO /opt/flink/plugins/prometheus/flink-metrics-prometheus-1.20.5.jar https://repo1.maven.org/maven2/org/apache/flink/flink-metrics-prometheus/1.20.5/flink-metrics-prometheus-1.20.5.jar)) &&
+        chown -R flink:flink /opt/flink/checkpoints 2>/dev/null || true &&
         /docker-entrypoint.sh taskmanager
 
     volumes:
@@ -329,6 +323,57 @@ services:
       - cluster-network
 
 
+  # ============================================================
+  # Prometheus
+  # ============================================================
+
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: prometheus
+    hostname: prometheus
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.console.libraries=/usr/share/prometheus/console_libraries
+      - --web.console.templates=/usr/share/prometheus/consoles
+      - --web.enable-lifecycle
+    depends_on:
+      - jobmanager
+    networks:
+      - cluster-network
+    restart: unless-stopped
+
+
+  # ============================================================
+  # Grafana
+  # ============================================================
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    container_name: grafana
+    hostname: grafana
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+    networks:
+      - cluster-network
+    restart: unless-stopped
+
+
 # ================================================================
 # Volumes
 # ================================================================
@@ -343,6 +388,12 @@ volumes:
 
   flink-checkpoints:
     name: realtime-flink-checkpoints
+
+  prometheus-data:
+    name: realtime-prometheus-data
+
+  grafana-data:
+    name: realtime-grafana-data
 
 
 # ================================================================

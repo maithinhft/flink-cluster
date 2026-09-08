@@ -84,3 +84,32 @@ docker exec -it flink-jobmanager \
     -m jobmanager:8081 \
     /tmp/flink-jobs-1.0-SNAPSHOT.jar --bootstrap.servers kafka:29092 --events.topic events --schema.topic schema_registry
 ```
+
+# Monitoring (Prometheus & Grafana)
+
+Hệ thống đã được tích hợp sẵn Prometheus và Grafana để giám sát Latency và Throughput của Flink Job theo thời gian thực.
+
+| Dịch vụ | URL | Thông tin đăng nhập |
+|---|---|---|
+| **Grafana Dashboard** | `http://localhost:3000` | User: `admin` / Pass: `admin` |
+| **Prometheus Web UI** | `http://localhost:9090` | Không cần login |
+| **Flink Dashboard** | `http://localhost:8081` | Web UI Flink |
+
+### Dashboard có sẵn trong Grafana:
+Sau khi truy cập Grafana `http://localhost:3000`:
+- Vào menu **Dashboards** > Thư mục **Flink Monitoring** > chọn **Flink Streaming Performance (Throughput & Latency)**.
+- **Throughput Metrics**:
+  - `Overall Job Throughput (Records In/s vs Out/s)`
+  - `Throughput by Task / Operator (Records In & Out)`
+  - `Network IO Throughput (Bytes In vs Out)`
+- **Latency & Lag Metrics**:
+  - `End-to-End Latency Tracking (P50, P95, P99, Max)`
+  - `Kafka Consumer Lag (Processing Delay)`
+  - `Checkpoint Duration & State Size`
+- **Operator Bottleneck Detection**:
+  - `Task Busy Time Ratio (%)` (phát hiện operator nào bị nghẽn CPU)
+  - `Task Backpressure Ratio (%)` (phát hiện tắc nghẽn downstream)
+  - `Task Idle Time Ratio (%)`
+- **Cluster & JVM Resources**:
+  - `TaskManager JVM Heap Memory`
+  - `TaskManager JVM CPU Load (%)`
