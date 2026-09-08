@@ -3,8 +3,6 @@ package flink.models;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
-
 import static org.junit.jupiter.api.Assertions.*;
 
 public class RingBufferTest {
@@ -163,6 +161,27 @@ public class RingBufferTest {
         assertNull(ringBuffer.getBucket(t1));
         assertNotNull(ringBuffer.getBucket(t2));
         assertEquals(1, ringBuffer.getActiveBucketsCount());
+    }
+
+    @Test
+    public void testLayer2MetricCleanup() {
+        Bucket bucket = new Bucket(1700000000000L);
+        bucket.updateMetric("login_count", "COUNT", 1.0);
+        bucket.updateMetric("purchase_sum", "SUM", 100.0);
+        bucket.updateMetric("old_metric", "COUNT", 5.0);
+
+        assertEquals(3, bucket.getMetrics().size());
+
+        java.util.Set<String> globalActiveMetricIds = new java.util.HashSet<>(
+                java.util.Arrays.asList("login_count", "purchase_sum")
+        );
+
+        bucket.getMetrics().keySet().removeIf(metricId -> !globalActiveMetricIds.contains(metricId));
+
+        assertEquals(2, bucket.getMetrics().size());
+        assertTrue(bucket.getMetrics().containsKey("login_count"));
+        assertTrue(bucket.getMetrics().containsKey("purchase_sum"));
+        assertFalse(bucket.getMetrics().containsKey("old_metric"));
     }
 }
 

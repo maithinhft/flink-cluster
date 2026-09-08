@@ -2,6 +2,7 @@ package flink.operators;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.flink.api.common.state.BroadcastState;
 import org.apache.flink.api.common.state.MapStateDescriptor;
@@ -14,9 +15,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class SchemaValidationBroadcastProcessFunction extends BroadcastProcessFunction<String, String, String> {
 
@@ -31,6 +35,11 @@ public class SchemaValidationBroadcastProcessFunction extends BroadcastProcessFu
 
     public static final MapStateDescriptor<String, String> LATEST_VERSION_DESCRIPTOR = new MapStateDescriptor<>(
             "latestSchemaVersions", Types.STRING, Types.STRING);
+
+    private transient Map<String, JsonNode> parsedSchemaCache;
+    private transient Set<String> globalActiveMetricIds;
+    private transient long currentSchemaSeq = 0L;
+    private transient long attachedSchemaSeq = -1L;
 
     public static final OutputTag<String> DIRTY_DATA_TAG = new OutputTag<String>("dirty-events") {
     };
@@ -61,7 +70,13 @@ public class SchemaValidationBroadcastProcessFunction extends BroadcastProcessFu
                 return;
             }
 
-            JsonNode schemaNode = mapper.readTree(schemaJson);
+            JsonNode schemaNode = getOrParseSchema(schemaKey, schemaJson);
+            if (schemaNode == null) {
+                ((ObjectNode) eventNode).put("error_reason", "Failed to parse schema for key: " + schemaKey);
+                ctx.output(DIRTY_DATA_TAG, mapper.writeValueAsString(eventNode));
+                return;
+            }
+
             JsonNode fieldsNode = schemaNode.get("fields");
             if (fieldsNode == null) {
                 evaluateMetricsAndCollect(eventNode, schemaNode, out);
@@ -89,7 +104,7 @@ public class SchemaValidationBroadcastProcessFunction extends BroadcastProcessFu
 
                 if (isPresent) {
                     JsonNode val = eventFields.get(fieldName);
-                    
+
                     if (fieldDef.has("type")) {
                         String type = fieldDef.get("type").asText();
                         if (type.equals("string") && !val.isTextual()) {
@@ -133,7 +148,7 @@ public class SchemaValidationBroadcastProcessFunction extends BroadcastProcessFu
                 if (!missingFields.isEmpty()) reasons.add("Missing: " + String.join(", ", missingFields));
                 if (!invalidTypeFields.isEmpty()) reasons.add("Invalid Type: " + String.join(", ", invalidTypeFields));
                 if (!invalidConstraintFields.isEmpty()) reasons.add("Constraint: " + String.join(", ", invalidConstraintFields));
-                
+
                 ((ObjectNode) eventNode).put("error_reason", String.join(" | ", reasons));
                 ctx.output(DIRTY_DATA_TAG, mapper.writeValueAsString(eventNode));
             } else {
@@ -147,6 +162,21 @@ public class SchemaValidationBroadcastProcessFunction extends BroadcastProcessFu
             errorNode.put("error_reason", "JSON Parse Exception: " + e.getMessage());
             ctx.output(DIRTY_DATA_TAG, mapper.writeValueAsString(errorNode));
         }
+    }
+
+    private JsonNode getOrParseSchema(String key, String schemaJson) {
+        if (parsedSchemaCache == null) parsedSchemaCache = new HashMap<>();
+        return parsedSchemaCache.computeIfAbsent(key, k -> {
+            try {
+                return mapper.readTree(schemaJson);
+            } catch (Exception ignored) {
+                return null;
+            }
+        });
+    }
+
+    private void invalidateParsedSchema(String key) {
+        if (parsedSchemaCache != null) parsedSchemaCache.remove(key);
     }
 
     private int compareVersions(String v1, String v2) {
@@ -193,6 +223,7 @@ public class SchemaValidationBroadcastProcessFunction extends BroadcastProcessFu
                     if (currentLatestVersion == null) {
                         latestVersionState.put(schemaId, version);
                         schemaState.put(schemaKey, schemaJson);
+                        invalidateParsedSchema(schemaKey);
                         LOG.info("Received and cached initial schema for key: {}", schemaKey);
                     } else {
                         int cmp = compareVersions(version, currentLatestVersion);
@@ -203,14 +234,17 @@ public class SchemaValidationBroadcastProcessFunction extends BroadcastProcessFu
 
                             latestVersionState.put(schemaId, version);
                             schemaState.put(schemaKey, schemaJson);
+                            invalidateParsedSchema(schemaKey);
                             LOG.info("Received and cached newer schema for key: {}", schemaKey);
                         } else if (cmp < 0) {
                             schemaState.put(schemaKey, schemaJson);
+                            invalidateParsedSchema(schemaKey);
                             deprecatedState.put(schemaKey, ctx.currentProcessingTime());
                             LOG.info("Received out-of-order old schema version: {}, immediately deprecating it",
                                     schemaKey);
                         } else {
                             schemaState.put(schemaKey, schemaJson);
+                            invalidateParsedSchema(schemaKey);
                         }
                     }
 
@@ -224,9 +258,12 @@ public class SchemaValidationBroadcastProcessFunction extends BroadcastProcessFu
 
                     for (String key : keysToRemove) {
                         schemaState.remove(key);
+                        invalidateParsedSchema(key);
                         deprecatedState.remove(key);
                         LOG.info("Cleaned up expired old schema: {}", key);
                     }
+
+                    rebuildGlobalActiveMetrics(ctx);
                 }
             }
         } catch (Exception e) {
@@ -234,12 +271,38 @@ public class SchemaValidationBroadcastProcessFunction extends BroadcastProcessFu
         }
     }
 
+    private void rebuildGlobalActiveMetrics(Context ctx) throws Exception {
+        BroadcastState<String, String> schemaState = ctx.getBroadcastState(SCHEMA_STATE_DESCRIPTOR);
+        if (globalActiveMetricIds == null) globalActiveMetricIds = new HashSet<>();
+        else globalActiveMetricIds.clear();
+        for (Map.Entry<String, String> entry : schemaState.entries()) {
+            JsonNode sNode = getOrParseSchema(entry.getKey(), entry.getValue());
+            if (sNode != null && sNode.has("metrics") && sNode.get("metrics").isArray()) {
+                for (JsonNode m : sNode.get("metrics")) {
+                    if (m.has("metric_id") && !m.get("metric_id").isNull()) {
+                        globalActiveMetricIds.add(m.get("metric_id").asText());
+                    }
+                }
+            }
+        }
+        currentSchemaSeq++;
+        attachedSchemaSeq = -1L;
+    }
+
     private void evaluateMetricsAndCollect(JsonNode eventNode, JsonNode schemaNode, Collector<String> out) {
         try {
+            if (currentSchemaSeq != attachedSchemaSeq
+                    && globalActiveMetricIds != null && !globalActiveMetricIds.isEmpty()) {
+                ArrayNode arr = mapper.createArrayNode();
+                for (String mId : globalActiveMetricIds) arr.add(mId);
+                ((ObjectNode) eventNode).set("_global_active_metric_ids", arr);
+                attachedSchemaSeq = currentSchemaSeq;
+            }
+
             if (schemaNode != null && schemaNode.has("metrics")) {
                 JsonNode metricsNode = schemaNode.get("metrics");
                 if (metricsNode != null && metricsNode.isArray()) {
-                    com.fasterxml.jackson.databind.node.ArrayNode matchedMetricsArr = mapper.createArrayNode();
+                    ArrayNode matchedMetricsArr = mapper.createArrayNode();
                     for (JsonNode mDef : metricsNode) {
                         String metricId = mDef.has("metric_id") ? mDef.get("metric_id").asText() : null;
                         String sourceField = mDef.has("source_field") ? mDef.get("source_field").asText() : null;
@@ -267,7 +330,7 @@ public class SchemaValidationBroadcastProcessFunction extends BroadcastProcessFu
                                         }
                                     }
                                 }
-                                com.fasterxml.jackson.databind.node.ObjectNode mObj = mapper.createObjectNode();
+                                ObjectNode mObj = mapper.createObjectNode();
                                 mObj.put("metric_id", metricId);
                                 mObj.put("aggregation", aggregation);
                                 mObj.put("value", val);
