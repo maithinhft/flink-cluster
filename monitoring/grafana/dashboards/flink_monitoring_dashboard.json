@@ -362,14 +362,14 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "max(flink_taskmanager_job_task_operator_e2e_latency_ms{quantile=\"0.95\"}) or avg({__name__=~\"flink_taskmanager_job_latency_.*\", quantile=\"0.95\"}) or max(flink_taskmanager_job_task_operator_currentEmitEventTimeLag) or vector(0)",
+          "expr": "max(flink_taskmanager_job_task_operator_pipeline_latency_ms{quantile=\"0.95\"}) or avg({__name__=~\"flink_taskmanager_job_latency_.*\", quantile=\"0.95\"}) or vector(0)",
           "instant": false,
-          "legendFormat": "P95 Latency",
+          "legendFormat": "P95 Pipeline Latency",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "P95 Latency",
+      "title": "P95 Pipeline Latency",
       "type": "stat"
     },
     {
@@ -989,8 +989,8 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "max(flink_taskmanager_job_task_operator_e2e_latency_ms{quantile=~\"0.5|0.50\"}) or avg({__name__=~\"flink_taskmanager_job_latency_.*\", quantile=~\"0.5|0.50\"})",
-          "legendFormat": "P50 Latency",
+          "expr": "max(flink_taskmanager_job_task_operator_pipeline_latency_ms{quantile=~\"0.5|0.50\"}) or avg({__name__=~\"flink_taskmanager_job_latency_.*\", quantile=~\"0.5|0.50\"})",
+          "legendFormat": "Pipeline P50 Latency (ms)",
           "range": true,
           "refId": "A"
         },
@@ -1000,8 +1000,8 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "max(flink_taskmanager_job_task_operator_e2e_latency_ms{quantile=\"0.95\"}) or avg({__name__=~\"flink_taskmanager_job_latency_.*\", quantile=\"0.95\"})",
-          "legendFormat": "P95 Latency",
+          "expr": "max(flink_taskmanager_job_task_operator_pipeline_latency_ms{quantile=\"0.95\"}) or avg({__name__=~\"flink_taskmanager_job_latency_.*\", quantile=\"0.95\"})",
+          "legendFormat": "Pipeline P95 Latency (ms)",
           "range": true,
           "refId": "B"
         },
@@ -1011,8 +1011,8 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "max(flink_taskmanager_job_task_operator_e2e_latency_ms{quantile=\"0.99\"}) or avg({__name__=~\"flink_taskmanager_job_latency_.*\", quantile=\"0.99\"})",
-          "legendFormat": "P99 Latency",
+          "expr": "max(flink_taskmanager_job_task_operator_pipeline_latency_ms{quantile=\"0.99\"}) or avg({__name__=~\"flink_taskmanager_job_latency_.*\", quantile=\"0.99\"})",
+          "legendFormat": "Pipeline P99 Latency (ms)",
           "range": true,
           "refId": "C"
         },
@@ -1022,8 +1022,8 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "max(flink_taskmanager_job_task_operator_e2e_latency_ms{quantile=~\"0.999|max|1.0|1.00\"}) or max({__name__=~\"flink_taskmanager_job_latency_.*\", quantile=~\"0.999|max|1.0|1.00\"})",
-          "legendFormat": "Max Latency",
+          "expr": "max(flink_taskmanager_job_task_operator_pipeline_latency_ms{quantile=~\"0.999|max|1.0|1.00\"}) or max({__name__=~\"flink_taskmanager_job_latency_.*\", quantile=~\"0.999|max|1.0|1.00\"})",
+          "legendFormat": "Pipeline Max Latency (ms)",
           "range": true,
           "refId": "D"
         },
@@ -1033,13 +1033,13 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "max(flink_taskmanager_job_task_operator_currentEmitEventTimeLag)",
-          "legendFormat": "Kafka Source Event Time Lag (ms)",
+          "expr": "max(flink_taskmanager_job_task_operator_event_time_lag_ms{quantile=\"0.95\"}) or max(flink_taskmanager_job_task_operator_e2e_latency_ms{quantile=\"0.95\"})",
+          "legendFormat": "Event-Time Age / Lag (Data Age)",
           "range": true,
           "refId": "E"
         }
       ],
-      "title": "End-to-End Latency Tracking (Quantiles)",
+      "title": "Pipeline Processing Latency (Quantiles) & Event Age",
       "type": "timeseries"
     },
     {

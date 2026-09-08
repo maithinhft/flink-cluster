@@ -30,7 +30,8 @@ public class BucketAggregationProcessFunction extends KeyedProcessFunction<Strin
 
     private transient MapState<Integer, Bucket> ringBufferMapState;
     private transient Set<String> cachedGlobalActiveMetricIds;
-    private transient org.apache.flink.runtime.metrics.DescriptiveStatisticsHistogram e2eLatencyHistogram;
+    private transient org.apache.flink.runtime.metrics.DescriptiveStatisticsHistogram pipelineLatencyHistogram;
+    private transient org.apache.flink.runtime.metrics.DescriptiveStatisticsHistogram eventTimeLagHistogram;
 
     @Override
     public void open(Configuration parameters) throws Exception {
@@ -45,8 +46,11 @@ public class BucketAggregationProcessFunction extends KeyedProcessFunction<Strin
         descriptor.enableTimeToLive(ttlConfig);
         ringBufferMapState = getRuntimeContext().getMapState(descriptor);
 
-        e2eLatencyHistogram = new org.apache.flink.runtime.metrics.DescriptiveStatisticsHistogram(2048);
-        getRuntimeContext().getMetricGroup().histogram("e2e_latency_ms", e2eLatencyHistogram);
+        pipelineLatencyHistogram = new org.apache.flink.runtime.metrics.DescriptiveStatisticsHistogram(2048);
+        getRuntimeContext().getMetricGroup().histogram("pipeline_latency_ms", pipelineLatencyHistogram);
+
+        eventTimeLagHistogram = new org.apache.flink.runtime.metrics.DescriptiveStatisticsHistogram(2048);
+        getRuntimeContext().getMetricGroup().histogram("event_time_lag_ms", eventTimeLagHistogram);
     }
 
     @Override
@@ -59,9 +63,14 @@ public class BucketAggregationProcessFunction extends KeyedProcessFunction<Strin
             return;
         }
 
+        if (eventNode.has("_ingest_time") && pipelineLatencyHistogram != null) {
+            long ingestTime = eventNode.get("_ingest_time").asLong();
+            pipelineLatencyHistogram.update(Math.max(0L, System.currentTimeMillis() - ingestTime));
+        }
+
         long eventTimeMs = extractEventTime(eventNode);
-        if (eventTimeMs > 0 && e2eLatencyHistogram != null) {
-            e2eLatencyHistogram.update(Math.max(0L, System.currentTimeMillis() - eventTimeMs));
+        if (eventTimeMs > 0 && eventTimeLagHistogram != null) {
+            eventTimeLagHistogram.update(Math.max(0L, System.currentTimeMillis() - eventTimeMs));
         }
         if (eventTimeMs < 0) {
             if (eventNode.isObject()) {
@@ -139,6 +148,7 @@ public class BucketAggregationProcessFunction extends KeyedProcessFunction<Strin
             ObjectNode en = (ObjectNode) eventNode;
             en.remove("_matched_metrics");
             en.remove("_global_active_metric_ids");
+            en.remove("_ingest_time");
         }
 
         ObjectNode outputNode = mapper.createObjectNode();
