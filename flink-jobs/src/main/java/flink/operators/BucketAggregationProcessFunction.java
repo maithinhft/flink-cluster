@@ -30,6 +30,7 @@ public class BucketAggregationProcessFunction extends KeyedProcessFunction<Strin
 
     private transient MapState<Integer, Bucket> ringBufferMapState;
     private transient Set<String> cachedGlobalActiveMetricIds;
+    private transient org.apache.flink.runtime.metrics.DescriptiveStatisticsHistogram e2eLatencyHistogram;
 
     @Override
     public void open(Configuration parameters) throws Exception {
@@ -43,6 +44,9 @@ public class BucketAggregationProcessFunction extends KeyedProcessFunction<Strin
                 new MapStateDescriptor<>("ringBufferMapState", Integer.class, Bucket.class);
         descriptor.enableTimeToLive(ttlConfig);
         ringBufferMapState = getRuntimeContext().getMapState(descriptor);
+
+        e2eLatencyHistogram = new org.apache.flink.runtime.metrics.DescriptiveStatisticsHistogram(2048);
+        getRuntimeContext().getMetricGroup().histogram("e2e_latency_ms", e2eLatencyHistogram);
     }
 
     @Override
@@ -56,6 +60,9 @@ public class BucketAggregationProcessFunction extends KeyedProcessFunction<Strin
         }
 
         long eventTimeMs = extractEventTime(eventNode);
+        if (eventTimeMs > 0 && e2eLatencyHistogram != null) {
+            e2eLatencyHistogram.update(Math.max(0L, System.currentTimeMillis() - eventTimeMs));
+        }
         if (eventTimeMs < 0) {
             if (eventNode.isObject()) {
                 ((ObjectNode) eventNode).put("error_reason", "Missing or unparseable ISO-8601 event_time");

@@ -362,7 +362,7 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "avg(flink_taskmanager_job_latency_source_id_operator_id_operator_subtask_index_latency{quantile=\"0.95\"}) or vector(0)",
+          "expr": "max(flink_taskmanager_job_task_operator_e2e_latency_ms{quantile=\"0.95\"}) or avg({__name__=~\"flink_taskmanager_job_latency_.*\", quantile=\"0.95\"}) or max(flink_taskmanager_job_task_operator_currentEmitEventTimeLag) or vector(0)",
           "instant": false,
           "legendFormat": "P95 Latency",
           "range": true,
@@ -989,7 +989,7 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "avg(flink_taskmanager_job_latency_source_id_operator_id_operator_subtask_index_latency{quantile=~\"0.5|0.50\"})",
+          "expr": "max(flink_taskmanager_job_task_operator_e2e_latency_ms{quantile=~\"0.5|0.50\"}) or avg({__name__=~\"flink_taskmanager_job_latency_.*\", quantile=~\"0.5|0.50\"})",
           "legendFormat": "P50 Latency",
           "range": true,
           "refId": "A"
@@ -1000,7 +1000,7 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "avg(flink_taskmanager_job_latency_source_id_operator_id_operator_subtask_index_latency{quantile=\"0.95\"})",
+          "expr": "max(flink_taskmanager_job_task_operator_e2e_latency_ms{quantile=\"0.95\"}) or avg({__name__=~\"flink_taskmanager_job_latency_.*\", quantile=\"0.95\"})",
           "legendFormat": "P95 Latency",
           "range": true,
           "refId": "B"
@@ -1011,7 +1011,7 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "avg(flink_taskmanager_job_latency_source_id_operator_id_operator_subtask_index_latency{quantile=\"0.99\"})",
+          "expr": "max(flink_taskmanager_job_task_operator_e2e_latency_ms{quantile=\"0.99\"}) or avg({__name__=~\"flink_taskmanager_job_latency_.*\", quantile=\"0.99\"})",
           "legendFormat": "P99 Latency",
           "range": true,
           "refId": "C"
@@ -1022,10 +1022,21 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "max(flink_taskmanager_job_latency_source_id_operator_id_operator_subtask_index_latency{quantile=~\"max|1.0|1.00\"})",
+          "expr": "max(flink_taskmanager_job_task_operator_e2e_latency_ms{quantile=~\"0.999|max|1.0|1.00\"}) or max({__name__=~\"flink_taskmanager_job_latency_.*\", quantile=~\"0.999|max|1.0|1.00\"})",
           "legendFormat": "Max Latency",
           "range": true,
           "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "editorMode": "code",
+          "expr": "max(flink_taskmanager_job_task_operator_currentEmitEventTimeLag)",
+          "legendFormat": "Kafka Source Event Time Lag (ms)",
+          "range": true,
+          "refId": "E"
         }
       ],
       "title": "End-to-End Latency Tracking (Quantiles)",

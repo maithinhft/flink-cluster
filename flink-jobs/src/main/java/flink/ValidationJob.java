@@ -35,6 +35,7 @@ public class ValidationJob {
 
         int parallelism = parameters.getInt("parallelism", 4);
         env.setParallelism(parallelism);
+        env.getConfig().setLatencyTrackingInterval(parameters.getLong("latency.tracking.interval", 5000));
 
         String bootstrapServers = parameters.get("bootstrap.servers", "kafka:29092");
         String schemaTopic = parameters.get("schema.topic", "schema_registry");
