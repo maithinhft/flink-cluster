@@ -22,9 +22,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class SchemaValidationBroadcastProcessFunction extends BroadcastProcessFunction<String, String, String> {
+public class DynamicSchemaValidationFunction extends BroadcastProcessFunction<String, String, String> {
 
-    private static final Logger LOG = LoggerFactory.getLogger(SchemaValidationBroadcastProcessFunction.class);
+    private static final Logger LOG = LoggerFactory.getLogger(DynamicSchemaValidationFunction.class);
     private static final ObjectMapper mapper = new ObjectMapper();
 
     public static final MapStateDescriptor<String, String> SCHEMA_STATE_DESCRIPTOR = new MapStateDescriptor<>(
@@ -351,3 +351,4 @@ public class SchemaValidationBroadcastProcessFunction extends BroadcastProcessFu
         }
     }
 }
+

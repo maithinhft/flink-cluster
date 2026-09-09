@@ -136,7 +136,7 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.5.0</version>
                 <configuration>
-                    <mainClass>flink.ValidationJob</mainClass>
+                    <mainClass>flink.RealtimeCepJob</mainClass>
                     <!-- Quan trọng: Bao gồm các thư viện có scope=provided (như Flink) vào classpath khi chạy local -->
                     <includeProvidedDependencies>true</includeProvidedDependencies>
                 </configuration>
@@ -215,7 +215,7 @@
                                     "org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
 
                                     <mainClass>
-                                        flink.ValidationJob
+                                        flink.RealtimeCepJob
                                     </mainClass>
 
                                 </transformer>

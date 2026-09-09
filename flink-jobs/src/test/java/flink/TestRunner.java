@@ -18,7 +18,8 @@ public class TestRunner {
 
         Class<?>[] testClasses = new Class<?>[] {
                 RingBufferTest.class,
-                FilterEvaluatorTest.class
+                FilterEvaluatorTest.class,
+                flink.evaluators.RuleEvaluatorTest.class
         };
 
         for (Class<?> testClass : testClasses) {

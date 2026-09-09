@@ -5,4 +5,4 @@ cd flink-jobs
 
 mvn clean package
 
-mvn exec:exec -Dexec.executable="java" -Dexec.args="-classpath %classpath flink.ValidationJob" -P local
+mvn exec:exec -Dexec.executable="java" -Dexec.args="-classpath %classpath flink.RealtimeCepJob" -P local

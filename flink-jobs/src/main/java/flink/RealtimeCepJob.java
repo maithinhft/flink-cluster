@@ -1,7 +1,7 @@
 package flink;
 
-import flink.operators.BucketAggregationProcessFunction;
-import flink.operators.SchemaValidationBroadcastProcessFunction;
+import flink.operators.DynamicSchemaValidationFunction;
+import flink.operators.RingBufferRuleProcessFunction;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.java.utils.ParameterTool;
@@ -22,11 +22,11 @@ import org.slf4j.LoggerFactory;
 import java.time.Duration;
 import java.time.Instant;
 
-public class ValidationJob {
-    private static final Logger LOG = LoggerFactory.getLogger(ValidationJob.class);
+public class RealtimeCepJob {
+    private static final Logger LOG = LoggerFactory.getLogger(RealtimeCepJob.class);
 
     public static void main(String[] args) throws Exception {
-        LOG.info("Starting Flink Event Validation & Bucket Aggregation Job...");
+        LOG.info("Starting Flink Real-time CEP Job...");
 
         final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
@@ -39,6 +39,7 @@ public class ValidationJob {
 
         String bootstrapServers = parameters.get("bootstrap.servers", "kafka:29092");
         String schemaTopic = parameters.get("schema.topic", "schema_registry");
+        String ruleTopic = parameters.get("rule.topic", "realtime_core.public.rule_definitions");
         String eventsTopicPattern = parameters.get("events.topic.pattern", "events.*");
         String resultTopic = parameters.get("result.topic", "result");
         String dlqTopic = parameters.get("dlq.topic", "dlq");
@@ -51,6 +52,7 @@ public class ValidationJob {
 
         LOG.info("Kafka Bootstrap Servers: {}", bootstrapServers);
         LOG.info("Schema Topic: {}", schemaTopic);
+        LOG.info("Rule Topic: {}", ruleTopic);
         LOG.info("Events Topic Pattern: {}", eventsTopicPattern);
         LOG.info("Result Topic: {}", resultTopic);
         LOG.info("DLQ Topic: {}", dlqTopic);
@@ -70,9 +72,25 @@ public class ValidationJob {
 
         BroadcastStream<String> broadcastSchemaStream = schemaStream
                 .broadcast(
-                        SchemaValidationBroadcastProcessFunction.SCHEMA_STATE_DESCRIPTOR,
-                        SchemaValidationBroadcastProcessFunction.LATEST_VERSION_DESCRIPTOR,
-                        SchemaValidationBroadcastProcessFunction.DEPRECATED_SCHEMAS_DESCRIPTOR);
+                        DynamicSchemaValidationFunction.SCHEMA_STATE_DESCRIPTOR,
+                        DynamicSchemaValidationFunction.LATEST_VERSION_DESCRIPTOR,
+                        DynamicSchemaValidationFunction.DEPRECATED_SCHEMAS_DESCRIPTOR);
+
+        KafkaSource<String> ruleSource = KafkaSource.<String>builder()
+                .setBootstrapServers(bootstrapServers)
+                .setTopics(ruleTopic)
+                .setGroupId("flink-rule-group")
+                .setStartingOffsets(OffsetsInitializer.earliest())
+                .setValueOnlyDeserializer(new SimpleStringSchema())
+                .build();
+
+        DataStream<String> ruleStream = env.fromSource(
+                ruleSource,
+                WatermarkStrategy.noWatermarks(),
+                "Rule Definitions Source");
+
+        BroadcastStream<String> broadcastRuleStream = ruleStream
+                .broadcast(RingBufferRuleProcessFunction.RULE_STATE_DESCRIPTOR);
 
         WatermarkStrategy<String> eventWatermarkStrategy = WatermarkStrategy
                 .<String>forBoundedOutOfOrderness(Duration.ofMinutes(1))
@@ -109,8 +127,8 @@ public class ValidationJob {
 
         SingleOutputStreamOperator<String> cleanEventsStream = eventStream
                 .connect(broadcastSchemaStream)
-                .process(new SchemaValidationBroadcastProcessFunction())
-                .name("Schema Validation Operator");
+                .process(new DynamicSchemaValidationFunction())
+                .name("Dynamic Schema Validation Operator");
 
         KafkaSink<String> resultSink = KafkaSink.<String>builder()
                 .setBootstrapServers(bootstrapServers)
@@ -133,7 +151,7 @@ public class ValidationJob {
                 .build();
 
         DataStream<String> dirtyEventsStream = cleanEventsStream
-                .getSideOutput(SchemaValidationBroadcastProcessFunction.DIRTY_DATA_TAG);
+                .getSideOutput(DynamicSchemaValidationFunction.DIRTY_DATA_TAG);
 
         SingleOutputStreamOperator<String> aggregatedStream = cleanEventsStream
                 .keyBy(eventJson -> {
@@ -150,18 +168,20 @@ public class ValidationJob {
                     }
                     return "unknown_entity";
                 })
-                .process(new BucketAggregationProcessFunction())
-                .name("Bucket Aggregation Operator (Ring Buffer)")
+                .connect(broadcastRuleStream)
+                .process(new RingBufferRuleProcessFunction())
+                .name("Ring Buffer & Rule Evaluation Operator")
                 .disableChaining();
 
         DataStream<String> lateEventsStream = aggregatedStream
-                .getSideOutput(BucketAggregationProcessFunction.LATE_DATA_TAG);
+                .getSideOutput(RingBufferRuleProcessFunction.LATE_DATA_TAG);
 
         DataStream<String> dlqStream = dirtyEventsStream.union(lateEventsStream);
         dlqStream.sinkTo(dlqSink).name("DLQ Kafka Sink");
 
         aggregatedStream.sinkTo(resultSink).name("Aggregated Result Kafka Sink");
 
-        env.execute("Flink Event Validation & Bucket Aggregation Job");
+        env.execute("Flink Real-time CEP & Rule Engine Job");
     }
 }
+
