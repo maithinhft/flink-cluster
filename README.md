@@ -34,7 +34,7 @@ docker exec -it flink-jobmanager \
 docker exec -it kafka \
   /opt/kafka/bin/kafka-console-consumer.sh \
   --bootstrap-server kafka:29092 \
-  --topic realtime_core.public.aggregation_definitions \
+  --topic rule_definitions \
   --from-beginning
 ```
 
@@ -69,7 +69,7 @@ mvn exec:java -Dexec.mainClass=generator.rules.RuleGeneratorApp -Dexec.args="--n
 
 * Kiểm tra 1 topic trên Kafka
 ```
-mvn exec:java -Dexec.classpathScope=test -Dexec.mainClass="generator.common.KafkaConsumerApp" -Dexec.args="--topic events --max 5"\n
+mvn exec:java -Dexec.classpathScope=test -Dexec.mainClass="generator.common.KafkaConsumerApp" -Dexec.args="--topic events_ecommerce --max 5"
 ```
 **Note:** nên chạy trên server để tránh tình trạng mất gói tin dẫn đến java bị treo
 
@@ -82,7 +82,7 @@ docker cp target/flink-jobs-1.0-SNAPSHOT.jar flink-jobmanager:/tmp/
 docker exec -it flink-jobmanager \
     ./bin/flink run \
     -m jobmanager:8081 \
-    /tmp/flink-jobs-1.0-SNAPSHOT.jar --bootstrap.servers kafka:29092 --events.topic events --schema.topic schema_registry
+    /tmp/flink-jobs-1.0-SNAPSHOT.jar --bootstrap.servers kafka:29092 --events.topic.pattern "events_.*" --schema.topic schema_registry --rule.topic rule_definitions
 ```
 
 # Monitoring (Prometheus & Grafana)

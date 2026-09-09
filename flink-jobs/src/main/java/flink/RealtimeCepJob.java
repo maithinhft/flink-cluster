@@ -39,8 +39,8 @@ public class RealtimeCepJob {
 
         String bootstrapServers = parameters.get("bootstrap.servers", "kafka:29092");
         String schemaTopic = parameters.get("schema.topic", "schema_registry");
-        String ruleTopic = parameters.get("rule.topic", "realtime_core.public.rule_definitions");
-        String eventsTopicPattern = parameters.get("events.topic.pattern", "events.*");
+        String ruleTopic = parameters.get("rule.topic", "rule_definitions");
+        String eventsTopicPattern = parameters.get("events.topic.pattern", "events_.*");
         String resultTopic = parameters.get("result.topic", "result");
         String dlqTopic = parameters.get("dlq.topic", "dlq");
 

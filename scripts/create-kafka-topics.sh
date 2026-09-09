@@ -1,16 +1,16 @@
-docker exec -it kafka \
+docker exec kafka \
   /opt/kafka/bin/kafka-topics.sh \
   --bootstrap-server kafka:29092 \
-  --topic realtime_core.public.rule_definitions \
+  --topic rule_definitions \
   --create \
   --if-not-exists \
   --partitions 6 \
   --replication-factor 1
 
-docker exec -it kafka \
+docker exec kafka \
   /opt/kafka/bin/kafka-topics.sh \
   --bootstrap-server kafka:29092 \
-  --topic __debezium-heartbeat.realtime_core \
+  --topic debezium_heartbeat \
   --create \
   --if-not-exists \
   --partitions 1 \
@@ -18,7 +18,7 @@ docker exec -it kafka \
 
 docker exec kafka /opt/kafka/bin/kafka-topics.sh \
   --bootstrap-server kafka:29092 \
-  --topic events.crm \
+  --topic events_crm \
   --create \
   --if-not-exists \
   --partitions 6 \
@@ -26,7 +26,7 @@ docker exec kafka /opt/kafka/bin/kafka-topics.sh \
 
 docker exec kafka /opt/kafka/bin/kafka-topics.sh \
   --bootstrap-server kafka:29092 \
-  --topic events.ecommerce \
+  --topic events_ecommerce \
   --create \
   --if-not-exists \
   --partitions 6 \
@@ -34,7 +34,7 @@ docker exec kafka /opt/kafka/bin/kafka-topics.sh \
 
 docker exec kafka /opt/kafka/bin/kafka-topics.sh \
   --bootstrap-server kafka:29092 \
-  --topic events.payment \
+  --topic events_payment \
   --create \
   --if-not-exists \
   --partitions 6 \
