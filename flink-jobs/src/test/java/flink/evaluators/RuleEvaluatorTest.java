@@ -144,6 +144,40 @@ public class RuleEvaluatorTest {
         assertFalse(RuleEvaluator.evaluateRule(rule, nonMatchingEvent, t + 1000L, mockRingBufferState));
     }
 
+    @Test
+    public void testCooldownSecondsEvaluation() throws Exception {
+        JsonNode cdcNode = mapper.createObjectNode()
+                .put("rule_id", "rule-cooldown-01")
+                .put("name", "Cooldown Test Rule")
+                .put("cooldown_seconds", 300L)
+                .put("enabled", true)
+                .put("rule_json", "{\"trigger_events\": [\"purchase\"], \"condition\": {\"type\": \"RAW_FIELD\", \"field\": \"source_system\", \"operator\": \"EQ\", \"value\": \"ecommerce\"}}");
+
+        RuleDefinition rule = RuleDefinition.fromCdcJson(cdcNode, mapper);
+        assertEquals(300L, rule.getCooldownSeconds());
+
+        MockMapState<String, Long> cooldownState = new MockMapState<>();
+        long baseTime = 1700000000000L;
+        long cooldownMs = rule.getCooldownSeconds() * 1000L;
+
+        Long lastEmit = cooldownState.get(rule.getRuleId());
+        boolean inCooldown = (lastEmit != null && baseTime < lastEmit + cooldownMs);
+        assertFalse(inCooldown);
+        cooldownState.put(rule.getRuleId(), baseTime);
+
+        long event2Time = baseTime + 100_000L;
+        lastEmit = cooldownState.get(rule.getRuleId());
+        inCooldown = (lastEmit != null && event2Time < lastEmit + cooldownMs);
+        assertTrue(inCooldown);
+
+        long event3Time = baseTime + 301_000L;
+        lastEmit = cooldownState.get(rule.getRuleId());
+        inCooldown = (lastEmit != null && event3Time < lastEmit + cooldownMs);
+        assertFalse(inCooldown);
+        cooldownState.put(rule.getRuleId(), event3Time);
+        assertEquals(event3Time, cooldownState.get(rule.getRuleId()));
+    }
+
     private static class MockMapState<K, V> implements MapState<K, V> {
         private final Map<K, V> map = new HashMap<>();
 

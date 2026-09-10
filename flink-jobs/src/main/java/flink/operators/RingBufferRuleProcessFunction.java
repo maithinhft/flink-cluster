@@ -245,10 +245,16 @@ public class RingBufferRuleProcessFunction extends KeyedBroadcastProcessFunction
                     }
                 }
 
-                Long lastTriggered = ruleCooldownMapState.get(rule.getRuleId());
-                long cooldownMs = rule.getCooldownSeconds() * 1000L;
-                if (lastTriggered != null && eventTimeMs < lastTriggered + cooldownMs) {
-                    continue;
+                long cooldownSeconds = rule.getCooldownSeconds();
+                long cooldownMs = cooldownSeconds * 1000L;
+                if (cooldownMs > 0) {
+                    Long lastEmitEventTime = ruleCooldownMapState.get(rule.getRuleId());
+                    if (lastEmitEventTime != null) {
+                        long cooldownUntil = lastEmitEventTime + cooldownMs;
+                        if (eventTimeMs < cooldownUntil) {
+                            continue;
+                        }
+                    }
                 }
 
                 boolean satisfied = RuleEvaluator.evaluateRule(rule, eventNode, eventTimeMs, ringBufferMapState);
