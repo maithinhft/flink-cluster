@@ -22,14 +22,19 @@ public class RuleEvaluator {
             return false;
         }
 
-        if (rule.getTriggerEvents() != null && !rule.getTriggerEvents().isEmpty()) {
-            if (eventNode == null || !eventNode.has("event_type")) {
-                return false;
+        String eventType = null;
+        if (eventNode != null) {
+            if (eventNode.has("event_type")) {
+                eventType = eventNode.get("event_type").asText();
+            } else if (eventNode.has("eventType")) {
+                eventType = eventNode.get("eventType").asText();
+            } else if (eventNode.has("action")) {
+                eventType = eventNode.get("action").asText();
             }
-            String eventType = eventNode.get("event_type").asText();
-            if (!rule.getTriggerEvents().contains(eventType)) {
-                return false;
-            }
+        }
+
+        if (!rule.matchesTriggerEvent(eventType)) {
+            return false;
         }
 
         JsonNode conditionNode = rule.getConditionNode();
@@ -60,9 +65,24 @@ public class RuleEvaluator {
 
             if ("AND".equals(op)) {
                 if (children != null && children.isArray()) {
+                    List<JsonNode> heavyNodes = null;
                     for (JsonNode child : children) {
-                        if (!evaluateCondition(child, eventNode, eventTimeMs, ringBufferMapState)) {
-                            return false;
+                        if (isHeavyNode(child)) {
+                            if (heavyNodes == null) {
+                                heavyNodes = new ArrayList<>(children.size());
+                            }
+                            heavyNodes.add(child);
+                        } else {
+                            if (!evaluateCondition(child, eventNode, eventTimeMs, ringBufferMapState)) {
+                                return false;
+                            }
+                        }
+                    }
+                    if (heavyNodes != null) {
+                        for (JsonNode child : heavyNodes) {
+                            if (!evaluateCondition(child, eventNode, eventTimeMs, ringBufferMapState)) {
+                                return false;
+                            }
                         }
                     }
                 }
@@ -200,6 +220,14 @@ public class RuleEvaluator {
             }
         }
         return null;
+    }
+
+    private static boolean isHeavyNode(JsonNode node) {
+        if (node == null || node.isNull()) {
+            return false;
+        }
+        String type = node.has("type") ? node.get("type").asText() : "";
+        return "AGGREGATION".equalsIgnoreCase(type) || node.has("function") || node.has("window");
     }
 }
 

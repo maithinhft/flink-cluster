@@ -178,6 +178,105 @@ public class RuleEvaluatorTest {
         assertEquals(event3Time, cooldownState.get(rule.getRuleId()));
     }
 
+    @Test
+    public void testTriggerEventVariationsAndExclusions() throws Exception {
+        JsonNode cdcSingular = mapper.createObjectNode()
+                .put("rule_id", "rule-singular")
+                .put("rule_json", "{\"trigger_event\": \"purchase\", \"condition\": {\"type\": \"RAW_FIELD\", \"field\": \"source_system\", \"operator\": \"EQ\", \"value\": \"ecommerce\"}}");
+        RuleDefinition ruleSingular = RuleDefinition.fromCdcJson(cdcSingular, mapper);
+        assertNotNull(ruleSingular);
+        assertTrue(ruleSingular.matchesTriggerEvent("purchase"));
+        assertTrue(ruleSingular.matchesTriggerEvent("PURCHASE"));
+        assertFalse(ruleSingular.matchesTriggerEvent("order_created"));
+        assertFalse(ruleSingular.matchesTriggerEvent(null));
+
+        JsonNode cdcArraySingular = mapper.createObjectNode()
+                .put("rule_id", "rule-arr-singular")
+                .put("rule_json", "{\"trigger_event\": [\"refund\", \"chargeback\"], \"condition\": {}}");
+        RuleDefinition ruleArrSingular = RuleDefinition.fromCdcJson(cdcArraySingular, mapper);
+        assertTrue(ruleArrSingular.matchesTriggerEvent("refund"));
+        assertTrue(ruleArrSingular.matchesTriggerEvent("chargeback"));
+        assertFalse(ruleArrSingular.matchesTriggerEvent("payment_success"));
+
+        JsonNode cdcCsv = mapper.createObjectNode()
+                .put("rule_id", "rule-csv")
+                .put("rule_json", "{\"trigger_events\": \"payment_success, payment_failed\", \"condition\": {}}");
+        RuleDefinition ruleCsv = RuleDefinition.fromCdcJson(cdcCsv, mapper);
+        assertTrue(ruleCsv.matchesTriggerEvent("payment_success"));
+        assertTrue(ruleCsv.matchesTriggerEvent("payment_failed"));
+        assertFalse(ruleCsv.matchesTriggerEvent("login"));
+
+        JsonNode cdcRoot = mapper.createObjectNode()
+                .put("rule_id", "rule-root")
+                .put("trigger_events", "login, logout")
+                .put("rule_json", "{\"condition\": {}}");
+        RuleDefinition ruleRoot = RuleDefinition.fromCdcJson(cdcRoot, mapper);
+        assertTrue(ruleRoot.matchesTriggerEvent("login"));
+        assertTrue(ruleRoot.matchesTriggerEvent("logout"));
+        assertFalse(ruleRoot.matchesTriggerEvent("purchase"));
+
+        JsonNode cdcEmpty = mapper.createObjectNode()
+                .put("rule_id", "rule-empty")
+                .put("rule_json", "{\"condition\": {}}");
+        RuleDefinition ruleEmpty = RuleDefinition.fromCdcJson(cdcEmpty, mapper);
+        assertFalse(ruleEmpty.matchesTriggerEvent("purchase"));
+        assertFalse(ruleEmpty.matchesTriggerEvent("login"));
+        assertFalse(RuleEvaluator.evaluateRule(ruleEmpty, mapper.readTree("{\"event_type\": \"purchase\"}"), 1700000000000L, mockRingBufferState));
+    }
+
+    @Test
+    public void testShortCircuitingInConditionTree() throws Exception {
+        class CountingMapState extends MockMapState<Integer, Bucket> {
+            int getCount = 0;
+            @Override
+            public Bucket get(Integer key) {
+                getCount++;
+                return super.get(key);
+            }
+        }
+
+        CountingMapState state = new CountingMapState();
+
+        String ruleJsonAnd = "{\n" +
+                "  \"trigger_events\": [\"purchase\"],\n" +
+                "  \"condition\": {\n" +
+                "    \"operator\": \"AND\",\n" +
+                "    \"children\": [\n" +
+                "      {\"type\": \"AGGREGATION\", \"field\": \"total_amount\", \"function\": \"SUM\", \"operator\": \"GT\", \"value\": 100},\n" +
+                "      {\"type\": \"RAW_FIELD\", \"field\": \"source_system\", \"operator\": \"EQ\", \"value\": \"payment\"}\n" +
+                "    ]\n" +
+                "  }\n" +
+                "}";
+
+        RuleDefinition ruleAnd = RuleDefinition.fromCdcJson(mapper.createObjectNode()
+                .put("rule_id", "rule-and-sc")
+                .put("rule_json", ruleJsonAnd), mapper);
+
+        JsonNode eventEcommerce = mapper.readTree("{\"event_type\": \"purchase\", \"source_system\": \"ecommerce\"}");
+        boolean resultAnd = RuleEvaluator.evaluateRule(ruleAnd, eventEcommerce, 1700000000000L, state);
+        assertFalse(resultAnd);
+        assertEquals(0, state.getCount);
+
+        String ruleJsonOr = "{\n" +
+                "  \"trigger_events\": [\"purchase\"],\n" +
+                "  \"condition\": {\n" +
+                "    \"operator\": \"OR\",\n" +
+                "    \"children\": [\n" +
+                "      {\"type\": \"RAW_FIELD\", \"field\": \"source_system\", \"operator\": \"EQ\", \"value\": \"ecommerce\"},\n" +
+                "      {\"type\": \"AGGREGATION\", \"field\": \"total_amount\", \"function\": \"SUM\", \"operator\": \"GT\", \"value\": 100}\n" +
+                "    ]\n" +
+                "  }\n" +
+                "}";
+
+        RuleDefinition ruleOr = RuleDefinition.fromCdcJson(mapper.createObjectNode()
+                .put("rule_id", "rule-or-sc")
+                .put("rule_json", ruleJsonOr), mapper);
+
+        boolean resultOr = RuleEvaluator.evaluateRule(ruleOr, eventEcommerce, 1700000000000L, state);
+        assertTrue(resultOr);
+        assertEquals(0, state.getCount);
+    }
+
     private static class MockMapState<K, V> implements MapState<K, V> {
         private final Map<K, V> map = new HashMap<>();
 

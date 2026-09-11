@@ -61,11 +61,8 @@ public class RuleDefinition implements Serializable {
             }
 
             if (ruleJsonNode != null && ruleJsonNode.isObject()) {
-                if (ruleJsonNode.has("trigger_events") && ruleJsonNode.get("trigger_events").isArray()) {
-                    for (JsonNode t : ruleJsonNode.get("trigger_events")) {
-                        triggerEvents.add(t.asText());
-                    }
-                }
+                parseTriggerEvents(ruleJsonNode.get("trigger_events"), triggerEvents);
+                parseTriggerEvents(ruleJsonNode.get("trigger_event"), triggerEvents);
 
                 if (ruleJsonNode.has("condition")) {
                     conditionNode = ruleJsonNode.get("condition");
@@ -77,7 +74,61 @@ public class RuleDefinition implements Serializable {
             }
         }
 
+        parseTriggerEvents(cdcNode.get("trigger_events"), triggerEvents);
+        parseTriggerEvents(cdcNode.get("trigger_event"), triggerEvents);
+
+        if (conditionNode == null) {
+            if (cdcNode.has("condition")) {
+                conditionNode = cdcNode.get("condition");
+                conditionJson = conditionNode.toString();
+            }
+        }
+
         return new RuleDefinition(ruleId, name, cooldown, version, enabled, triggerEvents, conditionNode, conditionJson);
+    }
+
+    private static void parseTriggerEvents(JsonNode node, Set<String> targetSet) {
+        if (node == null || node.isNull() || node.isMissingNode()) {
+            return;
+        }
+        if (node.isArray()) {
+            for (JsonNode item : node) {
+                if (item.isTextual()) {
+                    String val = item.asText().trim();
+                    if (!val.isEmpty()) {
+                        targetSet.add(val);
+                        targetSet.add(val.toLowerCase());
+                    }
+                }
+            }
+        } else if (node.isTextual()) {
+            String text = node.asText().trim();
+            if (!text.isEmpty()) {
+                if (text.contains(",")) {
+                    for (String part : text.split(",")) {
+                        String val = part.trim();
+                        if (!val.isEmpty()) {
+                            targetSet.add(val);
+                            targetSet.add(val.toLowerCase());
+                        }
+                    }
+                } else {
+                    targetSet.add(text);
+                    targetSet.add(text.toLowerCase());
+                }
+            }
+        }
+    }
+
+    public boolean matchesTriggerEvent(String eventType) {
+        if (triggerEvents == null || triggerEvents.isEmpty()) {
+            return false;
+        }
+        if (eventType == null) {
+            return false;
+        }
+        String cleanType = eventType.trim();
+        return triggerEvents.contains(cleanType) || triggerEvents.contains(cleanType.toLowerCase());
     }
 
     public JsonNode getOrParseCondition(ObjectMapper mapper) {

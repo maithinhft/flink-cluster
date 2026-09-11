@@ -235,14 +235,17 @@ public class RingBufferRuleProcessFunction extends KeyedBroadcastProcessFunction
                     continue;
                 }
 
-                if (rule.getTriggerEvents() != null && !rule.getTriggerEvents().isEmpty()) {
-                    if (!eventNode.has("event_type")) {
-                        continue;
-                    }
-                    String eventType = eventNode.get("event_type").asText();
-                    if (!rule.getTriggerEvents().contains(eventType)) {
-                        continue;
-                    }
+                String eventType = null;
+                if (eventNode.has("event_type")) {
+                    eventType = eventNode.get("event_type").asText();
+                } else if (eventNode.has("eventType")) {
+                    eventType = eventNode.get("eventType").asText();
+                } else if (eventNode.has("action")) {
+                    eventType = eventNode.get("action").asText();
+                }
+
+                if (!rule.matchesTriggerEvent(eventType)) {
+                    continue;
                 }
 
                 long cooldownSeconds = rule.getCooldownSeconds();
