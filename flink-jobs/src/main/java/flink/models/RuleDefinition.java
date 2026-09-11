@@ -96,7 +96,6 @@ public class RuleDefinition implements Serializable {
                 if (item.isTextual()) {
                     String val = item.asText().trim();
                     if (!val.isEmpty()) {
-                        targetSet.add(val);
                         targetSet.add(val.toLowerCase());
                     }
                 }
@@ -108,12 +107,10 @@ public class RuleDefinition implements Serializable {
                     for (String part : text.split(",")) {
                         String val = part.trim();
                         if (!val.isEmpty()) {
-                            targetSet.add(val);
                             targetSet.add(val.toLowerCase());
                         }
                     }
                 } else {
-                    targetSet.add(text);
                     targetSet.add(text.toLowerCase());
                 }
             }
@@ -127,8 +124,7 @@ public class RuleDefinition implements Serializable {
         if (eventType == null) {
             return false;
         }
-        String cleanType = eventType.trim();
-        return triggerEvents.contains(cleanType) || triggerEvents.contains(cleanType.toLowerCase());
+        return triggerEvents.contains(eventType.trim().toLowerCase());
     }
 
     public JsonNode getOrParseCondition(ObjectMapper mapper) {

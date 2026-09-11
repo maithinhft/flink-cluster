@@ -37,6 +37,21 @@ public class RuleEvaluator {
             return false;
         }
 
+        return evaluateConditionRoot(rule, eventNode, eventTimeMs, ringBufferMapState, null);
+    }
+
+    public static boolean evaluateRule(RuleDefinition rule, JsonNode eventNode, long eventTimeMs,
+                                       MapState<Integer, Bucket> ringBufferMapState,
+                                       Map<Integer, Bucket> bucketCache) {
+        if (rule == null || !rule.isEnabled()) {
+            return false;
+        }
+        return evaluateConditionRoot(rule, eventNode, eventTimeMs, ringBufferMapState, bucketCache);
+    }
+
+    private static boolean evaluateConditionRoot(RuleDefinition rule, JsonNode eventNode, long eventTimeMs,
+                                                 MapState<Integer, Bucket> ringBufferMapState,
+                                                 Map<Integer, Bucket> bucketCache) {
         JsonNode conditionNode = rule.getConditionNode();
         if (conditionNode == null) {
             conditionNode = rule.getOrParseCondition(mapper);
@@ -47,7 +62,7 @@ public class RuleEvaluator {
         }
 
         try {
-            return evaluateCondition(conditionNode, eventNode, eventTimeMs, ringBufferMapState);
+            return evaluateCondition(conditionNode, eventNode, eventTimeMs, ringBufferMapState, bucketCache);
         } catch (Exception e) {
             return false;
         }
@@ -55,6 +70,12 @@ public class RuleEvaluator {
 
     public static boolean evaluateCondition(JsonNode conditionNode, JsonNode eventNode, long eventTimeMs,
                                            MapState<Integer, Bucket> ringBufferMapState) throws Exception {
+        return evaluateCondition(conditionNode, eventNode, eventTimeMs, ringBufferMapState, null);
+    }
+
+    public static boolean evaluateCondition(JsonNode conditionNode, JsonNode eventNode, long eventTimeMs,
+                                           MapState<Integer, Bucket> ringBufferMapState,
+                                           Map<Integer, Bucket> bucketCache) throws Exception {
         if (conditionNode == null || conditionNode.isNull() || conditionNode.isMissingNode()) {
             return true;
         }
@@ -73,14 +94,14 @@ public class RuleEvaluator {
                             }
                             heavyNodes.add(child);
                         } else {
-                            if (!evaluateCondition(child, eventNode, eventTimeMs, ringBufferMapState)) {
+                            if (!evaluateCondition(child, eventNode, eventTimeMs, ringBufferMapState, bucketCache)) {
                                 return false;
                             }
                         }
                     }
                     if (heavyNodes != null) {
                         for (JsonNode child : heavyNodes) {
-                            if (!evaluateCondition(child, eventNode, eventTimeMs, ringBufferMapState)) {
+                            if (!evaluateCondition(child, eventNode, eventTimeMs, ringBufferMapState, bucketCache)) {
                                 return false;
                             }
                         }
@@ -90,7 +111,7 @@ public class RuleEvaluator {
             } else if ("OR".equals(op)) {
                 if (children != null && children.isArray()) {
                     for (JsonNode child : children) {
-                        if (evaluateCondition(child, eventNode, eventTimeMs, ringBufferMapState)) {
+                        if (evaluateCondition(child, eventNode, eventTimeMs, ringBufferMapState, bucketCache)) {
                             return true;
                         }
                     }
@@ -98,7 +119,7 @@ public class RuleEvaluator {
                 return false;
             } else if ("NOT".equals(op)) {
                 if (children != null && children.isArray() && children.size() > 0) {
-                    return !evaluateCondition(children.get(0), eventNode, eventTimeMs, ringBufferMapState);
+                    return !evaluateCondition(children.get(0), eventNode, eventTimeMs, ringBufferMapState, bucketCache);
                 }
                 return true;
             }
@@ -106,14 +127,15 @@ public class RuleEvaluator {
 
         String type = conditionNode.has("type") ? conditionNode.get("type").asText() : "";
         if ("AGGREGATION".equalsIgnoreCase(type) || conditionNode.has("function") || conditionNode.has("window")) {
-            return evaluateAggregation(conditionNode, eventTimeMs, ringBufferMapState);
+            return evaluateAggregation(conditionNode, eventTimeMs, ringBufferMapState, bucketCache);
         }
 
         return FilterEvaluator.evaluate(conditionNode, eventNode);
     }
 
     private static boolean evaluateAggregation(JsonNode aggNode, long eventTimeMs,
-                                              MapState<Integer, Bucket> ringBufferMapState) throws Exception {
+                                              MapState<Integer, Bucket> ringBufferMapState,
+                                              Map<Integer, Bucket> bucketCache) throws Exception {
         String field = aggNode.has("field") ? aggNode.get("field").asText() : "event_id";
         String function = aggNode.has("function") ? aggNode.get("function").asText().toUpperCase() : "COUNT";
 
@@ -142,7 +164,16 @@ public class RuleEvaluator {
         MetricBucketValue combined = new MetricBucketValue();
         for (long bStart = windowStartBucketStart; bStart <= windowEndBucketStart; bStart += RingBuffer.BUCKET_DURATION_MS) {
             int slot = RingBuffer.getSlotIndex(bStart);
-            Bucket b = ringBufferMapState.get(slot);
+            Bucket b = null;
+            if (bucketCache != null) {
+                b = bucketCache.get(slot);
+            }
+            if (b == null) {
+                b = ringBufferMapState.get(slot);
+                if (b != null && bucketCache != null) {
+                    bucketCache.put(slot, b);
+                }
+            }
             if (b != null && b.getStartTimeMs() == bStart && b.getMetrics() != null) {
                 MetricBucketValue val = findMatchingMetricValue(b.getMetrics(), candidates);
                 if (val != null) {
@@ -160,29 +191,26 @@ public class RuleEvaluator {
 
     private static void buildMetricCandidates(List<String> candidates, String field, String function, JsonNode filterNode) {
         String funcLower = function.toLowerCase();
-        List<String> bases = new ArrayList<>();
 
         if ("COUNT".equalsIgnoreCase(function) && ("event_id".equalsIgnoreCase(field) || "events".equalsIgnoreCase(field))) {
-            bases.add("count_events");
-            bases.add("count_event_id");
+            candidates.add("count_events");
+            candidates.add("count_event_id");
         } else {
-            bases.add(funcLower + "_" + field);
+            candidates.add(funcLower + "_" + field);
             if ("event_id".equalsIgnoreCase(field)) {
-                bases.add(funcLower + "_events");
+                candidates.add(funcLower + "_events");
             }
-        }
-
-        for (String b : bases) {
-            candidates.add(b);
         }
 
         if (filterNode != null && !filterNode.isNull() && !filterNode.isMissingNode()) {
             List<String> filterSuffixes = new ArrayList<>();
             extractFilterSuffixes(filterNode, filterSuffixes);
 
-            for (String b : bases) {
+            int baseCount = candidates.size();
+            for (int i = 0; i < baseCount; i++) {
+                String base = candidates.get(i);
                 for (String suffix : filterSuffixes) {
-                    candidates.add(0, b + "_where_" + suffix);
+                    candidates.add(0, base + "_where_" + suffix);
                 }
             }
         }

@@ -43,6 +43,7 @@ public class RingBufferRuleProcessFunction extends KeyedBroadcastProcessFunction
     private transient MapState<String, Long> ruleCooldownMapState;
     private transient Map<String, RuleDefinition> parsedRuleCache;
     private transient Set<String> cachedGlobalActiveMetricIds;
+    private transient Map<Integer, Bucket> bucketReadCache;
     private transient org.apache.flink.runtime.metrics.DescriptiveStatisticsHistogram pipelineLatencyHistogram;
     private transient org.apache.flink.runtime.metrics.DescriptiveStatisticsHistogram eventTimeLagHistogram;
 
@@ -230,18 +231,25 @@ public class RingBufferRuleProcessFunction extends KeyedBroadcastProcessFunction
             String entityId = ctx.getCurrentKey();
             long now = System.currentTimeMillis();
 
+            String eventType = null;
+            if (eventNode.has("event_type")) {
+                eventType = eventNode.get("event_type").asText();
+            } else if (eventNode.has("eventType")) {
+                eventType = eventNode.get("eventType").asText();
+            } else if (eventNode.has("action")) {
+                eventType = eventNode.get("action").asText();
+            }
+
+            if (bucketReadCache == null) {
+                bucketReadCache = new HashMap<>();
+            } else {
+                bucketReadCache.clear();
+            }
+            bucketReadCache.put(slot, bucket);
+
             for (RuleDefinition rule : activeRules.values()) {
                 if (!rule.isEnabled()) {
                     continue;
-                }
-
-                String eventType = null;
-                if (eventNode.has("event_type")) {
-                    eventType = eventNode.get("event_type").asText();
-                } else if (eventNode.has("eventType")) {
-                    eventType = eventNode.get("eventType").asText();
-                } else if (eventNode.has("action")) {
-                    eventType = eventNode.get("action").asText();
                 }
 
                 if (!rule.matchesTriggerEvent(eventType)) {
@@ -260,7 +268,7 @@ public class RingBufferRuleProcessFunction extends KeyedBroadcastProcessFunction
                     }
                 }
 
-                boolean satisfied = RuleEvaluator.evaluateRule(rule, eventNode, eventTimeMs, ringBufferMapState);
+                boolean satisfied = RuleEvaluator.evaluateRule(rule, eventNode, eventTimeMs, ringBufferMapState, bucketReadCache);
                 if (satisfied) {
                     ruleCooldownMapState.put(rule.getRuleId(), eventTimeMs);
 
