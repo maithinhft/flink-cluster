@@ -1,10 +1,12 @@
-docker exec kafka /opt/kafka/bin/kafka-topics.sh \
-  --bootstrap-server kafka:29092 \
+docker compose exec kafka-plain /opt/kafka/bin/kafka-topics.sh \
+  --bootstrap-server kafka-plain:29092 \
+  --command-config /etc/kafka/secrets/client.properties \
   --topic result \
   --delete
   
-docker exec kafka /opt/kafka/bin/kafka-topics.sh \
-  --bootstrap-server kafka:29092 \
+docker compose exec kafka-plain /opt/kafka/bin/kafka-topics.sh \
+  --bootstrap-server kafka-plain:29092 \
+  --command-config /etc/kafka/secrets/client.properties \
   --topic result \
   --create \
   --if-not-exists \

@@ -3,7 +3,7 @@
 set -e
 
 echo "Starting Docker Compose..."
-docker compose up -d
+docker compose up -d --remove-orphans
 
 echo "Waiting for containers to become healthy..."
 
@@ -25,7 +25,7 @@ echo "All services are ready!"
 echo "Running setup kafka topic"
 ./scripts/create-kafka-topics.sh
 echo "Running setup kafka connector"
-./scripts/register-connector.sh
+./scripts/register-all-connectors.sh
 
 echo "Running setup schema topic"
 cd ./data-generator

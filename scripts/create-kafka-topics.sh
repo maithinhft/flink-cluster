@@ -27,7 +27,7 @@ for item in "${PLAIN_TOPICS[@]}"; do
   PARTITIONS="${item##*:}"
   echo "👉 Tạo topic '$TOPIC' ($PARTITIONS partitions)..."
   docker compose exec kafka-plain /opt/kafka/bin/kafka-topics.sh \
-    --bootstrap-server localhost:9092 \
+    --bootstrap-server kafka-plain:29092 \
     --command-config /etc/kafka/secrets/client.properties \
     --topic "$TOPIC" \
     --create \
