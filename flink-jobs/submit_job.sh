@@ -44,7 +44,11 @@ echo "[INFO] Uploaded successfully. JAR ID: $JAR_ID"
 
 # 4. Kích hoạt chạy Job
 echo "[INFO] Submitting job to Flink..."
-RUN_RESPONSE=$(curl -s -X POST "$FLINK_URL/jars/${JAR_ID}/run?parallelism=4&entry-class=flink.RealtimeCepJob&programArgs=--bootstrap.servers%20kafka:29092%20--schema.topic%20schema_registry%20--parallelism%204")
+PROGRAM_ARGS="--schema.cluster gssapi --rule.cluster plain --events.cluster plain --result.cluster plain --dlq.cluster plain --schema.topic schema_registry --parallelism 4"
+
+RUN_RESPONSE=$(curl -s -X POST -H "Content-Type: application/json" \
+  -d "{\"entryClass\":\"flink.RealtimeCepJob\",\"parallelism\":4,\"programArgs\":\"${PROGRAM_ARGS}\"}" \
+  "$FLINK_URL/jars/${JAR_ID}/run")
 
 echo "[INFO] Response: $RUN_RESPONSE"
 JOB_ID=$(echo "$RUN_RESPONSE" | grep -o '"jobid":"[^"]*' | cut -d'"' -f4)

@@ -408,6 +408,7 @@ services:
 
     volumes:
       - flink-checkpoints:/opt/flink/checkpoints
+      - kerberos-keytabs:/var/lib/secret:ro
 
     environment:
       - |
@@ -415,6 +416,8 @@ services:
         jobmanager.rpc.address: jobmanager
 
         jobmanager.memory.process.size: 2048m
+
+        env.java.opts.all: "-Djava.security.krb5.conf=/var/lib/secret/krb5.conf"
 
         metrics.reporter.prom.factory.class: org.apache.flink.metrics.prometheus.PrometheusReporterFactory
         metrics.reporter.prom.port: 9249
@@ -433,6 +436,10 @@ services:
 
     depends_on:
       kafka-plain:
+        condition: service_healthy
+      kafka-gssapi:
+        condition: service_healthy
+      kdc:
         condition: service_healthy
 
     networks:
@@ -464,6 +471,7 @@ services:
 
     volumes:
       - flink-checkpoints:/opt/flink/checkpoints
+      - kerberos-keytabs:/var/lib/secret:ro
 
     environment:
       - |
@@ -473,6 +481,8 @@ services:
         taskmanager.numberOfTaskSlots: 2
 
         taskmanager.memory.process.size: 4096m
+
+        env.java.opts.all: "-Djava.security.krb5.conf=/var/lib/secret/krb5.conf"
 
         metrics.reporter.prom.factory.class: org.apache.flink.metrics.prometheus.PrometheusReporterFactory
         metrics.reporter.prom.port: 9249
@@ -515,6 +525,7 @@ services:
 
     volumes:
       - flink-checkpoints:/opt/flink/checkpoints
+      - kerberos-keytabs:/var/lib/secret:ro
 
     environment:
       - |
@@ -524,6 +535,8 @@ services:
         taskmanager.numberOfTaskSlots: 2
 
         taskmanager.memory.process.size: 4096m
+
+        env.java.opts.all: "-Djava.security.krb5.conf=/var/lib/secret/krb5.conf"
 
         metrics.reporter.prom.factory.class: org.apache.flink.metrics.prometheus.PrometheusReporterFactory
         metrics.reporter.prom.port: 9249

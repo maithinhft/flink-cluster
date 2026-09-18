@@ -1,5 +1,6 @@
 package flink;
 
+import flink.config.KafkaClusterConfig;
 import flink.operators.DynamicSchemaValidationFunction;
 import flink.operators.RingBufferRuleProcessFunction;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
@@ -21,6 +22,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Properties;
 
 public class RealtimeCepJob {
     private static final Logger LOG = LoggerFactory.getLogger(RealtimeCepJob.class);
@@ -37,7 +39,6 @@ public class RealtimeCepJob {
         env.setParallelism(parallelism);
         env.getConfig().setLatencyTrackingInterval(parameters.getLong("latency.tracking.interval", 5000));
 
-        String bootstrapServers = parameters.get("bootstrap.servers", "kafka:29092");
         String schemaTopic = parameters.get("schema.topic", "schema_registry");
         String ruleTopic = parameters.get("rule.topic", "rule_definitions");
         String eventsTopicPattern = parameters.get("events.topic.pattern", "events_.*");
@@ -50,19 +51,35 @@ public class RealtimeCepJob {
             env.configure(config);
         }
 
-        LOG.info("Kafka Bootstrap Servers: {}", bootstrapServers);
-        LOG.info("Schema Topic: {}", schemaTopic);
-        LOG.info("Rule Topic: {}", ruleTopic);
-        LOG.info("Events Topic Pattern: {}", eventsTopicPattern);
-        LOG.info("Result Topic: {}", resultTopic);
-        LOG.info("DLQ Topic: {}", dlqTopic);
+        // Cấu hình kết nối cho từng cụm Kafka (mặc định schema từ GSSAPI, còn lại từ PLAIN)
+        String schemaBootstrap = KafkaClusterConfig.getBootstrapServers(parameters, "schema", KafkaClusterConfig.CLUSTER_GSSAPI);
+        Properties schemaProps = KafkaClusterConfig.getConsumerProperties(parameters, "schema", KafkaClusterConfig.CLUSTER_GSSAPI);
+
+        String ruleBootstrap = KafkaClusterConfig.getBootstrapServers(parameters, "rule", KafkaClusterConfig.CLUSTER_PLAIN);
+        Properties ruleProps = KafkaClusterConfig.getConsumerProperties(parameters, "rule", KafkaClusterConfig.CLUSTER_PLAIN);
+
+        String eventsBootstrap = KafkaClusterConfig.getBootstrapServers(parameters, "events", KafkaClusterConfig.CLUSTER_PLAIN);
+        Properties eventsProps = KafkaClusterConfig.getConsumerProperties(parameters, "events", KafkaClusterConfig.CLUSTER_PLAIN);
+
+        String resultBootstrap = KafkaClusterConfig.getBootstrapServers(parameters, "result", KafkaClusterConfig.CLUSTER_PLAIN);
+        Properties resultProps = KafkaClusterConfig.getProducerProperties(parameters, "result", KafkaClusterConfig.CLUSTER_PLAIN);
+
+        String dlqBootstrap = KafkaClusterConfig.getBootstrapServers(parameters, "dlq", KafkaClusterConfig.CLUSTER_PLAIN);
+        Properties dlqProps = KafkaClusterConfig.getProducerProperties(parameters, "dlq", KafkaClusterConfig.CLUSTER_PLAIN);
+
+        LOG.info("Schema Source -> Bootstrap: {}, Topic: {}", schemaBootstrap, schemaTopic);
+        LOG.info("Rule Source -> Bootstrap: {}, Topic: {}", ruleBootstrap, ruleTopic);
+        LOG.info("Events Source -> Bootstrap: {}, Topic Pattern: {}", eventsBootstrap, eventsTopicPattern);
+        LOG.info("Result Sink -> Bootstrap: {}, Topic: {}", resultBootstrap, resultTopic);
+        LOG.info("DLQ Sink -> Bootstrap: {}, Topic: {}", dlqBootstrap, dlqTopic);
 
         KafkaSource<String> schemaSource = KafkaSource.<String>builder()
-                .setBootstrapServers(bootstrapServers)
+                .setBootstrapServers(schemaBootstrap)
                 .setTopics(schemaTopic)
                 .setGroupId("flink-schema-group")
                 .setStartingOffsets(OffsetsInitializer.earliest())
                 .setValueOnlyDeserializer(new SimpleStringSchema())
+                .setProperties(schemaProps)
                 .build();
 
         DataStream<String> schemaStream = env.fromSource(
@@ -77,11 +94,12 @@ public class RealtimeCepJob {
                         DynamicSchemaValidationFunction.DEPRECATED_SCHEMAS_DESCRIPTOR);
 
         KafkaSource<String> ruleSource = KafkaSource.<String>builder()
-                .setBootstrapServers(bootstrapServers)
+                .setBootstrapServers(ruleBootstrap)
                 .setTopics(ruleTopic)
                 .setGroupId("flink-rule-group")
                 .setStartingOffsets(OffsetsInitializer.earliest())
                 .setValueOnlyDeserializer(new SimpleStringSchema())
+                .setProperties(ruleProps)
                 .build();
 
         DataStream<String> ruleStream = env.fromSource(
@@ -112,12 +130,13 @@ public class RealtimeCepJob {
                 .withIdleness(Duration.ofMinutes(1));
 
         KafkaSource<String> eventSource = KafkaSource.<String>builder()
-                .setBootstrapServers(bootstrapServers)
+                .setBootstrapServers(eventsBootstrap)
                 .setTopicPattern(java.util.regex.Pattern.compile(eventsTopicPattern))
                 .setGroupId("flink-event-validation-group")
                 .setProperty("partition.discovery.interval.ms", "60000")
                 .setStartingOffsets(OffsetsInitializer.earliest())
                 .setValueOnlyDeserializer(new SimpleStringSchema())
+                .setProperties(eventsProps)
                 .build();
 
         DataStream<String> eventStream = env.fromSource(
@@ -131,23 +150,25 @@ public class RealtimeCepJob {
                 .name("Dynamic Schema Validation Operator");
 
         KafkaSink<String> resultSink = KafkaSink.<String>builder()
-                .setBootstrapServers(bootstrapServers)
+                .setBootstrapServers(resultBootstrap)
                 .setRecordSerializer(
                         KafkaRecordSerializationSchema.builder()
                                 .setTopic(resultTopic)
                                 .setValueSerializationSchema(new SimpleStringSchema())
                                 .build())
                 .setDeliveryGuarantee(DeliveryGuarantee.AT_LEAST_ONCE)
+                .setKafkaProducerConfig(resultProps)
                 .build();
 
         KafkaSink<String> dlqSink = KafkaSink.<String>builder()
-                .setBootstrapServers(bootstrapServers)
+                .setBootstrapServers(dlqBootstrap)
                 .setRecordSerializer(
                         KafkaRecordSerializationSchema.builder()
                                 .setTopic(dlqTopic)
                                 .setValueSerializationSchema(new SimpleStringSchema())
                                 .build())
                 .setDeliveryGuarantee(DeliveryGuarantee.AT_LEAST_ONCE)
+                .setKafkaProducerConfig(dlqProps)
                 .build();
 
         DataStream<String> dirtyEventsStream = cleanEventsStream
