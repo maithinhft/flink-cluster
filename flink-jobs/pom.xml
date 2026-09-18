@@ -95,6 +95,13 @@
             <version>1.2.11</version>
         </dependency>
 
+        <!-- PostgreSQL JDBC Driver for Dynamic Metadata Discovery -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.7.7</version>
+        </dependency>
+
         <!-- ===================================================== -->
         <!-- Testing -->
         <!-- ===================================================== -->

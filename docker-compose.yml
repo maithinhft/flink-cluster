@@ -435,6 +435,8 @@ services:
         state.savepoints.dir: file:///opt/flink/checkpoints/savepoints
 
     depends_on:
+      postgres:
+        condition: service_healthy
       kafka-plain:
         condition: service_healthy
       kafka-gssapi:
