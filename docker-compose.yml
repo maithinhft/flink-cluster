@@ -417,7 +417,7 @@ services:
 
         jobmanager.memory.process.size: 2048m
 
-        env.java.opts.all: -Djava.security.krb5.conf=/var/lib/secret/krb5.conf
+        env.java.opts.jobmanager: -Djava.security.krb5.conf=/var/lib/secret/krb5.conf
 
         metrics.reporter.prom.factory.class: org.apache.flink.metrics.prometheus.PrometheusReporterFactory
         metrics.reporter.prom.port: 9249
@@ -484,7 +484,7 @@ services:
 
         taskmanager.memory.process.size: 4096m
 
-        env.java.opts.all: -Djava.security.krb5.conf=/var/lib/secret/krb5.conf
+        env.java.opts.taskmanager: -Djava.security.krb5.conf=/var/lib/secret/krb5.conf
 
         metrics.reporter.prom.factory.class: org.apache.flink.metrics.prometheus.PrometheusReporterFactory
         metrics.reporter.prom.port: 9249
@@ -538,7 +538,7 @@ services:
 
         taskmanager.memory.process.size: 4096m
 
-        env.java.opts.all: -Djava.security.krb5.conf=/var/lib/secret/krb5.conf
+        env.java.opts.taskmanager: -Djava.security.krb5.conf=/var/lib/secret/krb5.conf
 
         metrics.reporter.prom.factory.class: org.apache.flink.metrics.prometheus.PrometheusReporterFactory
         metrics.reporter.prom.port: 9249
