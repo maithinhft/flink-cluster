@@ -54,13 +54,33 @@ services:
     ports:
       - "${KAFKA_UI_PORT:-8080}:8080"
     environment:
-      KAFKA_CLUSTERS_0_NAME: flink-cluster
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
-      KAFKA_CLUSTERS_0_KAFKACONNECT_0_NAME: debezium-connect
-      KAFKA_CLUSTERS_0_KAFKACONNECT_0_ADDRESS: http://kafka-connect:${CONNECT_PORT:-8083}
-      DYNAMIC_CONFIG_ENABLED: true
+      DYNAMIC_CONFIG_ENABLED: "true"
+      JAVA_OPTS: "-Djava.security.krb5.conf=/var/lib/secret/krb5.conf"
+
+      # Cluster 0: kafka-plain (SASL_PLAINTEXT / PLAIN)
+      KAFKA_CLUSTERS_0_NAME: kafka-plain
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka-plain:29092
+      KAFKA_CLUSTERS_0_PROPERTIES_SECURITY_PROTOCOL: SASL_PLAINTEXT
+      KAFKA_CLUSTERS_0_PROPERTIES_SASL_MECHANISM: PLAIN
+      KAFKA_CLUSTERS_0_PROPERTIES_SASL_JAAS_CONFIG: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="admin" password="admin-secret";'
+      KAFKA_CLUSTERS_0_KAFKACONNECT_0_NAME: debezium-connect-plain
+      KAFKA_CLUSTERS_0_KAFKACONNECT_0_ADDRESS: http://kafka-connect-plain:8083
+
+      # Cluster 1: kafka-gssapi (SASL_PLAINTEXT / GSSAPI)
+      KAFKA_CLUSTERS_1_NAME: kafka-gssapi
+      KAFKA_CLUSTERS_1_BOOTSTRAPSERVERS: kafka-gssapi:29094
+      KAFKA_CLUSTERS_1_PROPERTIES_SECURITY_PROTOCOL: SASL_PLAINTEXT
+      KAFKA_CLUSTERS_1_PROPERTIES_SASL_MECHANISM: GSSAPI
+      KAFKA_CLUSTERS_1_PROPERTIES_SASL_KERBEROS_SERVICE_NAME: kafka
+      KAFKA_CLUSTERS_1_PROPERTIES_SASL_JAAS_CONFIG: 'com.sun.security.auth.module.Krb5LoginModule required useKeyTab=true storeKey=true keyTab="/var/lib/secret/client.keytab" principal="client@${KRB5_REALM:-EXAMPLE.COM}";'
+      KAFKA_CLUSTERS_1_KAFKACONNECT_0_NAME: debezium-connect-gssapi
+      KAFKA_CLUSTERS_1_KAFKACONNECT_0_ADDRESS: http://kafka-connect-gssapi:8083
+    volumes:
+      - kerberos-keytabs:/var/lib/secret:ro
     depends_on:
       kafka-plain:
+        condition: service_healthy
+      kafka-gssapi:
         condition: service_healthy
     networks:
       - cluster-network
@@ -233,16 +253,16 @@ services:
 
 
   # ============================================================
-  # Kafka Connect + Debezium
+  # Kafka Connect 1 (for kafka-plain / rule_definitions CDC)
   # ============================================================
 
-  kafka-connect:
+  kafka-connect-plain:
     image: quay.io/debezium/connect:3.0
-    container_name: kafka-connect
-    hostname: kafka-connect
+    container_name: kafka-connect-plain
+    hostname: kafka-connect-plain
 
     ports:
-      - "8083:8083"
+      - "${CONNECT_PLAIN_PORT:-8083}:8083"
 
     depends_on:
       kafka-plain:
@@ -251,14 +271,12 @@ services:
         condition: service_healthy
 
     environment:
+      BOOTSTRAP_SERVERS: kafka-plain:29092
+      GROUP_ID: connect-plain-group
 
-      BOOTSTRAP_SERVERS: kafka:29092
-
-      GROUP_ID: 1
-
-      CONFIG_STORAGE_TOPIC: connect-configs
-      OFFSET_STORAGE_TOPIC: connect-offsets
-      STATUS_STORAGE_TOPIC: connect-status
+      CONFIG_STORAGE_TOPIC: connect-plain-configs
+      OFFSET_STORAGE_TOPIC: connect-plain-offsets
+      STATUS_STORAGE_TOPIC: connect-plain-status
 
       CONFIG_STORAGE_REPLICATION_FACTOR: 1
       OFFSET_STORAGE_REPLICATION_FACTOR: 1
@@ -270,10 +288,101 @@ services:
       KEY_CONVERTER_SCHEMAS_ENABLE: "false"
       VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
 
-      REST_ADVERTISED_HOST_NAME: kafka-connect
+      REST_ADVERTISED_HOST_NAME: kafka-connect-plain
+
+      # SASL_PLAINTEXT / PLAIN Security Config
+      CONNECT_SECURITY_PROTOCOL: SASL_PLAINTEXT
+      CONNECT_SASL_MECHANISM: PLAIN
+      CONNECT_SASL_JAAS_CONFIG: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="admin" password="admin-secret";'
+
+      CONNECT_PRODUCER_SECURITY_PROTOCOL: SASL_PLAINTEXT
+      CONNECT_PRODUCER_SASL_MECHANISM: PLAIN
+      CONNECT_PRODUCER_SASL_JAAS_CONFIG: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="admin" password="admin-secret";'
+
+      CONNECT_CONSUMER_SECURITY_PROTOCOL: SASL_PLAINTEXT
+      CONNECT_CONSUMER_SASL_MECHANISM: PLAIN
+      CONNECT_CONSUMER_SASL_JAAS_CONFIG: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="admin" password="admin-secret";'
+
+      CONNECT_ADMIN_SECURITY_PROTOCOL: SASL_PLAINTEXT
+      CONNECT_ADMIN_SASL_MECHANISM: PLAIN
+      CONNECT_ADMIN_SASL_JAAS_CONFIG: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="admin" password="admin-secret";'
+
+    networks:
+      cluster-network:
+        aliases:
+          - kafka-connect
+    restart: unless-stopped
+
+
+  # ============================================================
+  # Kafka Connect 2 (for kafka-gssapi / schema_definitions CDC)
+  # ============================================================
+
+  kafka-connect-gssapi:
+    image: quay.io/debezium/connect:3.0
+    container_name: kafka-connect-gssapi
+    hostname: kafka-connect-gssapi
+
+    ports:
+      - "${CONNECT_GSSAPI_PORT:-8084}:8083"
+
+    depends_on:
+      kafka-gssapi:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      kdc:
+        condition: service_healthy
+
+    environment:
+      BOOTSTRAP_SERVERS: kafka-gssapi:29094
+      GROUP_ID: connect-gssapi-group
+
+      CONFIG_STORAGE_TOPIC: connect-gssapi-configs
+      OFFSET_STORAGE_TOPIC: connect-gssapi-offsets
+      STATUS_STORAGE_TOPIC: connect-gssapi-status
+
+      CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      STATUS_STORAGE_REPLICATION_FACTOR: 1
+
+      KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+
+      KEY_CONVERTER_SCHEMAS_ENABLE: "false"
+      VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+
+      REST_ADVERTISED_HOST_NAME: kafka-connect-gssapi
+
+      # SASL_PLAINTEXT / GSSAPI (Kerberos) Security Config
+      CONNECT_SECURITY_PROTOCOL: SASL_PLAINTEXT
+      CONNECT_SASL_MECHANISM: GSSAPI
+      CONNECT_SASL_KERBEROS_SERVICE_NAME: kafka
+      CONNECT_SASL_JAAS_CONFIG: 'com.sun.security.auth.module.Krb5LoginModule required useKeyTab=true storeKey=true keyTab="/var/lib/secret/client.keytab" principal="client@${KRB5_REALM:-EXAMPLE.COM}";'
+
+      CONNECT_PRODUCER_SECURITY_PROTOCOL: SASL_PLAINTEXT
+      CONNECT_PRODUCER_SASL_MECHANISM: GSSAPI
+      CONNECT_PRODUCER_SASL_KERBEROS_SERVICE_NAME: kafka
+      CONNECT_PRODUCER_SASL_JAAS_CONFIG: 'com.sun.security.auth.module.Krb5LoginModule required useKeyTab=true storeKey=true keyTab="/var/lib/secret/client.keytab" principal="client@${KRB5_REALM:-EXAMPLE.COM}";'
+
+      CONNECT_CONSUMER_SECURITY_PROTOCOL: SASL_PLAINTEXT
+      CONNECT_CONSUMER_SASL_MECHANISM: GSSAPI
+      CONNECT_CONSUMER_SASL_KERBEROS_SERVICE_NAME: kafka
+      CONNECT_CONSUMER_SASL_JAAS_CONFIG: 'com.sun.security.auth.module.Krb5LoginModule required useKeyTab=true storeKey=true keyTab="/var/lib/secret/client.keytab" principal="client@${KRB5_REALM:-EXAMPLE.COM}";'
+
+      CONNECT_ADMIN_SECURITY_PROTOCOL: SASL_PLAINTEXT
+      CONNECT_ADMIN_SASL_MECHANISM: GSSAPI
+      CONNECT_ADMIN_SASL_KERBEROS_SERVICE_NAME: kafka
+      CONNECT_ADMIN_SASL_JAAS_CONFIG: 'com.sun.security.auth.module.Krb5LoginModule required useKeyTab=true storeKey=true keyTab="/var/lib/secret/client.keytab" principal="client@${KRB5_REALM:-EXAMPLE.COM}";'
+
+      KAFKA_OPTS: "-Djava.security.krb5.conf=/var/lib/secret/krb5.conf"
+
+    volumes:
+      - kerberos-keytabs:/var/lib/secret:ro
 
     networks:
       - cluster-network
+    restart: unless-stopped
 
 
   # ============================================================

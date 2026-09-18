@@ -20,6 +20,8 @@ cat << EOF > /var/lib/secret/krb5.conf
     default_realm = ${REALM}
     dns_lookup_realm = false
     dns_lookup_kdc = false
+    dns_canonicalize_hostname = false
+    rdns = false
     ticket_lifetime = 24h
     renew_lifetime = 7d
     forwardable = true
@@ -59,6 +61,7 @@ add_principal() {
 echo "Adding Kerberos principals..."
 add_principal "kafka/kafka-gssapi@${REALM}"
 add_principal "kafka/localhost@${REALM}"
+add_principal "kafka/kafka-gssapi.flink-cluster_cluster-network@${REALM}"
 if [ "${SERVER_IP}" != "localhost" ] && [ "${SERVER_IP}" != "127.0.0.1" ]; then
     add_principal "kafka/${SERVER_IP}@${REALM}"
 fi
@@ -71,6 +74,7 @@ rm -f /var/lib/secret/kafka.keytab /var/lib/secret/client.keytab
 
 kadmin.local -q "ktadd -k /var/lib/secret/kafka.keytab kafka/kafka-gssapi@${REALM}"
 kadmin.local -q "ktadd -k /var/lib/secret/kafka.keytab kafka/localhost@${REALM}"
+kadmin.local -q "ktadd -k /var/lib/secret/kafka.keytab kafka/kafka-gssapi.flink-cluster_cluster-network@${REALM}"
 if [ "${SERVER_IP}" != "localhost" ] && [ "${SERVER_IP}" != "127.0.0.1" ]; then
     kadmin.local -q "ktadd -k /var/lib/secret/kafka.keytab kafka/${SERVER_IP}@${REALM}"
 fi
