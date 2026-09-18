@@ -35,18 +35,7 @@ public class EventWorker implements Runnable {
     public void run() {
         KafkaProducer<String, byte[]> producer = null;
         try {
-            Properties props = new Properties();
-            props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, config.bootstrapServers);
-            props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
-                    "org.apache.kafka.common.serialization.StringSerializer");
-            props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
-                    "org.apache.kafka.common.serialization.ByteArraySerializer");
-            props.put(ProducerConfig.ACKS_CONFIG, "1");
-            props.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, "lz4");
-            props.put(ProducerConfig.BATCH_SIZE_CONFIG, 1024 * 1024);
-            props.put(ProducerConfig.LINGER_MS_CONFIG, 5);
-            props.put(ProducerConfig.BUFFER_MEMORY_CONFIG, 64 * 1024 * 1024L);
-
+            Properties props = config.getProducerProperties();
             producer = new KafkaProducer<>(props);
             ObjectMapper mapper = new ObjectMapper();
             Random random = new Random(12345L + workerId);

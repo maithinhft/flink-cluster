@@ -59,7 +59,11 @@ mvn exec:java -Dexec.mainClass=generator.schema.SchemaPublisherApp -Dexec.args="
 
 * Sinh các Event
 ```
+# Mặc định gửi vào cụm kafka-plain (SASL_PLAINTEXT / PLAIN: admin/admin-secret, port 9092)
 mvn exec:java -Dexec.mainClass=generator.events.EventGeneratorApp -Dexec.args="--num-events 100"
+
+# Hoặc nếu muốn gửi vào cụm kafka-gssapi (port 9094):
+# mvn exec:java -Dexec.mainClass=generator.events.EventGeneratorApp -Dexec.args="--cluster gssapi --num-events 100"
 ```
 
 * Sinh các Rule
@@ -69,20 +73,36 @@ mvn exec:java -Dexec.mainClass=generator.rules.RuleGeneratorApp -Dexec.args="--n
 
 * Kiểm tra 1 topic trên Kafka
 ```
+# Đọc topic trên cụm kafka-plain (mặc định cho events_*, rule_definitions, result, dlq)
 mvn exec:java -Dexec.classpathScope=test -Dexec.mainClass="generator.common.KafkaConsumerApp" -Dexec.args="--topic events_ecommerce --max 5"
+
+# Đọc topic trên cụm kafka-gssapi (mặc định khi --topic schema_registry hoặc --cluster gssapi)
+mvn exec:java -Dexec.classpathScope=test -Dexec.mainClass="generator.common.KafkaConsumerApp" -Dexec.args="--topic schema_registry --max 5"
 ```
 **Note:** nên chạy trên server để tránh tình trạng mất gói tin dẫn đến java bị treo
 
 
 # Submit flink job
-* submit file jar
+* Submit tự động qua script (khuyên dùng):
+```bash
+./flink-jobs/submit_job.sh
 ```
-docker cp target/flink-jobs-1.0-SNAPSHOT.jar flink-jobmanager:/tmp/
+
+* Hoặc submit thủ công:
+```bash
+docker cp flink-jobs/target/flink-jobs-1.0-SNAPSHOT.jar flink-jobmanager:/tmp/
 
 docker exec -it flink-jobmanager \
     ./bin/flink run \
     -m jobmanager:8081 \
-    /tmp/flink-jobs-1.0-SNAPSHOT.jar --bootstrap.servers kafka:29092 --events.topic.pattern "events_.*" --schema.topic schema_registry --rule.topic rule_definitions
+    /tmp/flink-jobs-1.0-SNAPSHOT.jar \
+    --schema.cluster gssapi \
+    --rule.cluster plain \
+    --events.cluster plain \
+    --result.cluster plain \
+    --dlq.cluster plain \
+    --schema.topic schema_registry \
+    --parallelism 4
 ```
 
 # Monitoring (Prometheus & Grafana)

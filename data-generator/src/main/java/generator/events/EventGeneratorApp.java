@@ -18,8 +18,11 @@ public class EventGeneratorApp {
         System.out.println("======================================================================");
         System.out.println("High Throughput Multi-Source Event Generator");
         System.out.println("======================================================================");
-        System.out.printf("Kafka             : %s%n", config.bootstrapServers);
-        System.out.printf("Topic             : %s%n", config.topic);
+        System.out.printf("Kafka Cluster     : %s%n", config.cluster.toUpperCase());
+        System.out.printf("Kafka Bootstrap   : %s%n", config.bootstrapServers);
+        System.out.printf("Security Protocol : %s%n", config.getEffectiveSecurityProtocol());
+        System.out.printf("SASL Mechanism    : %s%n", config.getEffectiveSaslMechanism());
+        System.out.printf("Topic Prefix      : %s%n", config.topic);
         System.out.printf("Events            : %s%n", config.continuous ? "Continuous" : String.format("%,d", config.numEvents));
         if (config.startTime != null) {
             System.out.printf("Start time        : %s%n", config.startTime);

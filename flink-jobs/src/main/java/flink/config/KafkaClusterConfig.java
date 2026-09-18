@@ -69,7 +69,7 @@ public class KafkaClusterConfig {
                     params.get("kafka.gssapi.principal", "client@EXAMPLE.COM"));
 
             String defaultJaas = String.format(
-                    "com.sun.security.auth.module.Krb5LoginModule required useKeyTab=true storeKey=true keyTab=\"%s\" principal=\"%s\";",
+                    "com.sun.security.auth.module.Krb5LoginModule required useKeyTab=true storeKey=true doNotPrompt=true keyTab=\"%s\" principal=\"%s\";",
                     keytab, principal
             );
             props.setProperty("sasl.jaas.config", params.get(streamPrefix + ".sasl.jaas.config",
