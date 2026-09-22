@@ -22,10 +22,10 @@ public class EventGeneratorApp {
         boolean isDual = "dual".equalsIgnoreCase(config.cluster) || "multi".equalsIgnoreCase(config.cluster);
         if (isDual) {
             System.out.printf("Cluster Mode      : DUAL (Multi-Cluster Routing)%n");
-            System.out.printf("  -> CRM Events   : %s (Topic: %s_crm, SASL_PLAINTEXT / GSSAPI Kerberos)%n",
-                    config.gssapiBootstrapServers, config.topic);
-            System.out.printf("  -> Ecom/Payment : %s (Topic: %s_ecommerce, %s_payment, SASL_PLAINTEXT / PLAIN)%n",
-                    config.plainBootstrapServers, config.topic, config.topic);
+            System.out.printf("  -> CRM Events   : %s (Topic: %s, SASL_PLAINTEXT / GSSAPI Kerberos)%n",
+                    config.gssapiBootstrapServers, config.crmTopic);
+            System.out.printf("  -> Ecom/Payment : %s (Topics: %s, %s, SASL_PLAINTEXT / PLAIN)%n",
+                    config.plainBootstrapServers, config.ecommerceTopic, config.paymentTopic);
             System.out.printf("Keytab Path       : %s%n", config.getResolvedKeytab());
             System.out.printf("Kerberos Config   : %s%n", config.getResolvedKrb5Conf());
         } else {
@@ -80,9 +80,9 @@ public class EventGeneratorApp {
         System.out.println("======================================================================");
         System.out.printf("Total events sent  : %,d%n", totalSent.get());
         if (isDual) {
-            System.out.printf("  - CRM (GSSAPI)   : %,d -> %s_crm%n", crmSent.get(), config.topic);
-            System.out.printf("  - Ecommerce (PLAIN): %,d -> %s_ecommerce%n", ecommerceSent.get(), config.topic);
-            System.out.printf("  - Payment (PLAIN): %,d -> %s_payment%n", paymentSent.get(), config.topic);
+            System.out.printf("  - CRM (GSSAPI)   : %,d -> %s%n", crmSent.get(), config.crmTopic);
+            System.out.printf("  - Ecommerce (PLAIN): %,d -> %s%n", ecommerceSent.get(), config.ecommerceTopic);
+            System.out.printf("  - Payment (PLAIN): %,d -> %s%n", paymentSent.get(), config.paymentTopic);
         }
         System.out.printf("Elapsed            : %.2f s%n", elapsed);
         System.out.printf("Kafka throughput   : %,.0f events/sec%n", throughput);

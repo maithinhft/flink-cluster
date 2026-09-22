@@ -73,29 +73,58 @@ public class EventWorker implements Runnable {
                 byte[] json = mapper.writeValueAsBytes(event);
 
                 String sourceSystem = (String) event.get("source_system");
-                String topicName = config.topic + "_" + sourceSystem;
-                ProducerRecord<String, byte[]> record = new ProducerRecord<>(topicName, entityId, json);
+                String targetTopic;
+                if ("crm".equalsIgnoreCase(sourceSystem)) {
+                    targetTopic = config.crmTopic;
+                } else if ("ecommerce".equalsIgnoreCase(sourceSystem)) {
+                    targetTopic = config.ecommerceTopic;
+                } else if ("payment".equalsIgnoreCase(sourceSystem)) {
+                    targetTopic = config.paymentTopic;
+                } else {
+                    targetTopic = config.topic + "_" + sourceSystem;
+                }
+                ProducerRecord<String, byte[]> record = new ProducerRecord<>(targetTopic, entityId, json);
 
                 if (isDual) {
                     if ("crm".equalsIgnoreCase(sourceSystem)) {
-                        gssapiProducer.send(record);
+                        gssapiProducer.send(record, (metadata, exception) -> {
+                            if (exception != null) {
+                                System.err.printf("[Worker %d] Error sending to %s: %s%n", workerId, targetTopic, exception.getMessage());
+                            }
+                        });
                         workerCrm++;
                     } else if ("ecommerce".equalsIgnoreCase(sourceSystem)) {
-                        plainProducer.send(record);
+                        plainProducer.send(record, (metadata, exception) -> {
+                            if (exception != null) {
+                                System.err.printf("[Worker %d] Error sending to %s: %s%n", workerId, targetTopic, exception.getMessage());
+                            }
+                        });
                         workerEcom++;
                     } else if ("payment".equalsIgnoreCase(sourceSystem)) {
-                        plainProducer.send(record);
+                        plainProducer.send(record, (metadata, exception) -> {
+                            if (exception != null) {
+                                System.err.printf("[Worker %d] Error sending to %s: %s%n", workerId, targetTopic, exception.getMessage());
+                            }
+                        });
                         workerPayment++;
                     } else {
                         plainProducer.send(record);
                     }
                 } else if ("gssapi".equalsIgnoreCase(config.cluster)) {
-                    gssapiProducer.send(record);
+                    gssapiProducer.send(record, (metadata, exception) -> {
+                        if (exception != null) {
+                            System.err.printf("[Worker %d] Error sending to %s: %s%n", workerId, targetTopic, exception.getMessage());
+                        }
+                    });
                     if ("crm".equalsIgnoreCase(sourceSystem)) workerCrm++;
                     else if ("ecommerce".equalsIgnoreCase(sourceSystem)) workerEcom++;
                     else if ("payment".equalsIgnoreCase(sourceSystem)) workerPayment++;
                 } else {
-                    plainProducer.send(record);
+                    plainProducer.send(record, (metadata, exception) -> {
+                        if (exception != null) {
+                            System.err.printf("[Worker %d] Error sending to %s: %s%n", workerId, targetTopic, exception.getMessage());
+                        }
+                    });
                     if ("crm".equalsIgnoreCase(sourceSystem)) workerCrm++;
                     else if ("ecommerce".equalsIgnoreCase(sourceSystem)) workerEcom++;
                     else if ("payment".equalsIgnoreCase(sourceSystem)) workerPayment++;

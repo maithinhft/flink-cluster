@@ -39,6 +39,9 @@ public class EventConfig {
 
     // Event generation parameters
     public String topic = "events";
+    public String crmTopic = EnvLoader.get("KAFKA_CRM_TOPIC", "events_crm");
+    public String ecommerceTopic = EnvLoader.get("KAFKA_ECOMMERCE_TOPIC", "events_ecommerce");
+    public String paymentTopic = EnvLoader.get("KAFKA_PAYMENT_TOPIC", "events_payment");
     public long numEvents = 1_000_000L;
     public double dirtyRate = 0.05;
     public double lateEventRate = 0.05;
@@ -345,6 +348,19 @@ public class EventConfig {
                     break;
                 case "--topic":
                     config.topic = args[++i];
+                    config.crmTopic = config.topic + "_crm";
+                    config.ecommerceTopic = config.topic + "_ecommerce";
+                    config.paymentTopic = config.topic + "_payment";
+                    break;
+                case "--crm-topic":
+                    config.crmTopic = args[++i];
+                    break;
+                case "--ecommerce-topic":
+                case "--ecom-topic":
+                    config.ecommerceTopic = args[++i];
+                    break;
+                case "--payment-topic":
+                    config.paymentTopic = args[++i];
                     break;
                 case "--num-events":
                     config.numEvents = Long.parseLong(args[++i]);
