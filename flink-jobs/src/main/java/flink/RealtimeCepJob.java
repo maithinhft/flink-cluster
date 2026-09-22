@@ -10,7 +10,6 @@ import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.configuration.CheckpointingOptions;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.base.DeliveryGuarantee;
-import org.apache.flink.connector.kafka.dynamic.metadata.ClusterMetadata;
 import org.apache.flink.connector.kafka.dynamic.source.DynamicKafkaSource;
 import org.apache.flink.connector.kafka.dynamic.source.DynamicKafkaSourceOptions;
 import org.apache.flink.connector.kafka.sink.KafkaRecordSerializationSchema;
@@ -51,89 +50,16 @@ public class RealtimeCepJob {
             env.configure(config);
         }
 
-        // 1. Cấu hình PostgreSQL Metadata Service cho DynamicKafkaSource
-        String pgHost = parameters.get("postgres.host", "postgres");
-        String pgPort = parameters.get("postgres.port", "5432");
-        String pgDb = parameters.get("postgres.db", "realtime_core");
-        String defaultPgUrl = String.format("jdbc:postgresql://%s:%s/%s", pgHost, pgPort, pgDb);
-        String pgUrl = parameters.get("postgres.url", defaultPgUrl);
-        String pgUser = parameters.get("postgres.user", "postgres");
-        String pgPassword = parameters.get("postgres.password", "postgres");
-        String tablePrefix = parameters.get("postgres.table.prefix", "kafka_stream");
-        long discoveryIntervalMs = parameters.getLong("stream.metadata.discovery.interval.ms", 30000L);
-
-        LOG.info("Connecting to PostgreSQL metadata: {} (tablePrefix: {})", pgUrl, tablePrefix);
-        PostgresKafkaMetadataService metadataService = new PostgresKafkaMetadataService(
-                pgUrl, pgUser, pgPassword, tablePrefix, 5000L);
-
-        // 2. Cấu hình Schema Source (đọc từ stream-schema hoặc fallback GSSAPI)
-        ClusterMetadata schemaClusterMeta = metadataService.getClusterMetadataByStreamId(
-                parameters.get("schema.stream.id", "stream-schema"));
-        String schemaBootstrap;
-        Properties schemaProps;
-        String schemaTopic;
-        if (schemaClusterMeta != null) {
-            schemaBootstrap = schemaClusterMeta.getProperties().getProperty("bootstrap.servers");
-            schemaProps = new Properties();
-            schemaProps.putAll(schemaClusterMeta.getProperties());
-            schemaTopic = schemaClusterMeta.getTopics().isEmpty()
-                    ? parameters.get("schema.topic", "schema_registry")
-                    : schemaClusterMeta.getTopics().iterator().next();
-            LOG.info("Schema Source loaded from PostgreSQL -> Bootstrap: {}, Topic: {}", schemaBootstrap, schemaTopic);
-        } else {
-            schemaBootstrap = KafkaClusterConfig.getBootstrapServers(parameters, "schema", KafkaClusterConfig.CLUSTER_GSSAPI);
-            schemaProps = KafkaClusterConfig.getConsumerProperties(parameters, "schema", KafkaClusterConfig.CLUSTER_GSSAPI);
-            schemaTopic = parameters.get("schema.topic", "schema_registry");
-            LOG.info("Schema Source fallback to KafkaClusterConfig -> Bootstrap: {}, Topic: {}", schemaBootstrap, schemaTopic);
-        }
-
-        // 3. Cấu hình Rule Source (đọc từ stream-rules hoặc fallback PLAIN)
-        ClusterMetadata ruleClusterMeta = metadataService.getClusterMetadataByStreamId(
-                parameters.get("rule.stream.id", "stream-rules"));
-        String ruleBootstrap;
-        Properties ruleProps;
-        String ruleTopic;
-        if (ruleClusterMeta != null) {
-            ruleBootstrap = ruleClusterMeta.getProperties().getProperty("bootstrap.servers");
-            ruleProps = new Properties();
-            ruleProps.putAll(ruleClusterMeta.getProperties());
-            ruleTopic = ruleClusterMeta.getTopics().isEmpty()
-                    ? parameters.get("rule.topic", "rule_definitions")
-                    : ruleClusterMeta.getTopics().iterator().next();
-            LOG.info("Rule Source loaded from PostgreSQL -> Bootstrap: {}, Topic: {}", ruleBootstrap, ruleTopic);
-        } else {
-            ruleBootstrap = KafkaClusterConfig.getBootstrapServers(parameters, "rule", KafkaClusterConfig.CLUSTER_PLAIN);
-            ruleProps = KafkaClusterConfig.getConsumerProperties(parameters, "rule", KafkaClusterConfig.CLUSTER_PLAIN);
-            ruleTopic = parameters.get("rule.topic", "rule_definitions");
-            LOG.info("Rule Source fallback to KafkaClusterConfig -> Bootstrap: {}, Topic: {}", ruleBootstrap, ruleTopic);
-        }
-
-        // 4. Cấu hình Result & DLQ Sink
-        String resultTopic = parameters.get("result.topic", "result");
-        String dlqTopic = parameters.get("dlq.topic", "dlq");
-
-        ClusterMetadata plainClusterMeta = metadataService.getClusterMetadataByClusterName("kafka-plain");
-        String resultBootstrap = (plainClusterMeta != null)
-                ? plainClusterMeta.getProperties().getProperty("bootstrap.servers")
-                : KafkaClusterConfig.getBootstrapServers(parameters, "result", KafkaClusterConfig.CLUSTER_PLAIN);
-        Properties resultProps = (plainClusterMeta != null)
-                ? plainClusterMeta.getProperties()
-                : KafkaClusterConfig.getProducerProperties(parameters, "result", KafkaClusterConfig.CLUSTER_PLAIN);
-
-        String dlqBootstrap = (plainClusterMeta != null)
-                ? plainClusterMeta.getProperties().getProperty("bootstrap.servers")
-                : KafkaClusterConfig.getBootstrapServers(parameters, "dlq", KafkaClusterConfig.CLUSTER_PLAIN);
-        Properties dlqProps = (plainClusterMeta != null)
-                ? plainClusterMeta.getProperties()
-                : KafkaClusterConfig.getProducerProperties(parameters, "dlq", KafkaClusterConfig.CLUSTER_PLAIN);
-
-        LOG.info("Result Sink -> Bootstrap: {}, Topic: {}", resultBootstrap, resultTopic);
-        LOG.info("DLQ Sink -> Bootstrap: {}, Topic: {}", dlqBootstrap, dlqTopic);
+        // 1. Cấu hình Schema Source (KafkaSource đọc trực tiếp từ cụm GSSAPI / Kerberos)
+        String schemaBootstrap = KafkaClusterConfig.getBootstrapServers(parameters, "schema", KafkaClusterConfig.CLUSTER_GSSAPI);
+        Properties schemaProps = KafkaClusterConfig.getConsumerProperties(parameters, "schema", KafkaClusterConfig.CLUSTER_GSSAPI);
+        String schemaTopic = parameters.get("schema.topic", "schema_registry");
+        LOG.info("Schema Source (GSSAPI) -> Bootstrap: {}, Topic: {}", schemaBootstrap, schemaTopic);
 
         KafkaSource<String> schemaSource = KafkaSource.<String>builder()
                 .setBootstrapServers(schemaBootstrap)
                 .setTopics(schemaTopic)
-                .setGroupId("flink-schema-group")
+                .setGroupId(parameters.get("schema.group.id", "flink-schema-group"))
                 .setStartingOffsets(OffsetsInitializer.earliest())
                 .setValueOnlyDeserializer(new SimpleStringSchema())
                 .setProperties(schemaProps)
@@ -150,10 +76,16 @@ public class RealtimeCepJob {
                         DynamicSchemaValidationFunction.LATEST_VERSION_DESCRIPTOR,
                         DynamicSchemaValidationFunction.DEPRECATED_SCHEMAS_DESCRIPTOR);
 
+        // 2. Cấu hình Rule Source (KafkaSource đọc trực tiếp từ cụm PLAIN)
+        String ruleBootstrap = KafkaClusterConfig.getBootstrapServers(parameters, "rule", KafkaClusterConfig.CLUSTER_PLAIN);
+        Properties ruleProps = KafkaClusterConfig.getConsumerProperties(parameters, "rule", KafkaClusterConfig.CLUSTER_PLAIN);
+        String ruleTopic = parameters.get("rule.topic", "rule_definitions");
+        LOG.info("Rule Source (PLAIN) -> Bootstrap: {}, Topic: {}", ruleBootstrap, ruleTopic);
+
         KafkaSource<String> ruleSource = KafkaSource.<String>builder()
                 .setBootstrapServers(ruleBootstrap)
                 .setTopics(ruleTopic)
-                .setGroupId("flink-rule-group")
+                .setGroupId(parameters.get("rule.group.id", "flink-rule-group"))
                 .setStartingOffsets(OffsetsInitializer.earliest())
                 .setValueOnlyDeserializer(new SimpleStringSchema())
                 .setProperties(ruleProps)
@@ -166,6 +98,33 @@ public class RealtimeCepJob {
 
         BroadcastStream<String> broadcastRuleStream = ruleStream
                 .broadcast(RingBufferRuleProcessFunction.RULE_STATE_DESCRIPTOR);
+
+        // 3. Cấu hình PostgreSQL Metadata Service cho Event Stream (DynamicKafkaSource)
+        String pgHost = parameters.get("postgres.host", "postgres");
+        String pgPort = parameters.get("postgres.port", "5432");
+        String pgDb = parameters.get("postgres.db", "realtime_core");
+        String defaultPgUrl = String.format("jdbc:postgresql://%s:%s/%s", pgHost, pgPort, pgDb);
+        String pgUrl = parameters.get("postgres.url", defaultPgUrl);
+        String pgUser = parameters.get("postgres.user", "postgres");
+        String pgPassword = parameters.get("postgres.password", "postgres");
+        String tablePrefix = parameters.get("postgres.table.prefix", "kafka_stream");
+        long discoveryIntervalMs = parameters.getLong("stream.metadata.discovery.interval.ms", 30000L);
+
+        LOG.info("Connecting to PostgreSQL metadata: {} (tablePrefix: {})", pgUrl, tablePrefix);
+        PostgresKafkaMetadataService metadataService = new PostgresKafkaMetadataService(
+                pgUrl, pgUser, pgPassword, tablePrefix, 5000L);
+
+        // 4. Cấu hình Result & DLQ Sink (cụm PLAIN)
+        String resultBootstrap = KafkaClusterConfig.getBootstrapServers(parameters, "result", KafkaClusterConfig.CLUSTER_PLAIN);
+        Properties resultProps = KafkaClusterConfig.getProducerProperties(parameters, "result", KafkaClusterConfig.CLUSTER_PLAIN);
+        String resultTopic = parameters.get("result.topic", "result");
+
+        String dlqBootstrap = KafkaClusterConfig.getBootstrapServers(parameters, "dlq", KafkaClusterConfig.CLUSTER_PLAIN);
+        Properties dlqProps = KafkaClusterConfig.getProducerProperties(parameters, "dlq", KafkaClusterConfig.CLUSTER_PLAIN);
+        String dlqTopic = parameters.get("dlq.topic", "dlq");
+
+        LOG.info("Result Sink -> Bootstrap: {}, Topic: {}", resultBootstrap, resultTopic);
+        LOG.info("DLQ Sink -> Bootstrap: {}, Topic: {}", dlqBootstrap, dlqTopic);
 
         WatermarkStrategy<String> eventWatermarkStrategy = WatermarkStrategy
                 .<String>forBoundedOutOfOrderness(Duration.ofMinutes(1))

@@ -59,22 +59,19 @@ REPLICA IDENTITY FULL;
 -- ============================================================
 CREATE TABLE IF NOT EXISTS kafka_stream_cluster_config (
     id SERIAL PRIMARY KEY,
-    stream_id VARCHAR(255) NOT NULL UNIQUE,   -- định danh logic, khớp KafkaStream.streamId
-    cluster_name VARCHAR(255) NOT NULL,       -- tên gợi nhớ, VD "cluster-cpm-prod"
+    stream_id VARCHAR(255) NOT NULL,          -- định danh logic, khớp KafkaStream.streamId
+    cluster_name VARCHAR(255) NOT NULL,       -- tên gợi nhớ, VD "kafka-plain", "kafka-gssapi"
     bootstrap_servers VARCHAR(500) NOT NULL,  -- "broker1:9092,broker2:9092"
 
     -- ---- Cấu hình bảo mật riêng theo cluster ----
     security_protocol VARCHAR(50) DEFAULT 'PLAINTEXT',  -- PLAINTEXT | SASL_PLAINTEXT | SASL_SSL
     sasl_mechanism VARCHAR(50),               -- GSSAPI (Kerberos) | PLAIN | SCRAM-SHA-256 ...
     sasl_kerberos_service_name VARCHAR(100),  -- thường là "kafka"
-    sasl_jaas_config TEXT,                    -- toàn bộ chuỗi JAAS, VD:
-                                               -- 'com.sun.security.auth.module.Krb5LoginModule required
-                                               --  useKeyTab=true storeKey=true
-                                               --  keyTab="/path/to/your.keytab"
-                                               --  principal="svc-flink@REALM.COM" serviceName="kafka";'
+    sasl_jaas_config TEXT,                    -- toàn bộ chuỗi JAAS
 
     enabled BOOLEAN DEFAULT TRUE,
-    updated_at TIMESTAMP DEFAULT NOW()
+    updated_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE (stream_id, cluster_name)
 );
 
 -- ============================================================
@@ -95,7 +92,7 @@ CREATE TABLE IF NOT EXISTS kafka_stream_topic_config (
 -- ============================================================
 CREATE TABLE IF NOT EXISTS kafka_batch_cluster_config (
     id SERIAL PRIMARY KEY,
-    stream_id VARCHAR(255) NOT NULL UNIQUE,
+    stream_id VARCHAR(255) NOT NULL,
     cluster_name VARCHAR(255) NOT NULL,
     bootstrap_servers VARCHAR(500) NOT NULL,
     security_protocol VARCHAR(50) DEFAULT 'PLAINTEXT',
@@ -103,7 +100,8 @@ CREATE TABLE IF NOT EXISTS kafka_batch_cluster_config (
     sasl_kerberos_service_name VARCHAR(100),
     sasl_jaas_config TEXT,
     enabled BOOLEAN DEFAULT TRUE,
-    updated_at TIMESTAMP DEFAULT NOW()
+    updated_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE (stream_id, cluster_name)
 );
 
 CREATE TABLE IF NOT EXISTS kafka_batch_topic_config (
@@ -115,9 +113,19 @@ CREATE TABLE IF NOT EXISTS kafka_batch_topic_config (
     UNIQUE (cluster_config_id, topic_name)
 );
 
--- Dữ liệu mẫu ban đầu cho kafka_stream_cluster_config
+-- Dữ liệu mẫu ban đầu cho kafka_stream_cluster_config (CHỈ cấu hình cho event streams)
 INSERT INTO kafka_stream_cluster_config (stream_id, cluster_name, bootstrap_servers, security_protocol, sasl_mechanism, sasl_kerberos_service_name, sasl_jaas_config, enabled)
 VALUES 
+(
+    'stream-events',
+    'kafka-gssapi',
+    'kafka-gssapi:29094',
+    'SASL_PLAINTEXT',
+    'GSSAPI',
+    'kafka',
+    'com.sun.security.auth.module.Krb5LoginModule required useKeyTab=true storeKey=true doNotPrompt=true keyTab="/var/lib/secret/client.keytab" principal="client@EXAMPLE.COM";',
+    TRUE
+),
 (
     'stream-events',
     'kafka-plain',
@@ -127,48 +135,25 @@ VALUES
     NULL,
     'org.apache.kafka.common.security.plain.PlainLoginModule required username="admin" password="admin-secret";',
     TRUE
-),
-(
-    'stream-rules',
-    'kafka-plain',
-    'kafka-plain:29092',
-    'SASL_PLAINTEXT',
-    'PLAIN',
-    NULL,
-    'org.apache.kafka.common.security.plain.PlainLoginModule required username="admin" password="admin-secret";',
-    TRUE
-),
-(
-    'stream-schema',
-    'kafka-gssapi',
-    'kafka-gssapi:29094',
-    'SASL_PLAINTEXT',
-    'GSSAPI',
-    'kafka',
-    'com.sun.security.auth.module.Krb5LoginModule required useKeyTab=true storeKey=true doNotPrompt=true keyTab="/var/lib/secret/client.keytab" principal="client@EXAMPLE.COM";',
-    TRUE
 )
-ON CONFLICT (stream_id) DO NOTHING;
+ON CONFLICT (stream_id, cluster_name) DO NOTHING;
 
 -- Dữ liệu mẫu ban đầu cho kafka_stream_topic_config
+-- crm thuộc cụm kafka-gssapi
 INSERT INTO kafka_stream_topic_config (cluster_config_id, topic_name, enabled)
-SELECT id, 'events_crm', TRUE FROM kafka_stream_cluster_config WHERE stream_id = 'stream-events'
+SELECT id, 'events_crm', TRUE FROM kafka_stream_cluster_config 
+WHERE stream_id = 'stream-events' AND cluster_name = 'kafka-gssapi'
+ON CONFLICT (cluster_config_id, topic_name) DO NOTHING;
+
+-- ecommerce và payment thuộc cụm kafka-plain
+INSERT INTO kafka_stream_topic_config (cluster_config_id, topic_name, enabled)
+SELECT id, 'events_ecommerce', TRUE FROM kafka_stream_cluster_config 
+WHERE stream_id = 'stream-events' AND cluster_name = 'kafka-plain'
 ON CONFLICT (cluster_config_id, topic_name) DO NOTHING;
 
 INSERT INTO kafka_stream_topic_config (cluster_config_id, topic_name, enabled)
-SELECT id, 'events_ecommerce', TRUE FROM kafka_stream_cluster_config WHERE stream_id = 'stream-events'
-ON CONFLICT (cluster_config_id, topic_name) DO NOTHING;
-
-INSERT INTO kafka_stream_topic_config (cluster_config_id, topic_name, enabled)
-SELECT id, 'events_payment', TRUE FROM kafka_stream_cluster_config WHERE stream_id = 'stream-events'
-ON CONFLICT (cluster_config_id, topic_name) DO NOTHING;
-
-INSERT INTO kafka_stream_topic_config (cluster_config_id, topic_name, enabled)
-SELECT id, 'rule_definitions', TRUE FROM kafka_stream_cluster_config WHERE stream_id = 'stream-rules'
-ON CONFLICT (cluster_config_id, topic_name) DO NOTHING;
-
-INSERT INTO kafka_stream_topic_config (cluster_config_id, topic_name, enabled)
-SELECT id, 'schema_registry', TRUE FROM kafka_stream_cluster_config WHERE stream_id = 'stream-schema'
+SELECT id, 'events_payment', TRUE FROM kafka_stream_cluster_config 
+WHERE stream_id = 'stream-events' AND cluster_name = 'kafka-plain'
 ON CONFLICT (cluster_config_id, topic_name) DO NOTHING;
 
 GRANT USAGE ON SCHEMA public TO replicator;
