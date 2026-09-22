@@ -15,8 +15,12 @@ import org.apache.flink.connector.kafka.sink.KafkaSink;
 import org.apache.flink.connector.kafka.source.KafkaSource;
 import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer;
 import org.apache.flink.connector.kafka.source.reader.deserializer.KafkaRecordDeserializationSchema;
+import org.apache.flink.configuration.ExternalizedCheckpointRetention;
+import org.apache.flink.streaming.api.CheckpointingMode;
 import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.environment.CheckpointConfig;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,10 +49,19 @@ public class DynamicPassThroughJob {
         env.setParallelism(parallelism);
         env.getConfig().setLatencyTrackingInterval(parameters.getLong("latency.tracking.interval", 5000L));
 
+        // Cấu hình Checkpointing: mặc định 5 phút / lần (300,000 ms)
+        long checkpointInterval = parameters.getLong("checkpoint.interval", 300_000L);
+        env.enableCheckpointing(checkpointInterval, CheckpointingMode.EXACTLY_ONCE);
+
+        CheckpointConfig checkpointConfig = env.getCheckpointConfig();
+        checkpointConfig.setMinPauseBetweenCheckpoints(parameters.getLong("checkpoint.min.pause", 30_000L)); // Nghỉ 30s giữa các lần checkpoint
+        checkpointConfig.setCheckpointTimeout(parameters.getLong("checkpoint.timeout", 120_000L)); // Timeout 2 phút
+        checkpointConfig.setMaxConcurrentCheckpoints(1);
+        checkpointConfig.setExternalizedCheckpointRetention(
+                ExternalizedCheckpointRetention.RETAIN_ON_CANCELLATION);
+
         if (parameters.has("checkpoint.dir")) {
-            Configuration config = new Configuration();
-            config.set(CheckpointingOptions.CHECKPOINTS_DIRECTORY, parameters.get("checkpoint.dir"));
-            env.configure(config);
+            checkpointConfig.setCheckpointStorage(parameters.get("checkpoint.dir"));
         }
 
         // 1. Cấu hình PostgreSQL Metadata Service cho Event Stream (DynamicKafkaSource)
@@ -116,7 +129,7 @@ public class DynamicPassThroughJob {
                     .setKafkaMetadataService(metadataService)
                     .setStreamIds(Collections.singleton(eventsStreamId))
                     .setDeserializer(KafkaRecordDeserializationSchema.valueOnly(new SimpleStringSchema()))
-                    .setStartingOffsets(OffsetsInitializer.earliest())
+                    .setStartingOffsets(OffsetsInitializer.committedOffsets(OffsetResetStrategy.EARLIEST))
                     .setGroupId(parameters.get("events.group.id", "flink-passthrough-group"))
                     .setProperty(DynamicKafkaSourceOptions.STREAM_METADATA_DISCOVERY_INTERVAL_MS.key(), String.valueOf(discoveryIntervalMs))
                     .build();
@@ -133,7 +146,7 @@ public class DynamicPassThroughJob {
                     .setTopicPattern(java.util.regex.Pattern.compile(parameters.get("events.topic.pattern", "events_.*")))
                     .setGroupId(parameters.get("events.group.id", "flink-passthrough-group"))
                     .setProperty("partition.discovery.interval.ms", "60000")
-                    .setStartingOffsets(OffsetsInitializer.earliest())
+                    .setStartingOffsets(OffsetsInitializer.committedOffsets(OffsetResetStrategy.LATEST))
                     .setValueOnlyDeserializer(new SimpleStringSchema())
                     .setProperties(eventsProps)
                     .build();
