@@ -12,10 +12,12 @@ test.*
 
 *.py
 
-PROJECT_CONTEXT.md
+*.md
 
 *.docx
 
 *.txt
 
 *.pdf
+
+!README.md

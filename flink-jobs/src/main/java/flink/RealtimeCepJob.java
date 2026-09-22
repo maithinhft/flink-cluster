@@ -43,13 +43,7 @@ public class RealtimeCepJob {
 
         int parallelism = parameters.getInt("parallelism", 4);
         env.setParallelism(parallelism);
-        env.getConfig().setLatencyTrackingInterval(parameters.getLong("latency.tracking.interval", 5000));
-
-        String schemaTopic = parameters.get("schema.topic", "schema_registry");
-        String ruleTopic = parameters.get("rule.topic", "rule_definitions");
-        String eventsTopicPattern = parameters.get("events.topic.pattern", "events_.*");
-        String resultTopic = parameters.get("result.topic", "result");
-        String dlqTopic = parameters.get("dlq.topic", "dlq");
+        env.getConfig().setLatencyTrackingInterval(parameters.getLong("latency.tracking.interval", 5000L));
 
         if (parameters.has("checkpoint.dir")) {
             Configuration config = new Configuration();
@@ -77,17 +71,19 @@ public class RealtimeCepJob {
                 parameters.get("schema.stream.id", "stream-schema"));
         String schemaBootstrap;
         Properties schemaProps;
+        String schemaTopic;
         if (schemaClusterMeta != null) {
             schemaBootstrap = schemaClusterMeta.getProperties().getProperty("bootstrap.servers");
             schemaProps = new Properties();
             schemaProps.putAll(schemaClusterMeta.getProperties());
-            if (!schemaClusterMeta.getTopics().isEmpty()) {
-                schemaTopic = schemaClusterMeta.getTopics().iterator().next();
-            }
+            schemaTopic = schemaClusterMeta.getTopics().isEmpty()
+                    ? parameters.get("schema.topic", "schema_registry")
+                    : schemaClusterMeta.getTopics().iterator().next();
             LOG.info("Schema Source loaded from PostgreSQL -> Bootstrap: {}, Topic: {}", schemaBootstrap, schemaTopic);
         } else {
             schemaBootstrap = KafkaClusterConfig.getBootstrapServers(parameters, "schema", KafkaClusterConfig.CLUSTER_GSSAPI);
             schemaProps = KafkaClusterConfig.getConsumerProperties(parameters, "schema", KafkaClusterConfig.CLUSTER_GSSAPI);
+            schemaTopic = parameters.get("schema.topic", "schema_registry");
             LOG.info("Schema Source fallback to KafkaClusterConfig -> Bootstrap: {}, Topic: {}", schemaBootstrap, schemaTopic);
         }
 
@@ -96,21 +92,26 @@ public class RealtimeCepJob {
                 parameters.get("rule.stream.id", "stream-rules"));
         String ruleBootstrap;
         Properties ruleProps;
+        String ruleTopic;
         if (ruleClusterMeta != null) {
             ruleBootstrap = ruleClusterMeta.getProperties().getProperty("bootstrap.servers");
             ruleProps = new Properties();
             ruleProps.putAll(ruleClusterMeta.getProperties());
-            if (!ruleClusterMeta.getTopics().isEmpty()) {
-                ruleTopic = ruleClusterMeta.getTopics().iterator().next();
-            }
+            ruleTopic = ruleClusterMeta.getTopics().isEmpty()
+                    ? parameters.get("rule.topic", "rule_definitions")
+                    : ruleClusterMeta.getTopics().iterator().next();
             LOG.info("Rule Source loaded from PostgreSQL -> Bootstrap: {}, Topic: {}", ruleBootstrap, ruleTopic);
         } else {
             ruleBootstrap = KafkaClusterConfig.getBootstrapServers(parameters, "rule", KafkaClusterConfig.CLUSTER_PLAIN);
             ruleProps = KafkaClusterConfig.getConsumerProperties(parameters, "rule", KafkaClusterConfig.CLUSTER_PLAIN);
+            ruleTopic = parameters.get("rule.topic", "rule_definitions");
             LOG.info("Rule Source fallback to KafkaClusterConfig -> Bootstrap: {}, Topic: {}", ruleBootstrap, ruleTopic);
         }
 
         // 4. Cấu hình Result & DLQ Sink
+        String resultTopic = parameters.get("result.topic", "result");
+        String dlqTopic = parameters.get("dlq.topic", "dlq");
+
         ClusterMetadata plainClusterMeta = metadataService.getClusterMetadataByClusterName("kafka-plain");
         String resultBootstrap = (plainClusterMeta != null)
                 ? plainClusterMeta.getProperties().getProperty("bootstrap.servers")
@@ -212,7 +213,7 @@ public class RealtimeCepJob {
             Properties eventsProps = KafkaClusterConfig.getConsumerProperties(parameters, "events", KafkaClusterConfig.CLUSTER_PLAIN);
             KafkaSource<String> staticEventSource = KafkaSource.<String>builder()
                     .setBootstrapServers(eventsBootstrap)
-                    .setTopicPattern(java.util.regex.Pattern.compile(eventsTopicPattern))
+                    .setTopicPattern(java.util.regex.Pattern.compile(parameters.get("events.topic.pattern", "events_.*")))
                     .setGroupId(parameters.get("events.group.id", "flink-event-validation-group"))
                     .setProperty("partition.discovery.interval.ms", "60000")
                     .setStartingOffsets(OffsetsInitializer.earliest())
