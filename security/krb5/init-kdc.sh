@@ -25,6 +25,8 @@ cat << EOF > /var/lib/secret/krb5.conf
     ticket_lifetime = 24h
     renew_lifetime = 7d
     forwardable = true
+    udp_preference_limit = 1
+    kdc_timeout = 5000
 
 [realms]
     ${REALM} = {
@@ -61,9 +63,21 @@ add_principal() {
 echo "Adding Kerberos principals..."
 add_principal "kafka/kafka-gssapi@${REALM}"
 add_principal "kafka/localhost@${REALM}"
+add_principal "kafka/127.0.0.1@${REALM}"
 add_principal "kafka/kafka-gssapi.flink-cluster_cluster-network@${REALM}"
+
+REV_HOST=""
 if [ "${SERVER_IP}" != "localhost" ] && [ "${SERVER_IP}" != "127.0.0.1" ]; then
     add_principal "kafka/${SERVER_IP}@${REALM}"
+    # Detect reverse DNS hostname if resolvable
+    REV_HOST=$(getent hosts "${SERVER_IP}" 2>/dev/null | awk '{print $2}' || true)
+    if [ -z "${REV_HOST}" ]; then
+        REV_HOST=$(nslookup "${SERVER_IP}" 2>/dev/null | awk '/name =/ {print $NF}' | sed 's/\.$//' || true)
+    fi
+    if [ -n "${REV_HOST}" ] && [ "${REV_HOST}" != "${SERVER_IP}" ]; then
+        echo "Detected reverse DNS for ${SERVER_IP}: ${REV_HOST}"
+        add_principal "kafka/${REV_HOST}@${REALM}"
+    fi
 fi
 add_principal "client@${REALM}" "clientpassword"
 add_principal "admin@${REALM}" "adminpassword"
@@ -74,9 +88,13 @@ rm -f /var/lib/secret/kafka.keytab /var/lib/secret/client.keytab
 
 kadmin.local -q "ktadd -k /var/lib/secret/kafka.keytab kafka/kafka-gssapi@${REALM}"
 kadmin.local -q "ktadd -k /var/lib/secret/kafka.keytab kafka/localhost@${REALM}"
+kadmin.local -q "ktadd -k /var/lib/secret/kafka.keytab kafka/127.0.0.1@${REALM}"
 kadmin.local -q "ktadd -k /var/lib/secret/kafka.keytab kafka/kafka-gssapi.flink-cluster_cluster-network@${REALM}"
 if [ "${SERVER_IP}" != "localhost" ] && [ "${SERVER_IP}" != "127.0.0.1" ]; then
     kadmin.local -q "ktadd -k /var/lib/secret/kafka.keytab kafka/${SERVER_IP}@${REALM}"
+    if [ -n "${REV_HOST}" ] && [ "${REV_HOST}" != "${SERVER_IP}" ]; then
+        kadmin.local -q "ktadd -k /var/lib/secret/kafka.keytab kafka/${REV_HOST}@${REALM}"
+    fi
 fi
 
 kadmin.local -q "ktadd -k /var/lib/secret/client.keytab client@${REALM}"

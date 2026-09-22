@@ -68,7 +68,18 @@ public class EventConfig {
             gssapiBootstrapServers = EnvLoader.get("KAFKA_GSSAPI_BOOTSTRAP_SERVERS", null);
             if (gssapiBootstrapServers == null || gssapiBootstrapServers.isEmpty()) {
                 String gssapiPort = EnvLoader.get("KAFKA_GSSAPI_PORT", "9094");
-                gssapiBootstrapServers = serverIp + ":" + gssapiPort;
+                boolean gssapiResolvable = false;
+                try {
+                    InetAddress.getByName("kafka-gssapi");
+                    gssapiResolvable = true;
+                } catch (Exception ignored) {
+                }
+
+                if (gssapiResolvable) {
+                    gssapiBootstrapServers = "kafka-gssapi:" + gssapiPort;
+                } else {
+                    gssapiBootstrapServers = serverIp + ":" + gssapiPort;
+                }
             }
         }
 
@@ -161,7 +172,7 @@ public class EventConfig {
             }
         }
 
-        // 3. Normalize KDC hostname for host execution if 'kdc' hostname cannot be resolved
+        // 3. Normalize KDC hostname and settings for host execution
         checkAndNormalizeKdcConf();
     }
 
@@ -177,35 +188,44 @@ public class EventConfig {
         } catch (Exception ignored) {
         }
 
-        if (!kdcResolvable) {
-            try {
-                String content = Files.readString(krb5Path);
-                if (content.contains("kdc:88") || content.contains("kdc:749")) {
-                    String serverIp = EnvLoader.get("SERVER_IP", "127.0.0.1");
-                    String patched = content
-                            .replace("kdc:88", serverIp + ":88")
-                            .replace("kdc:749", serverIp + ":749");
+        try {
+            String content = Files.readString(krb5Path);
+            boolean needsPatch = false;
+            String patched = content;
 
-                    try {
-                        Files.writeString(krb5Path, patched);
-                        System.out.println("Normalized KDC host to " + serverIp + ":88 in: " + resolvedKrb5Conf);
-                    } catch (Exception writeEx) {
-                        Path hostKrb5 = krb5Path.getParent() != null
-                                ? krb5Path.getParent().resolve("krb5_host.conf")
-                                : Paths.get("krb5_host.conf");
-                        Files.writeString(hostKrb5, patched);
-                        resolvedKrb5Conf = hostKrb5.toAbsolutePath().toString();
-                        System.out.println("Created host krb5.conf at: " + resolvedKrb5Conf);
-                    }
-                }
-            } catch (IOException e) {
-                System.err.println("Notice: Could not inspect/normalize krb5.conf: " + e.getMessage());
+            // Enforce TCP preference and timeout if missing
+            if (!patched.contains("udp_preference_limit")) {
+                patched = patched.replace("[libdefaults]", "[libdefaults]\n    udp_preference_limit = 1\n    kdc_timeout = 5000");
+                needsPatch = true;
             }
+
+            if (!kdcResolvable && (patched.contains("kdc:88") || patched.contains("kdc:749"))) {
+                String serverIp = EnvLoader.get("SERVER_IP", "127.0.0.1");
+                patched = patched
+                        .replace("kdc:88", serverIp + ":88")
+                        .replace("kdc:749", serverIp + ":749");
+                needsPatch = true;
+            }
+
+            if (needsPatch) {
+                try {
+                    Files.writeString(krb5Path, patched);
+                } catch (Exception writeEx) {
+                    Path hostKrb5 = krb5Path.getParent() != null
+                            ? krb5Path.getParent().resolve("krb5_host.conf")
+                            : Paths.get("krb5_host.conf");
+                    Files.writeString(hostKrb5, patched);
+                    resolvedKrb5Conf = hostKrb5.toAbsolutePath().toString();
+                }
+            }
+        } catch (IOException e) {
+            System.err.println("Notice: Could not inspect/normalize krb5.conf: " + e.getMessage());
         }
     }
 
     public void initSecurity() {
         if ("dual".equalsIgnoreCase(cluster) || "multi".equalsIgnoreCase(cluster) || "gssapi".equalsIgnoreCase(cluster)) {
+            System.setProperty("sun.security.krb5.canonHost", "false");
             resolveKerberosFiles();
             if (resolvedKrb5Conf != null && Files.exists(Paths.get(resolvedKrb5Conf))) {
                 System.setProperty("java.security.krb5.conf", resolvedKrb5Conf);
@@ -384,6 +404,23 @@ public class EventConfig {
                 System.err.printf("[WARN] Kerberos keytab not found at: %s%n" +
                         "       If connecting to kafka-gssapi fails, run: ./up.script.sh or " +
                         "'docker compose cp kdc:/var/lib/secret/client.keytab ./security/client.keytab'%n", kt);
+            }
+
+            boolean gssapiResolvable = false;
+            try {
+                InetAddress.getByName("kafka-gssapi");
+                gssapiResolvable = true;
+            } catch (Exception ignored) {
+            }
+
+            String serverIp = EnvLoader.get("SERVER_IP", "127.0.0.1");
+            if (!gssapiResolvable && !"127.0.0.1".equals(serverIp) && !"localhost".equalsIgnoreCase(serverIp)) {
+                System.out.println("----------------------------------------------------------------------");
+                System.out.println("[NOTICE for Kerberos GSSAPI Authentication]");
+                System.out.println("  If connection to " + gssapiBootstrapServers + " is terminated during authentication,");
+                System.out.println("  please map hostname 'kafka-gssapi' to your server IP in /etc/hosts:");
+                System.out.println("    echo \"" + serverIp + " kafka-gssapi\" | sudo tee -a /etc/hosts");
+                System.out.println("----------------------------------------------------------------------");
             }
         }
     }
