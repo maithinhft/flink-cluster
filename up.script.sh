@@ -22,14 +22,23 @@ done
 
 echo "All services are ready!"
 
+echo "Exporting Kerberos keytab and config to ./security for host clients..."
+mkdir -p ./security
+docker compose cp kdc:/var/lib/secret/client.keytab ./security/client.keytab 2>/dev/null || true
+docker compose cp kdc:/var/lib/secret/krb5.conf ./security/krb5.conf 2>/dev/null || true
+
 echo "Running setup kafka topic"
 ./scripts/create-kafka-topics.sh
 echo "Running setup kafka connector"
 ./scripts/register-all-connectors.sh
 
 echo "Running setup schema topic"
-cd ./data-generator
-mvn clean package
-mvn exec:java -Dexec.mainClass=generator.schema.SchemaPublisherApp -Dexec.args="--path ./schema/crm"
-mvn exec:java -Dexec.mainClass=generator.schema.SchemaPublisherApp -Dexec.args="--path ./schema/ecommerce"
-mvn exec:java -Dexec.mainClass=generator.schema.SchemaPublisherApp -Dexec.args="--path ./schema/payment"
+(
+    cd ./data-generator
+    mvn clean package
+    mvn exec:java -Dexec.mainClass=generator.schema.SchemaPublisherApp -Dexec.args="--path ./schema/crm"
+    mvn exec:java -Dexec.mainClass=generator.schema.SchemaPublisherApp -Dexec.args="--path ./schema/ecommerce"
+    mvn exec:java -Dexec.mainClass=generator.schema.SchemaPublisherApp -Dexec.args="--path ./schema/payment"
+)
+
+echo "Setup completed successfully!"

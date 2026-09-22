@@ -43,6 +43,7 @@ echo "=================================================="
 
 GSSAPI_TOPICS=(
   "schema_registry:6"
+  "events_crm:6"
   "debezium_heartbeat:1"
 )
 

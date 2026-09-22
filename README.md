@@ -58,25 +58,30 @@ mvn exec:java -Dexec.mainClass=generator.schema.SchemaPublisherApp -Dexec.args="
 ```
 
 * Sinh các Event
-```
-# Mặc định gửi vào cụm kafka-plain (SASL_PLAINTEXT / PLAIN: admin/admin-secret, port 9092)
+```bash
+# Mặc định tự động định tuyến đa cụm (Multi-Cluster Routing):
+# - events_crm -> gửi vào cụm kafka-gssapi (SASL_PLAINTEXT / GSSAPI Kerberos, port 9094)
+# - events_ecommerce, events_payment -> gửi vào cụm kafka-plain (SASL_PLAINTEXT / PLAIN, port 9092)
 mvn exec:java -Dexec.mainClass=generator.events.EventGeneratorApp -Dexec.args="--num-events 100"
 
-# Hoặc nếu muốn gửi vào cụm kafka-gssapi (port 9094):
+# Hoặc nếu muốn ép gửi toàn bộ vào 1 cụm duy nhất:
+# mvn exec:java -Dexec.mainClass=generator.events.EventGeneratorApp -Dexec.args="--cluster plain --num-events 100"
 # mvn exec:java -Dexec.mainClass=generator.events.EventGeneratorApp -Dexec.args="--cluster gssapi --num-events 100"
 ```
 
 * Sinh các Rule
-```
+```bash
 mvn exec:java -Dexec.mainClass=generator.rules.RuleGeneratorApp -Dexec.args="--num-rules 100"
 ```
 
 * Kiểm tra 1 topic trên Kafka
-```
-# Đọc topic trên cụm kafka-plain (mặc định cho events_*, rule_definitions, result, dlq)
+```bash
+# Đọc topic trên cụm kafka-plain (events_ecommerce, events_payment, rule_definitions, result, dlq)
 mvn exec:java -Dexec.classpathScope=test -Dexec.mainClass="generator.common.KafkaConsumerApp" -Dexec.args="--topic events_ecommerce --max 5"
+mvn exec:java -Dexec.classpathScope=test -Dexec.mainClass="generator.common.KafkaConsumerApp" -Dexec.args="--topic events_payment --max 5"
 
-# Đọc topic trên cụm kafka-gssapi (mặc định khi --topic schema_registry hoặc --cluster gssapi)
+# Đọc topic trên cụm kafka-gssapi (tự động cho events_crm hoặc schema_registry)
+mvn exec:java -Dexec.classpathScope=test -Dexec.mainClass="generator.common.KafkaConsumerApp" -Dexec.args="--topic events_crm --max 5"
 mvn exec:java -Dexec.classpathScope=test -Dexec.mainClass="generator.common.KafkaConsumerApp" -Dexec.args="--topic schema_registry --max 5"
 ```
 **Note:** nên chạy trên server để tránh tình trạng mất gói tin dẫn đến java bị treo

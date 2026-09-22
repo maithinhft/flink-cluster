@@ -14,15 +14,27 @@ public class EventGeneratorApp {
 
         EventConfig config = EventConfig.parse(args);
         config.validate();
+        config.initSecurity();
 
         System.out.println("======================================================================");
         System.out.println("High Throughput Multi-Source Event Generator");
         System.out.println("======================================================================");
-        System.out.printf("Kafka Cluster     : %s%n", config.cluster.toUpperCase());
-        System.out.printf("Kafka Bootstrap   : %s%n", config.bootstrapServers);
-        System.out.printf("Security Protocol : %s%n", config.getEffectiveSecurityProtocol());
-        System.out.printf("SASL Mechanism    : %s%n", config.getEffectiveSaslMechanism());
-        System.out.printf("Topic Prefix      : %s%n", config.topic);
+        boolean isDual = "dual".equalsIgnoreCase(config.cluster) || "multi".equalsIgnoreCase(config.cluster);
+        if (isDual) {
+            System.out.printf("Cluster Mode      : DUAL (Multi-Cluster Routing)%n");
+            System.out.printf("  -> CRM Events   : %s (Topic: %s_crm, SASL_PLAINTEXT / GSSAPI Kerberos)%n",
+                    config.gssapiBootstrapServers, config.topic);
+            System.out.printf("  -> Ecom/Payment : %s (Topic: %s_ecommerce, %s_payment, SASL_PLAINTEXT / PLAIN)%n",
+                    config.plainBootstrapServers, config.topic, config.topic);
+            System.out.printf("Keytab Path       : %s%n", config.getResolvedKeytab());
+            System.out.printf("Kerberos Config   : %s%n", config.getResolvedKrb5Conf());
+        } else {
+            System.out.printf("Kafka Cluster     : %s%n", config.cluster.toUpperCase());
+            System.out.printf("Kafka Bootstrap   : %s%n", config.bootstrapServers);
+            System.out.printf("Security Protocol : %s%n", "none".equalsIgnoreCase(config.cluster) ? "PLAINTEXT" : "SASL_PLAINTEXT");
+            System.out.printf("SASL Mechanism    : %s%n", "gssapi".equalsIgnoreCase(config.cluster) ? "GSSAPI" : ("none".equalsIgnoreCase(config.cluster) ? "NONE" : "PLAIN"));
+            System.out.printf("Topic Prefix      : %s%n", config.topic);
+        }
         System.out.printf("Events            : %s%n", config.continuous ? "Continuous" : String.format("%,d", config.numEvents));
         if (config.startTime != null) {
             System.out.printf("Start time        : %s%n", config.startTime);
@@ -39,6 +51,9 @@ public class EventGeneratorApp {
         long remainder = config.numEvents % config.workers;
         CountDownLatch latch = new CountDownLatch(config.workers);
         AtomicLong totalSent = new AtomicLong(0);
+        AtomicLong crmSent = new AtomicLong(0);
+        AtomicLong ecommerceSent = new AtomicLong(0);
+        AtomicLong paymentSent = new AtomicLong(0);
         Thread[] threads = new Thread[config.workers];
         long currentStartId = 0;
         long globalStart = System.nanoTime();
@@ -48,7 +63,8 @@ public class EventGeneratorApp {
             long startId = currentStartId;
             currentStartId += workerEvents;
 
-            EventWorker worker = new EventWorker(workerId, startId, workerEvents, config, entityPool, latch, totalSent);
+            EventWorker worker = new EventWorker(workerId, startId, workerEvents, config, entityPool, latch,
+                    totalSent, crmSent, ecommerceSent, paymentSent);
             threads[workerId] = new Thread(worker, "event-generator-" + workerId);
             threads[workerId].start();
         }
@@ -62,7 +78,12 @@ public class EventGeneratorApp {
         System.out.println("======================================================================");
         System.out.println("Benchmark Result");
         System.out.println("======================================================================");
-        System.out.printf("Total events       : %,d%n", totalSent.get());
+        System.out.printf("Total events sent  : %,d%n", totalSent.get());
+        if (isDual) {
+            System.out.printf("  - CRM (GSSAPI)   : %,d -> %s_crm%n", crmSent.get(), config.topic);
+            System.out.printf("  - Ecommerce (PLAIN): %,d -> %s_ecommerce%n", ecommerceSent.get(), config.topic);
+            System.out.printf("  - Payment (PLAIN): %,d -> %s_payment%n", paymentSent.get(), config.topic);
+        }
         System.out.printf("Elapsed            : %.2f s%n", elapsed);
         System.out.printf("Kafka throughput   : %,.0f events/sec%n", throughput);
         System.out.println("======================================================================");

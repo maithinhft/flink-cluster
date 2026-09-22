@@ -8,6 +8,7 @@ import java.nio.file.Paths;
 public class EnvLoader {
 
     private static Dotenv dotenv;
+    private static String rootDirectory;
 
     static {
         try {
@@ -25,15 +26,21 @@ public class EnvLoader {
             }
 
             if (envDir != null) {
+                rootDirectory = envDir;
                 dotenv = Dotenv.configure().directory(envDir).load();
                 System.out.println("Loaded .env from: " + envDir);
             } else {
+                rootDirectory = Paths.get("").toAbsolutePath().toString();
                 System.out.println("No .env file found. Falling back to system environment variables.");
                 dotenv = Dotenv.configure().ignoreIfMissing().load();
             }
         } catch (Exception e) {
             System.err.println("Warning: Failed to load .env file. " + e.getMessage());
         }
+    }
+
+    public static String getRootDirectory() {
+        return rootDirectory != null ? rootDirectory : Paths.get("").toAbsolutePath().toString();
     }
 
     public static String get(String key, String defaultValue) {

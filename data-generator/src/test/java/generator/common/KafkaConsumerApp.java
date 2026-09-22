@@ -40,7 +40,7 @@ public class KafkaConsumerApp {
         }
 
         if (cluster == null) {
-            cluster = "schema_registry".equalsIgnoreCase(topic) ? "gssapi" : "plain";
+            cluster = ("schema_registry".equalsIgnoreCase(topic) || "events_crm".equalsIgnoreCase(topic)) ? "gssapi" : "plain";
         }
 
         String serverIp = EnvLoader.get("SERVER_IP", "127.0.0.1");
@@ -66,11 +66,45 @@ public class KafkaConsumerApp {
             props.put("security.protocol", "SASL_PLAINTEXT");
             props.put("sasl.mechanism", "GSSAPI");
             props.put("sasl.kerberos.service.name", "kafka");
+
+            String rootDir = EnvLoader.getRootDirectory();
+            String keytab = EnvLoader.get("KAFKA_KEYTAB", null);
+            if (keytab == null || keytab.isEmpty()) {
+                java.nio.file.Path[] candidates = new java.nio.file.Path[] {
+                        java.nio.file.Paths.get(rootDir, "security", "client.keytab"),
+                        java.nio.file.Paths.get("security", "client.keytab"),
+                        java.nio.file.Paths.get("..", "security", "client.keytab"),
+                        java.nio.file.Paths.get("/var/lib/secret/client.keytab")
+                };
+                for (java.nio.file.Path p : candidates) {
+                    if (java.nio.file.Files.exists(p)) {
+                        keytab = p.toAbsolutePath().toString();
+                        break;
+                    }
+                }
+                if (keytab == null) keytab = "/var/lib/secret/client.keytab";
+            }
+
             String krb5 = EnvLoader.get("KRB5_CONF", null);
+            if (krb5 == null || krb5.isEmpty()) {
+                java.nio.file.Path[] candidates = new java.nio.file.Path[] {
+                        java.nio.file.Paths.get(rootDir, "security", "krb5.conf"),
+                        java.nio.file.Paths.get("security", "krb5.conf"),
+                        java.nio.file.Paths.get("..", "security", "krb5.conf"),
+                        java.nio.file.Paths.get("/var/lib/secret/krb5.conf"),
+                        java.nio.file.Paths.get("/etc/krb5.conf")
+                };
+                for (java.nio.file.Path p : candidates) {
+                    if (java.nio.file.Files.exists(p)) {
+                        krb5 = p.toAbsolutePath().toString();
+                        break;
+                    }
+                }
+            }
             if (krb5 != null && !krb5.isEmpty()) {
                 System.setProperty("java.security.krb5.conf", krb5);
             }
-            String keytab = EnvLoader.get("KAFKA_KEYTAB", "/var/lib/secret/client.keytab");
+
             String principal = EnvLoader.get("KAFKA_PRINCIPAL", "client@" + EnvLoader.get("KRB5_REALM", "EXAMPLE.COM"));
             props.put("sasl.jaas.config", String.format(
                     "com.sun.security.auth.module.Krb5LoginModule required useKeyTab=true storeKey=true doNotPrompt=true keyTab=\"%s\" principal=\"%s\";",
