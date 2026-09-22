@@ -67,12 +67,14 @@ fi
 echo "[INFO] Uploaded successfully. JAR ID: $JAR_ID"
 
 # 5. Kích hoạt chạy Job
-echo "[INFO] Submitting job to Flink..."
-DEFAULT_ARGS="--postgres.url jdbc:postgresql://postgres:5432/realtime_core --postgres.user postgres --postgres.password postgres --postgres.table.prefix kafka_stream --stream.metadata.discovery.interval.ms 30000 --schema.cluster gssapi --rule.cluster plain --events.cluster plain --result.cluster plain --dlq.cluster plain --schema.topic schema_registry --parallelism 4"
+ENTRY_CLASS="${ENTRY_CLASS:-flink.RealtimeCepJob}"
+PARALLELISM="${PARALLELISM:-4}"
+echo "[INFO] Submitting job ($ENTRY_CLASS) to Flink..."
+DEFAULT_ARGS="--postgres.url jdbc:postgresql://postgres:5432/realtime_core --postgres.user postgres --postgres.password postgres --postgres.table.prefix kafka_stream --stream.metadata.discovery.interval.ms 30000 --schema.cluster gssapi --rule.cluster plain --events.cluster plain --result.cluster plain --dlq.cluster plain --schema.topic schema_registry --parallelism ${PARALLELISM}"
 PROGRAM_ARGS="${1:-$DEFAULT_ARGS}"
 
 RUN_RESPONSE=$(curl -s -X POST -H "Content-Type: application/json" \
-  -d "{\"entryClass\":\"flink.RealtimeCepJob\",\"parallelism\":4,\"programArgs\":\"${PROGRAM_ARGS}\"}" \
+  -d "{\"entryClass\":\"${ENTRY_CLASS}\",\"parallelism\":${PARALLELISM},\"programArgs\":\"${PROGRAM_ARGS}\"}" \
   "$FLINK_URL/jars/${JAR_ID}/run" || true)
 
 echo "[INFO] Response: $RUN_RESPONSE"

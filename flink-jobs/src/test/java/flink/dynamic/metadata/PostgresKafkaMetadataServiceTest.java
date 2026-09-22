@@ -13,45 +13,45 @@ public class PostgresKafkaMetadataServiceTest {
 
     @Test
     public void testEmptyStreamIdsReturnsEmptyMap() {
-        PostgresKafkaMetadataService service = new PostgresKafkaMetadataService(
-                "jdbc:postgresql://invalid-host:5432/db", "user", "pass");
-
-        Map<String, KafkaStream> streams = service.describeStreams(Collections.emptyList());
-        assertNotNull(streams);
-        assertTrue(streams.isEmpty());
+        try (PostgresKafkaMetadataService service = new PostgresKafkaMetadataService(
+            "jdbc:postgresql://invalid-host:5432/db", "user", "pass")) {
+            Map<String, KafkaStream> streams = service.describeStreams(Collections.emptyList());
+            assertNotNull(streams);
+            assertTrue(streams.isEmpty());
+        }
     }
 
     @Test
     public void testNullStreamIdsReturnsEmptyMap() {
-        PostgresKafkaMetadataService service = new PostgresKafkaMetadataService(
-                "jdbc:postgresql://invalid-host:5432/db", "user", "pass");
-
-        Map<String, KafkaStream> streams = service.describeStreams(null);
-        assertNotNull(streams);
-        assertTrue(streams.isEmpty());
+        try (PostgresKafkaMetadataService service = new PostgresKafkaMetadataService(
+            "jdbc:postgresql://invalid-host:5432/db", "user", "pass")) {
+            Map<String, KafkaStream> streams = service.describeStreams(null);
+            assertNotNull(streams);
+            assertTrue(streams.isEmpty());
+        }
     }
 
     @Test
     public void testDatabaseConnectionFailureReturnsEmptyGracefully() {
-        PostgresKafkaMetadataService service = new PostgresKafkaMetadataService(
-                "jdbc:postgresql://nonexistent-host:5432/test", "user", "pass", "kafka_stream", 1000L);
+        try (PostgresKafkaMetadataService service = new PostgresKafkaMetadataService(
+            "jdbc:postgresql://nonexistent-host:5432/test", "user", "pass", "kafka_stream", 1000L)) {
+            Set<KafkaStream> allStreams = service.getAllStreams();
+            assertNotNull(allStreams);
+            assertTrue(allStreams.isEmpty());
 
-        Set<KafkaStream> allStreams = service.getAllStreams();
-        assertNotNull(allStreams);
-        assertTrue(allStreams.isEmpty());
-
-        Map<String, KafkaStream> described = service.describeStreams(Collections.singletonList("stream-events"));
-        assertNotNull(described);
-        assertTrue(described.isEmpty());
+            Map<String, KafkaStream> described = service.describeStreams(Collections.singletonList("stream-events"));
+            assertNotNull(described);
+            assertTrue(described.isEmpty());
+        }
     }
 
     @Test
     public void testIsClusterActiveDefault() {
-        PostgresKafkaMetadataService service = new PostgresKafkaMetadataService(
-                "jdbc:postgresql://nonexistent-host:5432/test", "user", "pass");
-
-        assertFalse(service.isClusterActive(null));
-        assertTrue(service.isClusterActive("kafka-plain"));
+        try (PostgresKafkaMetadataService service = new PostgresKafkaMetadataService(
+            "jdbc:postgresql://nonexistent-host:5432/test", "user", "pass")) {
+            assertFalse(service.isClusterActive(null));
+            assertTrue(service.isClusterActive("kafka-plain"));
+        }
     }
 }
 

@@ -6,7 +6,6 @@ import org.apache.flink.connector.kafka.dynamic.metadata.KafkaStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.Serializable;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -25,7 +24,7 @@ import java.util.Set;
  * Cài đặt KafkaMetadataService đọc thông tin Kafka Cluster và Topics từ PostgreSQL.
  * Hỗ trợ cho DynamicKafkaSource tự động cập nhật topic và cụm Kafka mà không cần khởi động lại job.
  */
-public class PostgresKafkaMetadataService implements KafkaMetadataService, Serializable {
+public class PostgresKafkaMetadataService implements KafkaMetadataService {
 
     private static final long serialVersionUID = 1L;
     private static final Logger LOG = LoggerFactory.getLogger(PostgresKafkaMetadataService.class);
