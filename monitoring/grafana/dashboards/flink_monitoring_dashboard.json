@@ -30,7 +30,7 @@
         "y": 0
       },
       "id": 100,
-      "title": "⚡ Key Performance Indicators (KPIs)",
+      "title": "\u26a1 Key Performance Indicators (KPIs)",
       "type": "row"
     },
     {
@@ -362,7 +362,7 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "max(flink_taskmanager_job_task_operator_pipeline_latency_ms{quantile=\"0.95\"}) or avg({__name__=~\"flink_taskmanager_job_latency_.*\", quantile=\"0.95\"}) or vector(0)",
+          "expr": "max(flink_taskmanager_job_task_operator_e2e_latency_ms{quantile=\"0.95\"}) or avg({__name__=~\"flink_taskmanager_job_latency_.*\", quantile=\"0.95\"}) or vector(0)",
           "instant": false,
           "legendFormat": "P95 Pipeline Latency",
           "range": true,
@@ -452,7 +452,7 @@
         "y": 5
       },
       "id": 101,
-      "title": "📈 Throughput Monitoring",
+      "title": "\ud83d\udcc8 Throughput Monitoring",
       "type": "row"
     },
     {
@@ -893,7 +893,7 @@
         "y": 22
       },
       "id": 102,
-      "title": "⏱️ Latency & Consumer Lag Monitoring",
+      "title": "\u23f1\ufe0f Latency & Consumer Lag Monitoring",
       "type": "row"
     },
     {
@@ -989,7 +989,7 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "max(flink_taskmanager_job_task_operator_pipeline_latency_ms{quantile=~\"0.5|0.50\"}) or avg({__name__=~\"flink_taskmanager_job_latency_.*\", quantile=~\"0.5|0.50\"})",
+          "expr": "max(flink_taskmanager_job_task_operator_e2e_latency_ms{quantile=~\"0.5|0.50\"}) or avg({__name__=~\"flink_taskmanager_job_latency_.*\", quantile=~\"0.5|0.50\"})",
           "legendFormat": "Pipeline P50 Latency (ms)",
           "range": true,
           "refId": "A"
@@ -1000,7 +1000,7 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "max(flink_taskmanager_job_task_operator_pipeline_latency_ms{quantile=\"0.95\"}) or avg({__name__=~\"flink_taskmanager_job_latency_.*\", quantile=\"0.95\"})",
+          "expr": "max(flink_taskmanager_job_task_operator_e2e_latency_ms{quantile=\"0.95\"}) or avg({__name__=~\"flink_taskmanager_job_latency_.*\", quantile=\"0.95\"})",
           "legendFormat": "Pipeline P95 Latency (ms)",
           "range": true,
           "refId": "B"
@@ -1011,7 +1011,7 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "max(flink_taskmanager_job_task_operator_pipeline_latency_ms{quantile=\"0.99\"}) or avg({__name__=~\"flink_taskmanager_job_latency_.*\", quantile=\"0.99\"})",
+          "expr": "max(flink_taskmanager_job_task_operator_e2e_latency_ms{quantile=\"0.99\"}) or avg({__name__=~\"flink_taskmanager_job_latency_.*\", quantile=\"0.99\"})",
           "legendFormat": "Pipeline P99 Latency (ms)",
           "range": true,
           "refId": "C"
@@ -1022,7 +1022,7 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "max(flink_taskmanager_job_task_operator_pipeline_latency_ms{quantile=~\"0.999|max|1.0|1.00\"}) or max({__name__=~\"flink_taskmanager_job_latency_.*\", quantile=~\"0.999|max|1.0|1.00\"})",
+          "expr": "max(flink_taskmanager_job_task_operator_e2e_latency_ms{quantile=~\"0.999|max|1.0|1.00\"}) or max({__name__=~\"flink_taskmanager_job_latency_.*\", quantile=~\"0.999|max|1.0|1.00\"})",
           "legendFormat": "Pipeline Max Latency (ms)",
           "range": true,
           "refId": "D"
@@ -1352,7 +1352,7 @@
         "y": 39
       },
       "id": 103,
-      "title": "🔍 Operator Health & Bottleneck Detection (Busy / Backpressure / Idle)",
+      "title": "\ud83d\udd0d Operator Health & Bottleneck Detection (Busy / Backpressure / Idle)",
       "type": "row"
     },
     {
@@ -1668,7 +1668,7 @@
         "y": 48
       },
       "id": 104,
-      "title": "💻 JVM & Cluster Resources",
+      "title": "\ud83d\udcbb JVM & Cluster Resources",
       "type": "row"
     },
     {
@@ -1879,6 +1879,283 @@
       ],
       "title": "TaskManager JVM CPU Load (%)",
       "type": "timeseries"
+    },
+    {
+      "id": 105,
+      "type": "row",
+      "title": "\ud83e\udde0 Segment Engine (index, definitions, state)",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 57
+      },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 106,
+      "type": "timeseries",
+      "title": "Candidate reduction (index vs full scan / trigger-only)",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 58
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "expr": "1 - sum(rate(flink_taskmanager_job_task_operator_candidates_after_index[1m])) / clamp_min(sum(rate(flink_taskmanager_job_task_operator_rules_considered[1m])),1)",
+          "legendFormat": "vs all rules",
+          "refId": "A"
+        },
+        {
+          "expr": "1 - sum(rate(flink_taskmanager_job_task_operator_candidates_after_index[1m])) / clamp_min(sum(rate(flink_taskmanager_job_task_operator_candidates_after_trigger[1m])),1)",
+          "legendFormat": "vs trigger-only",
+          "refId": "B"
+        }
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      }
+    },
+    {
+      "id": 107,
+      "type": "timeseries",
+      "title": "Rules evaluated / matched / suppressed per second",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 58
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(flink_taskmanager_job_task_operator_rules_evaluated[1m]))",
+          "legendFormat": "evaluated",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(flink_taskmanager_job_task_operator_rules_matched[1m]))",
+          "legendFormat": "matched",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(rate(flink_taskmanager_job_task_operator_alerts_suppressed_by_cooldown[1m]))",
+          "legendFormat": "cooldown suppressed",
+          "refId": "C"
+        },
+        {
+          "expr": "sum(rate(flink_taskmanager_job_task_operator_events_late[1m]))",
+          "legendFormat": "late events",
+          "refId": "D"
+        }
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      }
+    },
+    {
+      "id": 108,
+      "type": "timeseries",
+      "title": "Active definitions",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 66
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "expr": "max(flink_taskmanager_job_task_operator_rules_active)",
+          "legendFormat": "rules",
+          "refId": "A"
+        },
+        {
+          "expr": "max(flink_taskmanager_job_task_operator_specs_active)",
+          "legendFormat": "aggregation specs",
+          "refId": "B"
+        },
+        {
+          "expr": "max(flink_taskmanager_job_task_operator_specs_retired)",
+          "legendFormat": "retired specs",
+          "refId": "C"
+        },
+        {
+          "expr": "max(flink_taskmanager_job_task_operator_index_posting_keys)",
+          "legendFormat": "index posting keys",
+          "refId": "D"
+        }
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      }
+    },
+    {
+      "id": 109,
+      "type": "timeseries",
+      "title": "Definition effective latency (CDC commit \u2192 applied)",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 66
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "expr": "max(flink_taskmanager_job_task_operator_rule_effective_latency_ms{quantile=\"0.5\"})",
+          "legendFormat": "p50",
+          "refId": "A"
+        },
+        {
+          "expr": "max(flink_taskmanager_job_task_operator_rule_effective_latency_ms{quantile=\"0.99\"})",
+          "legendFormat": "p99",
+          "refId": "B"
+        }
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      }
+    },
+    {
+      "id": 110,
+      "type": "timeseries",
+      "title": "Engine processing time per event",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 74
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "\u00b5s"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "expr": "max(flink_taskmanager_job_task_operator_engine_process_us{quantile=\"0.5\"})",
+          "legendFormat": "p50",
+          "refId": "A"
+        },
+        {
+          "expr": "max(flink_taskmanager_job_task_operator_engine_process_us{quantile=\"0.95\"})",
+          "legendFormat": "p95",
+          "refId": "B"
+        },
+        {
+          "expr": "max(flink_taskmanager_job_task_operator_engine_process_us{quantile=\"0.99\"})",
+          "legendFormat": "p99",
+          "refId": "C"
+        }
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      }
+    },
+    {
+      "id": 111,
+      "type": "timeseries",
+      "title": "State size",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 74
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(flink_taskmanager_job_task_operator_rocksdb_estimate_live_data_size)",
+          "legendFormat": "RocksDB live data",
+          "refId": "A"
+        },
+        {
+          "expr": "max(flink_jobmanager_job_lastCheckpointFullSize)",
+          "legendFormat": "checkpoint full size",
+          "refId": "B"
+        },
+        {
+          "expr": "max(flink_jobmanager_job_lastCheckpointSize)",
+          "legendFormat": "checkpoint incremental size",
+          "refId": "C"
+        }
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      }
     }
   ],
   "refresh": "5s",
@@ -1911,4 +2188,3 @@
   "version": 1,
   "weekStart": ""
 }
-

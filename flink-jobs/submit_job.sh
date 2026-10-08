@@ -27,8 +27,8 @@ else
 fi
 
 # 2. Build Fat JAR
-echo "[INFO] Building Fat JAR with Maven..."
-mvn clean package
+echo "[INFO] Building Fat JAR with Maven (run 'mvn test' separately for the test suite)..."
+mvn -q clean package -DskipTests
 
 JAR_PATH="$DIR/target/flink-jobs-1.0-SNAPSHOT.jar"
 if [ ! -f "$JAR_PATH" ]; then
@@ -70,11 +70,20 @@ echo "[INFO] Uploaded successfully. JAR ID: $JAR_ID"
 ENTRY_CLASS="${ENTRY_CLASS:-flink.RealtimeCepJob}"
 PARALLELISM="${PARALLELISM:-4}"
 echo "[INFO] Submitting job ($ENTRY_CLASS) to Flink..."
-DEFAULT_ARGS="--postgres.url jdbc:postgresql://postgres:5432/realtime_core --postgres.user postgres --postgres.password postgres --postgres.table.prefix kafka_stream --stream.metadata.discovery.interval.ms 30000 --schema.cluster gssapi --rule.cluster plain --events.cluster plain --result.cluster plain --dlq.cluster plain --schema.topic schema_registry --parallelism ${PARALLELISM}"
-PROGRAM_ARGS="${1:-$DEFAULT_ARGS}"
+INDEX_MODE="${INDEX_MODE:-df2}"
+EFFECTIVE_MODE="${EFFECTIVE_MODE:-event-time}"
+DEFAULT_ARGS="--postgres.url jdbc:postgresql://postgres:5432/realtime_core --postgres.user postgres --postgres.password postgres --postgres.table.prefix kafka_stream --stream.metadata.discovery.interval.ms 30000 --schema.cluster gssapi --rule.cluster plain --events.cluster plain --result.cluster plain --dlq.cluster plain --schema.topic schema_registry --rule.topic rule_definitions --result.topic result --dlq.topic dlq --index.mode ${INDEX_MODE} --definition.effective.mode ${EFFECTIVE_MODE} --bootstrap.enabled true --events.starting.offsets committed --parallelism ${PARALLELISM}"
+PROGRAM_ARGS="${1:-$DEFAULT_ARGS} ${EXTRA_ARGS:-}"
+
+# Optional restore: SAVEPOINT_PATH=file:///opt/flink/checkpoints/savepoints/savepoint-xxxx ./submit_job.sh
+RESTORE_JSON=""
+if [ -n "${SAVEPOINT_PATH:-}" ]; then
+    echo "[INFO] Restoring from savepoint/checkpoint: $SAVEPOINT_PATH"
+    RESTORE_JSON=",\"savepointPath\":\"${SAVEPOINT_PATH}\",\"allowNonRestoredState\":${ALLOW_NON_RESTORED_STATE:-false}"
+fi
 
 RUN_RESPONSE=$(curl -s -X POST -H "Content-Type: application/json" \
-  -d "{\"entryClass\":\"${ENTRY_CLASS}\",\"parallelism\":${PARALLELISM},\"programArgs\":\"${PROGRAM_ARGS}\"}" \
+  -d "{\"entryClass\":\"${ENTRY_CLASS}\",\"parallelism\":${PARALLELISM},\"programArgs\":\"${PROGRAM_ARGS}\"${RESTORE_JSON}}" \
   "$FLINK_URL/jars/${JAR_ID}/run" || true)
 
 echo "[INFO] Response: $RUN_RESPONSE"

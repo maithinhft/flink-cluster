@@ -59,7 +59,8 @@ public class EventWorker implements Runnable {
             }
 
             ObjectMapper mapper = new ObjectMapper();
-            Random random = new Random(12345L + workerId);
+            Random random = new Random(config.seed + workerId);
+            double workerRate = config.ratePerSecond > 0 ? config.ratePerSecond / config.workers : 0.0;
             long start = System.nanoTime();
             long sent = 0;
             long workerCrm = 0;
@@ -130,6 +131,14 @@ public class EventWorker implements Runnable {
                     else if ("payment".equalsIgnoreCase(sourceSystem)) workerPayment++;
                 }
                 sent++;
+
+                if (workerRate > 0) {
+                    long due = start + (long) (sent * 1_000_000_000.0 / workerRate);
+                    long wait = due - System.nanoTime();
+                    if (wait > 1_000_000L) {
+                        Thread.sleep(wait / 1_000_000L, (int) (wait % 1_000_000L));
+                    }
+                }
 
                 if (config.continuous && sent % 500_000 == 0) {
                     double elapsed = (System.nanoTime() - start) / 1_000_000_000.0;

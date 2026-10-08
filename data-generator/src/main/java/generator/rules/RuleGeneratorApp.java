@@ -12,6 +12,7 @@ public class RuleGeneratorApp {
         int numRules = RuleConfig.DEFAULT_NUM_RULES;
         int batchSize = RuleConfig.DEFAULT_BATCH_SIZE;
         boolean continuous = false;
+        String schemaPath = "./schema";
 
         for (int i = 0; i < args.length; i++) {
             switch (args[i]) {
@@ -33,6 +34,21 @@ public class RuleGeneratorApp {
                 case "--continuous":
                     continuous = true;
                     break;
+                case "--and-root-ratio":
+                    RuleFactory.andRootRatio = Double.parseDouble(args[++i]);
+                    break;
+                case "--linear-ratio":
+                    RuleFactory.linearRatio = Double.parseDouble(args[++i]);
+                    break;
+                case "--rule-metric-mode":
+                    RuleFactory.metricMode = args[++i];
+                    break;
+                case "--schema-path":
+                    schemaPath = args[++i];
+                    break;
+                case "--seed":
+                    generator.common.RandomUtils.RANDOM.setSeed(Long.parseLong(args[++i]));
+                    break;
             }
         }
 
@@ -41,6 +57,12 @@ public class RuleGeneratorApp {
         System.out.println("======================================================");
         System.out.println("======================================================");
         System.out.printf("Rules        : %s%n", continuous ? "Continuous" : String.format("%,d", numRules));
+        System.out.printf("AND root     : %.2f, LINEAR leaves: %.2f, metric mode: %s%n",
+                RuleFactory.andRootRatio, RuleFactory.linearRatio, RuleFactory.metricMode);
+        if ("reference".equalsIgnoreCase(RuleFactory.metricMode)) {
+            RuleFactory.loadMetricAliases(java.nio.file.Paths.get(schemaPath));
+            System.out.printf("Metric aliases: %,d loaded from %s%n", RuleFactory.metricAliases.size(), schemaPath);
+        }
 
         try (Connection connection = DriverManager.getConnection(dbUrl, dbUser, dbPassword)) {
             connection.setAutoCommit(false);

@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Segment Studio</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #667085; --border: #e3e6eb;
+    --accent: #3b5bdb; --accent-text: #ffffff; --ok: #2b8a3e; --warn: #c2410c; --code: #f1f3f5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #111418; --panel: #1a1f26; --text: #e6e9ef; --muted: #98a2b3; --border: #2b323c;
+            --accent: #748ffc; --accent-text: #0b0d10; --ok: #69db7c; --warn: #ffa94d; --code: #222831; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { padding: 16px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+  header h1 { font-size: 18px; margin: 0; }
+  header span { color: var(--muted); }
+  main { display: grid; grid-template-columns: 1.1fr 0.9fr 1.2fr; gap: 16px; padding: 16px 24px; }
+  @media (max-width: 1100px) { main { grid-template-columns: 1fr; padding: 16px; } }
+  section { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; min-width: 0; }
+  h2 { font-size: 15px; margin: 0 0 12px; }
+  label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; }
+  input, select, textarea { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px;
+    background: var(--panel); color: var(--text); font: inherit; }
+  textarea { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; min-height: 220px; resize: vertical; background: var(--code); }
+  .row { display: flex; gap: 8px; } .row > * { flex: 1; }
+  button { margin-top: 12px; padding: 8px 14px; border: 0; border-radius: 6px; background: var(--accent); color: var(--accent-text);
+    font: inherit; font-weight: 600; cursor: pointer; }
+  button.secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+  button.small { margin: 0; padding: 3px 8px; font-size: 12px; font-weight: 500; }
+  .msg { margin-top: 8px; font-size: 12px; color: var(--muted); min-height: 1em; white-space: pre-wrap; }
+  .msg.err { color: var(--warn); }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 12px; }
+  td, th { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; }
+  .pill { display: inline-block; padding: 1px 6px; border-radius: 99px; font-size: 11px; border: 1px solid var(--border); }
+  .pill.on { color: var(--ok); border-color: var(--ok); } .pill.off { color: var(--muted); }
+  .alerts { list-style: none; margin: 0; padding: 0; max-height: 70vh; overflow-y: auto; }
+  .alerts li { border-bottom: 1px solid var(--border); padding: 10px 2px; }
+  .alerts li.fresh { animation: flash 1.2s ease-out; }
+  @keyframes flash { from { background: color-mix(in srgb, var(--accent) 20%, transparent); } to { background: transparent; } }
+  .meta { color: var(--muted); font-size: 12px; }
+  .kpis { display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+  .kpi { flex: 1; min-width: 110px; border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
+  .kpi b { display: block; font-size: 20px; }
+  code { font-family: ui-monospace, monospace; font-size: 12px; overflow-wrap: anywhere; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Segment Studio</h1>
+  <span>Khai báo tiêu chí phân khúc → CDC → Flink (không restart job) → kết quả realtime</span>
+</header>
+<main>
+  <section>
+    <h2>1. Tiêu chí phân khúc</h2>
+    <div class="row">
+      <div><label for="ruleName">Tên phân khúc</label><input id="ruleName" value="vip_high_value"></div>
+      <div><label for="cooldown">Cooldown (giây)</label><input id="cooldown" type="number" min="0" value="0"></div>
+    </div>
+    <label for="ruleId">rule_id (để trống = tạo mới, điền = cập nhật version mới)</label>
+    <input id="ruleId" placeholder="uuid">
+    <label for="ruleJson">rule_json</label>
+    <textarea id="ruleJson"></textarea>
+    <button id="saveRule">Lưu tiêu chí</button>
+    <div class="msg" id="ruleMsg"></div>
+    <table><thead><tr><th>Tên</th><th>v</th><th>Trạng thái</th><th></th></tr></thead><tbody id="rules"></tbody></table>
+  </section>
+
+  <section>
+    <h2>2. Bắn sự kiện mẫu</h2>
+    <label for="entity">entity_id</label><input id="entity" value="user-demo-1">
+    <label for="etype">event_type</label><select id="etype"></select>
+    <label for="fields">Ghi đè field (JSON)</label>
+    <textarea id="fields" style="min-height:120px">{"total_amount": 6000000, "product_category": "electronics"}</textarea>
+    <div class="row">
+      <button id="send">Gửi 1 sự kiện</button>
+      <button id="scenario" class="secondary">Kịch bản VIP (2 purchase)</button>
+    </div>
+    <div class="msg" id="sendMsg"></div>
+  </section>
+
+  <section>
+    <h2>3. Kết quả realtime (topic <code>result</code>)</h2>
+    <div class="kpis">
+      <div class="kpi"><span class="meta">Alert đã nhận</span><b id="kAlerts">0</b></div>
+      <div class="kpi"><span class="meta">Engine latency (gần nhất)</span><b id="kLat">–</b></div>
+      <div class="kpi"><span class="meta">Từ lúc lưu rule → alert đầu</span><b id="kRule">–</b></div>
+    </div>
+    <ul class="alerts" id="alerts"></ul>
+  </section>
+</main>
+<script>
+const VIP_RULE = {
+  trigger_events: ["purchase"],
+  condition: {
+    operator: "AND",
+    children: [
+      { type: "AGGREGATION", field: "total_amount", function: "SUM",
+        window: { type: "sliding", size_seconds: 86400, slide_seconds: 300 },
+        operator: "GT", value: 10000000 },
+      { operator: "OR", children: [
+        { type: "RAW_FIELD", field: "product_category", operator: "EQ", value: "electronics" },
+        { type: "RAW_FIELD", field: "subscription_tier", operator: "EQ", value: "premium" } ] }
+    ]
+  }
+};
+const $ = id => document.getElementById(id);
+$("ruleJson").value = JSON.stringify(VIP_RULE, null, 2);
+let lastSavedAt = null, firstAlertAfterSave = null, since = 0, total = 0;
+
+async function api(path, body) {
+  const res = await fetch(path, body ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : {});
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || res.statusText);
+  return data;
+}
+function fmtMs(ms) { return ms == null ? "–" : (ms < 1000 ? ms + " ms" : (ms / 1000).toFixed(1) + " s"); }
+function esc(s) { return String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+
+async function loadMeta() {
+  const m = await api("/api/meta");
+  $("etype").innerHTML = m.event_types.map(t => `<option ${t === "purchase" ? "selected" : ""}>${t}</option>`).join("");
+}
+async function loadRules() {
+  const rules = await api("/api/rules");
+  $("rules").innerHTML = rules.map(r => `<tr>
+      <td><a href="#" data-edit="${esc(r.rule_id)}">${esc(r.name)}</a><div class="meta"><code>${esc(r.rule_id)}</code></div></td>
+      <td>${r.version}</td>
+      <td><span class="pill ${r.enabled ? "on" : "off"}">${r.enabled ? "enabled" : "disabled"}</span></td>
+      <td>${r.enabled ? `<button class="small secondary" data-disable="${esc(r.rule_id)}">Tắt</button>` : ""}</td></tr>`).join("");
+  window._rules = rules;
+}
+$("rules").addEventListener("click", async e => {
+  const edit = e.target.closest("[data-edit]"), dis = e.target.closest("[data-disable]");
+  if (edit) {
+    e.preventDefault();
+    const r = window._rules.find(x => x.rule_id === edit.dataset.edit);
+    $("ruleId").value = r.rule_id; $("ruleName").value = r.name; $("cooldown").value = r.cooldown_seconds;
+    $("ruleJson").value = JSON.stringify(r.rule_json, null, 2);
+  }
+  if (dis) {
+    await api("/api/rules/disable", { rule_id: dis.dataset.disable });
+    $("ruleMsg").textContent = "Đã tắt (ghi version mới enabled=false).";
+    loadRules();
+  }
+});
+$("saveRule").onclick = async () => {
+  const msg = $("ruleMsg"); msg.className = "msg";
+  try {
+    const body = { name: $("ruleName").value, cooldown_seconds: Number($("cooldown").value || 0),
+                   rule_json: JSON.parse($("ruleJson").value) };
+    if ($("ruleId").value.trim()) body.rule_id = $("ruleId").value.trim();
+    const r = await api("/api/rules", body);
+    $("ruleId").value = r.rule_id; lastSavedAt = r.saved_at_ms; firstAlertAfterSave = null; $("kRule").textContent = "đang chờ…";
+    msg.textContent = `Đã lưu ${r.rule_id} version ${r.version}. Flink áp dụng qua CDC trong vài giây.`;
+    loadRules();
+  } catch (e) { msg.className = "msg err"; msg.textContent = e.message; }
+};
+async function sendOne(overrides) {
+  return api("/api/events", { entity_id: $("entity").value, event_type: $("etype").value, fields: overrides });
+}
+$("send").onclick = async () => {
+  const msg = $("sendMsg"); msg.className = "msg";
+  try { const ev = await sendOne(JSON.parse($("fields").value || "{}")); msg.textContent = `Đã gửi ${ev.event_type} → ${ev._topic} (${ev.event_id})`; }
+  catch (e) { msg.className = "msg err"; msg.textContent = e.message; }
+};
+$("scenario").onclick = async () => {
+  const msg = $("sendMsg"); msg.className = "msg";
+  try {
+    $("etype").value = "purchase";
+    await sendOne({ total_amount: 6000000, product_category: "books" });
+    await sendOne({ total_amount: 5000000, product_category: "electronics" });
+    msg.textContent = "Đã gửi 2 purchase: 6.000.000 (books) + 5.000.000 (electronics) → SUM 24h = 11.000.000 > 10.000.000";
+  } catch (e) { msg.className = "msg err"; msg.textContent = e.message; }
+};
+async function poll() {
+  try {
+    const items = await api("/api/alerts?since=" + since);
+    if (items.length) {
+      since = Math.max(...items.map(a => a.received_at_ms));
+      total += items.length; $("kAlerts").textContent = total;
+      const newest = items[0];
+      $("kLat").textContent = fmtMs(newest.latency ? newest.latency.emit_time_ms - newest.latency.ingest_time_ms : null);
+      if (lastSavedAt && firstAlertAfterSave == null) {
+        const a = items.filter(x => x.received_at_ms >= lastSavedAt).pop();
+        if (a) { firstAlertAfterSave = a.received_at_ms - lastSavedAt; $("kRule").textContent = fmtMs(firstAlertAfterSave); }
+      }
+      const html = items.map(a => `<li class="fresh">
+          <b>${esc(a.rule_name)}</b> <span class="meta">v${a.rule_version}</span> ← <code>${esc(a.entity_id)}</code>
+          <div class="meta">${esc(a.trigger_event.event_type)} @ ${esc(a.event_time)} · window_complete=${a.window_complete}</div>
+          <div class="meta"><code>${esc(JSON.stringify(a.evaluated_values))}</code></div></li>`).join("");
+      $("alerts").insertAdjacentHTML("afterbegin", html);
+      while ($("alerts").children.length > 200) $("alerts").lastElementChild.remove();
+    }
+  } catch (e) { }
+  setTimeout(poll, 1000);
+}
+loadMeta(); loadRules().catch(e => { $("ruleMsg").className = "msg err"; $("ruleMsg").textContent = "Không kết nối được PostgreSQL: " + e.message; });
+poll();
+</script>
+</body>
+</html>

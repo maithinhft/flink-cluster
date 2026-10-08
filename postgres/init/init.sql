@@ -156,6 +156,30 @@ SELECT id, 'events_payment', TRUE FROM kafka_stream_cluster_config
 WHERE stream_id = 'stream-events' AND cluster_name = 'kafka-plain'
 ON CONFLICT (cluster_config_id, topic_name) DO NOTHING;
 
+-- ============================================================
+-- Alert results written by ResultSinkApp (idempotent upsert by deterministic alert_id).
+-- Used by the demo app and by the batch verifier to compare realtime output with batch recomputation.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS alert_results (
+    alert_id         UUID PRIMARY KEY,
+    entity_id        VARCHAR(255) NOT NULL,
+    rule_id          VARCHAR(255) NOT NULL,
+    rule_name        VARCHAR(255),
+    rule_version     BIGINT NOT NULL,
+    event_id         VARCHAR(255),
+    event_type       VARCHAR(100),
+    event_time       TIMESTAMPTZ NOT NULL,
+    triggered_at     TIMESTAMPTZ NOT NULL,
+    window_complete  BOOLEAN,
+    evaluated_values JSONB,
+    payload          JSONB NOT NULL,
+    inserted_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_alert_results_rule_time ON alert_results (rule_id, event_time);
+CREATE INDEX IF NOT EXISTS idx_alert_results_entity ON alert_results (entity_id);
+CREATE INDEX IF NOT EXISTS idx_alert_results_inserted ON alert_results (inserted_at DESC);
+
 GRANT USAGE ON SCHEMA public TO replicator;
 
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO replicator;

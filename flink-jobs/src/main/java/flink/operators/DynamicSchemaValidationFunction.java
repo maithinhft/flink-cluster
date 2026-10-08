@@ -2,12 +2,26 @@ package flink.operators;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import flink.control.PostgresControlBootstrap;
+import flink.engine.EngineConfig;
+import flink.engine.SchemaCatalog;
+import flink.io.KafkaIo;
+import flink.model.ControlMessage;
+import flink.model.KeyedRecord;
+import flink.model.RawEvent;
+import flink.model.ValidatedEvent;
+import org.apache.flink.api.common.functions.OpenContext;
 import org.apache.flink.api.common.state.BroadcastState;
+import org.apache.flink.api.common.state.ListState;
+import org.apache.flink.api.common.state.ListStateDescriptor;
 import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.api.common.state.ReadOnlyBroadcastState;
 import org.apache.flink.api.common.typeinfo.Types;
+import org.apache.flink.metrics.Counter;
+import org.apache.flink.runtime.state.FunctionInitializationContext;
+import org.apache.flink.runtime.state.FunctionSnapshotContext;
+import org.apache.flink.streaming.api.checkpoint.CheckpointedFunction;
 import org.apache.flink.streaming.api.functions.co.BroadcastProcessFunction;
 import org.apache.flink.util.Collector;
 import org.apache.flink.util.OutputTag;
@@ -15,340 +29,273 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.function.Consumer;
 
-public class DynamicSchemaValidationFunction extends BroadcastProcessFunction<String, String, String> {
+public class DynamicSchemaValidationFunction
+        extends BroadcastProcessFunction<RawEvent, ControlMessage, ValidatedEvent>
+        implements CheckpointedFunction {
 
+    private static final long serialVersionUID = 2L;
     private static final Logger LOG = LoggerFactory.getLogger(DynamicSchemaValidationFunction.class);
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final String SEP = "\u0001";
+    private static final String SCHEMA_NOT_FOUND = "Schema not found for key: ";
 
-    public static final MapStateDescriptor<String, String> SCHEMA_STATE_DESCRIPTOR = new MapStateDescriptor<>(
-            "schemaBroadcastState", Types.STRING, Types.STRING);
+    public static final MapStateDescriptor<String, String> SCHEMA_STATE_DESCRIPTOR =
+            new MapStateDescriptor<>("validationSchemas", Types.STRING, Types.STRING);
 
-    public static final MapStateDescriptor<String, Long> DEPRECATED_SCHEMAS_DESCRIPTOR = new MapStateDescriptor<>(
-            "deprecatedSchemas", Types.STRING, Types.LONG);
+    public static final MapStateDescriptor<String, String> RULE_FIELDS_DESCRIPTOR =
+            new MapStateDescriptor<>("validationRuleFields", Types.STRING, Types.STRING);
 
-    public static final MapStateDescriptor<String, String> LATEST_VERSION_DESCRIPTOR = new MapStateDescriptor<>(
-            "latestSchemaVersions", Types.STRING, Types.STRING);
-
-    private transient Map<String, JsonNode> parsedSchemaCache;
-    private transient Set<String> globalActiveMetricIds;
-    private transient long currentSchemaSeq = 0L;
-    private transient long attachedSchemaSeq = -1L;
-
-    public static final OutputTag<String> DIRTY_DATA_TAG = new OutputTag<String>("dirty-events") {
+    public static final OutputTag<KeyedRecord> DIRTY_DATA_TAG = new OutputTag<KeyedRecord>("dirty-events") {
     };
 
+    private final EngineConfig config;
+
+    private transient SchemaCatalog catalog;
+    private transient List<ControlMessage> bootstrap;
+    private transient List<RawEvent> coldBuffer;
+    private transient ListState<RawEvent> coldBufferState;
+    private transient long openTimeMs;
+    private transient Counter validCounter;
+    private transient Counter dirtyCounter;
+    private transient Counter bufferedCounter;
+
+    public DynamicSchemaValidationFunction(EngineConfig config) {
+        this.config = config;
+    }
+
+    public static MapStateDescriptor<?, ?>[] descriptors() {
+        return new MapStateDescriptor<?, ?>[]{SCHEMA_STATE_DESCRIPTOR, RULE_FIELDS_DESCRIPTOR};
+    }
+
     @Override
-    public void processElement(String eventJson, ReadOnlyContext ctx, Collector<String> out) throws Exception {
-        try {
-            JsonNode eventNode = mapper.readTree(eventJson);
-
-            if (!eventNode.has("source_system") || !eventNode.has("event_type") || !eventNode.has("schema_version")) {
-                ((ObjectNode) eventNode).put("error_reason",
-                        "Missing source_system or action or version for schema mapping");
-                ctx.output(DIRTY_DATA_TAG, mapper.writeValueAsString(eventNode));
-                return;
-            }
-
-            String sourceName = eventNode.get("source_system").asText();
-            String eventType = eventNode.get("event_type").asText();
-            String version = eventNode.get("schema_version").asText();
-            String schemaKey = sourceName + "_" + eventType + "_" + version;
-
-            ReadOnlyBroadcastState<String, String> schemaState = ctx.getBroadcastState(SCHEMA_STATE_DESCRIPTOR);
-            String schemaJson = schemaState.get(schemaKey);
-
-            if (schemaJson == null) {
-                ((ObjectNode) eventNode).put("error_reason", "Schema not found for key: " + schemaKey);
-                ctx.output(DIRTY_DATA_TAG, mapper.writeValueAsString(eventNode));
-                return;
-            }
-
-            JsonNode schemaNode = getOrParseSchema(schemaKey, schemaJson);
-            if (schemaNode == null) {
-                ((ObjectNode) eventNode).put("error_reason", "Failed to parse schema for key: " + schemaKey);
-                ctx.output(DIRTY_DATA_TAG, mapper.writeValueAsString(eventNode));
-                return;
-            }
-
-            JsonNode fieldsNode = schemaNode.get("fields");
-            if (fieldsNode == null) {
-                evaluateMetricsAndCollect(eventNode, schemaNode, out);
-                return;
-            }
-
-            List<String> missingFields = new ArrayList<>();
-            List<String> invalidTypeFields = new ArrayList<>();
-            List<String> invalidConstraintFields = new ArrayList<>();
-            JsonNode eventFields = eventNode;
-
-            Iterator<Map.Entry<String, JsonNode>> fieldsIter = fieldsNode.fields();
-            while (fieldsIter.hasNext()) {
-                Map.Entry<String, JsonNode> fieldEntry = fieldsIter.next();
-                String fieldName = fieldEntry.getKey();
-                JsonNode fieldDef = fieldEntry.getValue();
-
-                boolean isPresent = eventFields.has(fieldName) && !eventFields.get(fieldName).isNull();
-
-                if (fieldDef.has("required") && fieldDef.get("required").asBoolean()) {
-                    if (!isPresent) {
-                        missingFields.add(fieldName);
-                    }
-                }
-
-                if (isPresent) {
-                    JsonNode val = eventFields.get(fieldName);
-
-                    if (fieldDef.has("type")) {
-                        String type = fieldDef.get("type").asText();
-                        if (type.equals("string") && !val.isTextual()) {
-                            invalidTypeFields.add(fieldName + " (expected string)");
-                        } else if (type.equals("integer") && !val.isIntegralNumber()) {
-                            invalidTypeFields.add(fieldName + " (expected integer)");
-                        } else if (type.equals("number") && !val.isNumber()) {
-                            invalidTypeFields.add(fieldName + " (expected number)");
-                        } else if (type.equals("boolean") && !val.isBoolean()) {
-                            invalidTypeFields.add(fieldName + " (expected boolean)");
-                        }
-                    }
-
-                    if (fieldDef.has("min") && val.isNumber()) {
-                        if (val.asDouble() < fieldDef.get("min").asDouble()) {
-                            invalidConstraintFields.add(fieldName + " (< min " + fieldDef.get("min").asText() + ")");
-                        }
-                    }
-                    if (fieldDef.has("max") && val.isNumber()) {
-                        if (val.asDouble() > fieldDef.get("max").asDouble()) {
-                            invalidConstraintFields.add(fieldName + " (> max " + fieldDef.get("max").asText() + ")");
-                        }
-                    }
-                    if (fieldDef.has("allowed_values")) {
-                        boolean matched = false;
-                        for (JsonNode allowedVal : fieldDef.get("allowed_values")) {
-                            if (val.asText().equals(allowedVal.asText())) {
-                                matched = true;
-                                break;
-                            }
-                        }
-                        if (!matched) {
-                            invalidConstraintFields.add(fieldName + " (not in allowed_values)");
-                        }
-                    }
-                }
-            }
-
-            if (!missingFields.isEmpty() || !invalidTypeFields.isEmpty() || !invalidConstraintFields.isEmpty()) {
-                List<String> reasons = new ArrayList<>();
-                if (!missingFields.isEmpty()) reasons.add("Missing: " + String.join(", ", missingFields));
-                if (!invalidTypeFields.isEmpty()) reasons.add("Invalid Type: " + String.join(", ", invalidTypeFields));
-                if (!invalidConstraintFields.isEmpty()) reasons.add("Constraint: " + String.join(", ", invalidConstraintFields));
-
-                ((ObjectNode) eventNode).put("error_reason", String.join(" | ", reasons));
-                ctx.output(DIRTY_DATA_TAG, mapper.writeValueAsString(eventNode));
-            } else {
-                evaluateMetricsAndCollect(eventNode, schemaNode, out);
-            }
-
-        } catch (Exception e) {
-            LOG.warn("Failed to parse event JSON", e);
-            ObjectNode errorNode = mapper.createObjectNode();
-            errorNode.put("original_payload", eventJson);
-            errorNode.put("error_reason", "JSON Parse Exception: " + e.getMessage());
-            ctx.output(DIRTY_DATA_TAG, mapper.writeValueAsString(errorNode));
-        }
+    public void open(OpenContext openContext) throws Exception {
+        openTimeMs = Long.MIN_VALUE;
+        bootstrap = config.bootstrapEnabled
+                ? PostgresControlBootstrap.load(config.bootstrapUrl, config.bootstrapUser, config.bootstrapPassword, true, true)
+                : Collections.emptyList();
+        validCounter = getRuntimeContext().getMetricGroup().counter("events_validated");
+        dirtyCounter = getRuntimeContext().getMetricGroup().counter("events_dirty");
+        bufferedCounter = getRuntimeContext().getMetricGroup().counter("events_coldstart_buffered");
+        getRuntimeContext().getMetricGroup().gauge("schemas_active", () -> catalog == null ? 0 : catalog.size());
+        getRuntimeContext().getMetricGroup().gauge("coldstart_buffer_size", () -> coldBuffer == null ? 0 : coldBuffer.size());
     }
 
-    private JsonNode getOrParseSchema(String key, String schemaJson) {
-        if (parsedSchemaCache == null) parsedSchemaCache = new HashMap<>();
-        return parsedSchemaCache.computeIfAbsent(key, k -> {
-            try {
-                return mapper.readTree(schemaJson);
-            } catch (Exception ignored) {
-                return null;
+    @Override
+    public void initializeState(FunctionInitializationContext context) throws Exception {
+        coldBufferState = context.getOperatorStateStore()
+                .getListState(new ListStateDescriptor<>("coldStartBuffer", RawEvent.class));
+        coldBuffer = new ArrayList<>();
+        if (context.isRestored()) {
+            for (RawEvent e : coldBufferState.get()) {
+                coldBuffer.add(e);
             }
-        });
-    }
-
-    private void invalidateParsedSchema(String key) {
-        if (parsedSchemaCache != null) parsedSchemaCache.remove(key);
-    }
-
-    private int compareVersions(String v1, String v2) {
-        try {
-            String[] parts1 = v1.split("\\.");
-            String[] parts2 = v2.split("\\.");
-            int length = Math.max(parts1.length, parts2.length);
-            for (int i = 0; i < length; i++) {
-                int p1 = i < parts1.length ? Integer.parseInt(parts1[i]) : 0;
-                int p2 = i < parts2.length ? Integer.parseInt(parts2[i]) : 0;
-                if (p1 != p2) {
-                    return Integer.compare(p1, p2);
-                }
-            }
-            return 0;
-        } catch (Exception e) {
-            return v1.compareTo(v2);
         }
     }
 
     @Override
-    public void processBroadcastElement(String messageJson, Context ctx, Collector<String> out) throws Exception {
-        try {
-            JsonNode messageNode = mapper.readTree(messageJson);
+    public void snapshotState(FunctionSnapshotContext context) throws Exception {
+        coldBufferState.update(coldBuffer);
+    }
 
-            if (messageNode.has("schema_payload") && messageNode.has("schema_id")) {
-
-                String schemaId = messageNode.get("schema_id").asText();
-                String schemaJson = messageNode.get("schema_payload").asText();
-
-                JsonNode payloadNode = mapper.readTree(schemaJson);
-
-                if (payloadNode.has("version")) {
-                    String version = payloadNode.get("version").asText();
-                    String schemaKey = schemaId + "_" + version;
-
-                    BroadcastState<String, String> schemaState = ctx.getBroadcastState(SCHEMA_STATE_DESCRIPTOR);
-                    BroadcastState<String, String> latestVersionState = ctx
-                            .getBroadcastState(LATEST_VERSION_DESCRIPTOR);
-                    BroadcastState<String, Long> deprecatedState = ctx.getBroadcastState(DEPRECATED_SCHEMAS_DESCRIPTOR);
-
-                    String currentLatestVersion = latestVersionState.get(schemaId);
-
-                    if (currentLatestVersion == null) {
-                        latestVersionState.put(schemaId, version);
-                        schemaState.put(schemaKey, schemaJson);
-                        invalidateParsedSchema(schemaKey);
-                        LOG.info("Received and cached initial schema for key: {}", schemaKey);
-                    } else {
-                        int cmp = compareVersions(version, currentLatestVersion);
-                        if (cmp > 0) {
-                            String oldSchemaKey = schemaId + "_" + currentLatestVersion;
-                            deprecatedState.put(oldSchemaKey, ctx.currentProcessingTime());
-                            LOG.info("Deprecated old schema version: {}", oldSchemaKey);
-
-                            latestVersionState.put(schemaId, version);
-                            schemaState.put(schemaKey, schemaJson);
-                            invalidateParsedSchema(schemaKey);
-                            LOG.info("Received and cached newer schema for key: {}", schemaKey);
-                        } else if (cmp < 0) {
-                            schemaState.put(schemaKey, schemaJson);
-                            invalidateParsedSchema(schemaKey);
-                            deprecatedState.put(schemaKey, ctx.currentProcessingTime());
-                            LOG.info("Received out-of-order old schema version: {}, immediately deprecating it",
-                                    schemaKey);
-                        } else {
-                            schemaState.put(schemaKey, schemaJson);
-                            invalidateParsedSchema(schemaKey);
-                        }
-                    }
-
-                    long currentTime = ctx.currentProcessingTime();
-                    List<String> keysToRemove = new ArrayList<>();
-                    for (Map.Entry<String, Long> entry : deprecatedState.entries()) {
-                        if (currentTime - entry.getValue() > 5 * 60 * 1000L) {
-                            keysToRemove.add(entry.getKey());
-                        }
-                    }
-
-                    for (String key : keysToRemove) {
-                        schemaState.remove(key);
-                        invalidateParsedSchema(key);
-                        deprecatedState.remove(key);
-                        LOG.info("Cleaned up expired old schema: {}", key);
-                    }
-
-                    rebuildGlobalActiveMetrics(ctx);
-                }
+    private void ensureCatalog(ReadOnlyBroadcastState<String, String> schemas,
+                               ReadOnlyBroadcastState<String, String> ruleFields) throws Exception {
+        if (catalog != null) {
+            return;
+        }
+        catalog = new SchemaCatalog(config.schemaGraceMs);
+        long now = System.currentTimeMillis();
+        TreeMap<String, String> sorted = new TreeMap<>();
+        for (Map.Entry<String, String> e : schemas.immutableEntries()) {
+            sorted.put(e.getKey(), e.getValue());
+        }
+        for (Map.Entry<String, String> e : sorted.entrySet()) {
+            String[] k = e.getKey().split(SEP, 2);
+            if (k.length == 2) {
+                catalog.apply(new ControlMessage(ControlMessage.Kind.SCHEMA_UPSERT, k[0], 0L, k[1],
+                        Long.MIN_VALUE, 0L, e.getValue()), now);
             }
-        } catch (Exception e) {
-            LOG.error("Failed to parse and store schema from Broadcast Stream", e);
+        }
+        for (Map.Entry<String, String> e : ruleFields.immutableEntries()) {
+            String[] v = e.getValue().split(SEP, 2);
+            Set<String> fields = new HashSet<>();
+            if (v.length == 2 && !v[1].isEmpty()) {
+                fields.addAll(Arrays.asList(v[1].split(",")));
+            }
+            catalog.putRuleFields(e.getKey(), fields);
+        }
+        if (bootstrap != null) {
+            for (ControlMessage m : bootstrap) {
+                if (!m.isRule() && catalog.has(m.id + "_" + m.versionLabel)) {
+                    continue;
+                }
+                if (m.isRule() && ruleFields.contains(m.id)) {
+                    continue;
+                }
+                catalog.apply(m, now);
+            }
+            bootstrap = null;
+        }
+        LOG.info("Validation catalog ready: {} schemas, {} referenced fields", catalog.size(),
+                catalog.referencedFields().size());
+    }
+
+    @Override
+    public void processElement(RawEvent raw, ReadOnlyContext ctx, Collector<ValidatedEvent> out) throws Exception {
+        ensureCatalog(ctx.getBroadcastState(SCHEMA_STATE_DESCRIPTOR), ctx.getBroadcastState(RULE_FIELDS_DESCRIPTOR));
+        long now = ctx.currentProcessingTime();
+        if (openTimeMs == Long.MIN_VALUE) {
+            openTimeMs = now;
+        }
+        Consumer<KeyedRecord> dirty = r -> ctx.output(DIRTY_DATA_TAG, r);
+        if (!coldBuffer.isEmpty()) {
+            flushColdBuffer(dirty, out, now - openTimeMs >= config.coldStartBufferMs);
+        }
+        handle(raw, dirty, out, now - openTimeMs < config.coldStartBufferMs);
+    }
+
+    @Override
+    public void processBroadcastElement(ControlMessage m, Context ctx, Collector<ValidatedEvent> out) throws Exception {
+        BroadcastState<String, String> schemas = ctx.getBroadcastState(SCHEMA_STATE_DESCRIPTOR);
+        BroadcastState<String, String> ruleFields = ctx.getBroadcastState(RULE_FIELDS_DESCRIPTOR);
+        ensureCatalog(schemas, ruleFields);
+        if (openTimeMs == Long.MIN_VALUE) {
+            openTimeMs = ctx.currentProcessingTime();
+        }
+        long wm = ctx.currentWatermark();
+        long clock = wm == Long.MIN_VALUE || wm > Long.MAX_VALUE / 2 ? ctx.currentProcessingTime() : wm;
+        if (m.isRule()) {
+            applyRule(m, ruleFields);
+        } else {
+            applySchema(m, schemas, clock);
+        }
+        if (!coldBuffer.isEmpty()) {
+            flushColdBuffer(r -> ctx.output(DIRTY_DATA_TAG, r), out,
+                    ctx.currentProcessingTime() - openTimeMs >= config.coldStartBufferMs);
         }
     }
 
-    private void rebuildGlobalActiveMetrics(Context ctx) throws Exception {
-        BroadcastState<String, String> schemaState = ctx.getBroadcastState(SCHEMA_STATE_DESCRIPTOR);
-        if (globalActiveMetricIds == null) globalActiveMetricIds = new HashSet<>();
-        else globalActiveMetricIds.clear();
-        for (Map.Entry<String, String> entry : schemaState.entries()) {
-            JsonNode sNode = getOrParseSchema(entry.getKey(), entry.getValue());
-            if (sNode != null && sNode.has("metrics") && sNode.get("metrics").isArray()) {
-                for (JsonNode m : sNode.get("metrics")) {
-                    if (m.has("metric_id") && !m.get("metric_id").isNull()) {
-                        globalActiveMetricIds.add(m.get("metric_id").asText());
-                    }
-                }
+    private void applyRule(ControlMessage m, BroadcastState<String, String> ruleFields) throws Exception {
+        String stored = ruleFields.get(m.id);
+        long storedVersion = stored == null ? Long.MIN_VALUE : Long.parseLong(stored.split(SEP, 2)[0]);
+        if (m.kind == ControlMessage.Kind.RULE_DELETE) {
+            if (stored != null && m.version >= storedVersion) {
+                ruleFields.remove(m.id);
+                catalog.apply(m, 0L);
             }
+            return;
         }
-        currentSchemaSeq++;
-        attachedSchemaSeq = -1L;
+        if (m.version <= storedVersion) {
+            return;
+        }
+        catalog.apply(m, 0L);
+        Set<String> fields = catalog.ruleFields(m.id);
+        ruleFields.put(m.id, m.version + SEP + (fields == null ? "" : String.join(",", fields)));
     }
 
-    private void evaluateMetricsAndCollect(JsonNode eventNode, JsonNode schemaNode, Collector<String> out) {
-        try {
-            if (currentSchemaSeq != attachedSchemaSeq
-                    && globalActiveMetricIds != null && !globalActiveMetricIds.isEmpty()) {
-                ArrayNode arr = mapper.createArrayNode();
-                for (String mId : globalActiveMetricIds) arr.add(mId);
-                ((ObjectNode) eventNode).set("_global_active_metric_ids", arr);
-                attachedSchemaSeq = currentSchemaSeq;
-            }
-
-            if (schemaNode != null && schemaNode.has("metrics")) {
-                JsonNode metricsNode = schemaNode.get("metrics");
-                if (metricsNode != null && metricsNode.isArray()) {
-                    ArrayNode matchedMetricsArr = mapper.createArrayNode();
-                    for (JsonNode mDef : metricsNode) {
-                        String metricId = mDef.has("metric_id") ? mDef.get("metric_id").asText() : null;
-                        String sourceField = mDef.has("source_field") ? mDef.get("source_field").asText() : null;
-                        String aggregation = mDef.has("aggregation") ? mDef.get("aggregation").asText() : null;
-                        JsonNode filter = mDef.get("filter");
-
-                        if (metricId != null && aggregation != null) {
-                            if (flink.evaluators.FilterEvaluator.evaluate(filter, eventNode)) {
-                                double val = 0.0;
-                                if ("COUNT".equalsIgnoreCase(aggregation)) {
-                                    val = 1.0;
-                                } else if (sourceField != null && eventNode.has(sourceField) && !eventNode.get(sourceField).isNull()) {
-                                    JsonNode sfVal = eventNode.get(sourceField);
-                                    if (sfVal.isNumber()) {
-                                        val = sfVal.asDouble();
-                                    } else if (sfVal.isTextual()) {
-                                        try {
-                                            val = java.time.Instant.parse(sfVal.asText()).toEpochMilli();
-                                        } catch (Exception e) {
-                                            try {
-                                                val = Double.parseDouble(sfVal.asText());
-                                            } catch (Exception ignored) {
-                                                val = 0.0;
-                                            }
-                                        }
-                                    }
-                                }
-                                ObjectNode mObj = mapper.createObjectNode();
-                                mObj.put("metric_id", metricId);
-                                mObj.put("aggregation", aggregation);
-                                mObj.put("value", val);
-                                matchedMetricsArr.add(mObj);
-                            }
-                        }
-                    }
-                    ((ObjectNode) eventNode).set("_matched_metrics", matchedMetricsArr);
+    private void applySchema(ControlMessage m, BroadcastState<String, String> schemas, long clock) throws Exception {
+        if (m.kind == ControlMessage.Kind.SCHEMA_DELETE) {
+            List<String> drop = new ArrayList<>();
+            for (Map.Entry<String, String> e : schemas.entries()) {
+                String[] k = e.getKey().split(SEP, 2);
+                if (k[0].equals(m.id) && (m.versionLabel == null || m.versionLabel.equals(k.length > 1 ? k[1] : null))) {
+                    drop.add(e.getKey());
                 }
             }
-            out.collect(mapper.writeValueAsString(eventNode));
-        } catch (Exception e) {
-            LOG.error("Failed to evaluate metrics for valid event", e);
-            try {
-                out.collect(mapper.writeValueAsString(eventNode));
-            } catch (Exception ignored) {
+            for (String k : drop) {
+                schemas.remove(k);
+            }
+            catalog.apply(m, clock);
+            return;
+        }
+        if (catalog.apply(m, clock)) {
+            schemas.put(m.id + SEP + m.versionLabel, m.payload);
+        }
+        List<String> expired = new ArrayList<>();
+        for (Map.Entry<String, String> e : schemas.entries()) {
+            String[] k = e.getKey().split(SEP, 2);
+            if (k.length == 2 && !catalog.has(k[0] + "_" + k[1])) {
+                expired.add(e.getKey());
             }
         }
+        for (String k : expired) {
+            schemas.remove(k);
+        }
+    }
+
+    private void flushColdBuffer(Consumer<KeyedRecord> dirty, Collector<ValidatedEvent> out, boolean force) {
+        List<RawEvent> pending = coldBuffer;
+        coldBuffer = new ArrayList<>();
+        for (RawEvent e : pending) {
+            handle(e, dirty, out, !force);
+        }
+    }
+
+    private void handle(RawEvent raw, Consumer<KeyedRecord> dirty, Collector<ValidatedEvent> out, boolean allowBuffer) {
+        JsonNode node;
+        try {
+            node = MAPPER.readTree(raw.value);
+        } catch (Exception e) {
+            ObjectNode err = MAPPER.createObjectNode();
+            err.put("original_payload", raw.value);
+            err.put("error_reason", "JSON Parse Exception: " + e.getMessage());
+            emitDirty(dirty, null, err);
+            return;
+        }
+        if (node == null || !node.isObject()) {
+            ObjectNode err = MAPPER.createObjectNode();
+            err.put("original_payload", raw.value);
+            err.put("error_reason", "Event is not a JSON object");
+            emitDirty(dirty, null, err);
+            return;
+        }
+        ObjectNode ev = (ObjectNode) node;
+        if (!ev.hasNonNull("source_system") || !ev.hasNonNull("event_type") || !ev.hasNonNull("schema_version")) {
+            ev.put("error_reason", "Missing source_system or event_type or schema_version for schema mapping");
+            emitDirty(dirty, ev, ev);
+            return;
+        }
+        String key = SchemaCatalog.schemaKey(ev.get("source_system").asText(), ev.get("event_type").asText(),
+                ev.get("schema_version").asText());
+        String reason = catalog.validate(key, ev);
+        if (reason != null && reason.startsWith(SCHEMA_NOT_FOUND) && allowBuffer
+                && coldBuffer.size() < config.coldStartBufferMax) {
+            coldBuffer.add(raw);
+            bufferedCounter.inc();
+            return;
+        }
+        if (reason != null) {
+            ev.put("error_reason", reason);
+            emitDirty(dirty, ev, ev);
+            return;
+        }
+        if (!ev.hasNonNull("entity_id") || ev.get("entity_id").asText().isEmpty()) {
+            ev.put("error_reason", "Missing entity_id");
+            emitDirty(dirty, ev, ev);
+            return;
+        }
+        long eventTime = ev.hasNonNull("event_time") ? KafkaIo.extractEventTime(raw.value) : Long.MIN_VALUE;
+        if (eventTime == Long.MIN_VALUE) {
+            ev.put("error_reason", "Missing or unparseable ISO-8601 event_time");
+            emitDirty(dirty, ev, ev);
+            return;
+        }
+        String rawJson = config.includePayload ? raw.value : null;
+        out.collect(catalog.project(ev, eventTime, raw.kafkaTimestamp, config.projectionEnabled, rawJson));
+        validCounter.inc();
+    }
+
+    private void emitDirty(Consumer<KeyedRecord> dirty, JsonNode event, ObjectNode body) {
+        String key = event != null && event.hasNonNull("entity_id") ? event.get("entity_id").asText() : null;
+        dirty.accept(new KeyedRecord(key, body.toString()));
+        dirtyCounter.inc();
     }
 }
-

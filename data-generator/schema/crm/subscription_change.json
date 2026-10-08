@@ -91,7 +91,7 @@
     },
     "metrics": [
         {
-            "metric_id": "count_events",
+            "metric_id": "subscription_change_count_events",
             "source_field": "event_id",
             "aggregation": "COUNT",
             "filter": {
@@ -130,6 +130,12 @@
                         "field": "event_type",
                         "operator": "EQ",
                         "value": "subscription_change"
+                    },
+                    {
+                        "type": "RAW_FIELD",
+                        "field": "subscription_tier",
+                        "operator": "EQ",
+                        "value": "premium"
                     }
                 ]
             }
@@ -152,6 +158,12 @@
                         "field": "event_type",
                         "operator": "EQ",
                         "value": "subscription_change"
+                    },
+                    {
+                        "type": "RAW_FIELD",
+                        "field": "subscription_tier",
+                        "operator": "EQ",
+                        "value": "free"
                     }
                 ]
             }
@@ -174,6 +186,12 @@
                         "field": "event_type",
                         "operator": "EQ",
                         "value": "subscription_change"
+                    },
+                    {
+                        "type": "RAW_FIELD",
+                        "field": "subscription_tier",
+                        "operator": "EQ",
+                        "value": "basic"
                     }
                 ]
             }

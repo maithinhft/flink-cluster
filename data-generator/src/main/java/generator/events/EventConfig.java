@@ -50,6 +50,12 @@ public class EventConfig {
     public int workers = 4;
     public boolean continuous = false;
     public Instant startTime = null;
+    public long maxOutOfOrderMs = 20_000L;
+    public long lateMinMs = 7L * 60_000L;
+    public long lateMaxMs = 30L * 60_000L;
+    public double ratePerSecond = 0.0;
+    public double zipfS = 0.0;
+    public long seed = 12345L;
     public Instant appStartTime = Instant.now();
 
     public EventConfig() {
@@ -386,6 +392,24 @@ public class EventConfig {
                 case "--start-time":
                     config.startTime = Instant.parse(args[++i]);
                     break;
+                case "--max-out-of-order-ms":
+                    config.maxOutOfOrderMs = Long.parseLong(args[++i]);
+                    break;
+                case "--late-min-ms":
+                    config.lateMinMs = Long.parseLong(args[++i]);
+                    break;
+                case "--late-max-ms":
+                    config.lateMaxMs = Long.parseLong(args[++i]);
+                    break;
+                case "--rate":
+                    config.ratePerSecond = Double.parseDouble(args[++i]);
+                    break;
+                case "--zipf-s":
+                    config.zipfS = Double.parseDouble(args[++i]);
+                    break;
+                case "--seed":
+                    config.seed = Long.parseLong(args[++i]);
+                    break;
             }
         }
 
@@ -412,6 +436,10 @@ public class EventConfig {
             throw new IllegalArgumentException("dirty-rate must be 0-1");
         if (lateEventRate < 0 || lateEventRate > 1)
             throw new IllegalArgumentException("late-event-rate must be 0-1");
+        if (maxOutOfOrderMs < 0 || lateMinMs < 0 || lateMaxMs < lateMinMs)
+            throw new IllegalArgumentException("require 0 <= max-out-of-order-ms and 0 <= late-min-ms <= late-max-ms");
+        if (ratePerSecond < 0 || zipfS < 0)
+            throw new IllegalArgumentException("rate and zipf-s must be >= 0");
 
         // Validate Kerberos files if GSSAPI is needed
         if ("dual".equalsIgnoreCase(cluster) || "multi".equalsIgnoreCase(cluster) || "gssapi".equalsIgnoreCase(cluster)) {

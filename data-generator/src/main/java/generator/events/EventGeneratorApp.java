@@ -44,9 +44,13 @@ public class EventGeneratorApp {
         System.out.printf("Data skew         : %.2f%n", config.dataSkew);
         System.out.printf("Late event rate   : %.2f%%%n", config.lateEventRate * 100);
         System.out.printf("Workers           : %d%n", config.workers);
+        System.out.printf("Target rate       : %s%n", config.ratePerSecond > 0 ? String.format("%,.0f events/s", config.ratePerSecond) : "unthrottled");
+        System.out.printf("Zipf exponent     : %.2f%n", config.zipfS);
+        System.out.printf("Out-of-order max  : %,d ms (late: %,d..%,d ms)%n", config.maxOutOfOrderMs, config.lateMinMs, config.lateMaxMs);
+        System.out.printf("Seed              : %d%n", config.seed);
         System.out.println("======================================================================");
 
-        EntityPool entityPool = new EntityPool(config.numEntities, config.dataSkew);
+        EntityPool entityPool = new EntityPool(config.numEntities, config.dataSkew, config.zipfS);
         long base = config.numEvents / config.workers;
         long remainder = config.numEvents % config.workers;
         CountDownLatch latch = new CountDownLatch(config.workers);

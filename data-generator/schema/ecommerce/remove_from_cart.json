@@ -124,7 +124,7 @@
     },
     "metrics": [
         {
-            "metric_id": "count_events",
+            "metric_id": "remove_from_cart_count_events",
             "source_field": "event_id",
             "aggregation": "COUNT",
             "filter": {
@@ -146,7 +146,7 @@
             }
         },
         {
-            "metric_id": "count_events_where_product_category_electronics",
+            "metric_id": "remove_from_cart_count_events_where_product_category_electronics",
             "source_field": "event_id",
             "aggregation": "COUNT",
             "filter": {
@@ -163,12 +163,18 @@
                         "field": "event_type",
                         "operator": "EQ",
                         "value": "remove_from_cart"
+                    },
+                    {
+                        "type": "RAW_FIELD",
+                        "field": "product_category",
+                        "operator": "EQ",
+                        "value": "electronics"
                     }
                 ]
             }
         },
         {
-            "metric_id": "count_events_where_product_category_food",
+            "metric_id": "remove_from_cart_count_events_where_product_category_food",
             "source_field": "event_id",
             "aggregation": "COUNT",
             "filter": {
@@ -185,12 +191,18 @@
                         "field": "event_type",
                         "operator": "EQ",
                         "value": "remove_from_cart"
+                    },
+                    {
+                        "type": "RAW_FIELD",
+                        "field": "product_category",
+                        "operator": "EQ",
+                        "value": "food"
                     }
                 ]
             }
         },
         {
-            "metric_id": "count_events_where_product_category_fashion",
+            "metric_id": "remove_from_cart_count_events_where_product_category_fashion",
             "source_field": "event_id",
             "aggregation": "COUNT",
             "filter": {
@@ -207,12 +219,18 @@
                         "field": "event_type",
                         "operator": "EQ",
                         "value": "remove_from_cart"
+                    },
+                    {
+                        "type": "RAW_FIELD",
+                        "field": "product_category",
+                        "operator": "EQ",
+                        "value": "fashion"
                     }
                 ]
             }
         },
         {
-            "metric_id": "count_events_where_product_category_books",
+            "metric_id": "remove_from_cart_count_events_where_product_category_books",
             "source_field": "event_id",
             "aggregation": "COUNT",
             "filter": {
@@ -229,18 +247,24 @@
                         "field": "event_type",
                         "operator": "EQ",
                         "value": "remove_from_cart"
+                    },
+                    {
+                        "type": "RAW_FIELD",
+                        "field": "product_category",
+                        "operator": "EQ",
+                        "value": "books"
                     }
                 ]
             }
         },
         {
-            "metric_id": "sum_quantity",
+            "metric_id": "remove_from_cart_sum_quantity",
             "source_field": "quantity",
             "aggregation": "SUM",
             "filter": null
         },
         {
-            "metric_id": "sum_quantity_where_product_category_electronics",
+            "metric_id": "remove_from_cart_sum_quantity_where_product_category_electronics",
             "source_field": "quantity",
             "aggregation": "SUM",
             "filter": {
@@ -251,7 +275,7 @@
             }
         },
         {
-            "metric_id": "sum_quantity_where_product_category_food",
+            "metric_id": "remove_from_cart_sum_quantity_where_product_category_food",
             "source_field": "quantity",
             "aggregation": "SUM",
             "filter": {
@@ -262,7 +286,7 @@
             }
         },
         {
-            "metric_id": "sum_quantity_where_product_category_fashion",
+            "metric_id": "remove_from_cart_sum_quantity_where_product_category_fashion",
             "source_field": "quantity",
             "aggregation": "SUM",
             "filter": {
@@ -273,258 +297,8 @@
             }
         },
         {
-            "metric_id": "sum_quantity_where_product_category_books",
+            "metric_id": "remove_from_cart_sum_quantity_where_product_category_books",
             "source_field": "quantity",
-            "aggregation": "SUM",
-            "filter": {
-                "type": "RAW_FIELD",
-                "field": "product_category",
-                "operator": "EQ",
-                "value": "books"
-            }
-        },
-        {
-            "metric_id": "count_quantity",
-            "source_field": "quantity",
-            "aggregation": "COUNT",
-            "filter": null
-        },
-        {
-            "metric_id": "count_quantity_where_product_category_electronics",
-            "source_field": "quantity",
-            "aggregation": "COUNT",
-            "filter": {
-                "type": "RAW_FIELD",
-                "field": "product_category",
-                "operator": "EQ",
-                "value": "electronics"
-            }
-        },
-        {
-            "metric_id": "count_quantity_where_product_category_food",
-            "source_field": "quantity",
-            "aggregation": "COUNT",
-            "filter": {
-                "type": "RAW_FIELD",
-                "field": "product_category",
-                "operator": "EQ",
-                "value": "food"
-            }
-        },
-        {
-            "metric_id": "count_quantity_where_product_category_fashion",
-            "source_field": "quantity",
-            "aggregation": "COUNT",
-            "filter": {
-                "type": "RAW_FIELD",
-                "field": "product_category",
-                "operator": "EQ",
-                "value": "fashion"
-            }
-        },
-        {
-            "metric_id": "count_quantity_where_product_category_books",
-            "source_field": "quantity",
-            "aggregation": "COUNT",
-            "filter": {
-                "type": "RAW_FIELD",
-                "field": "product_category",
-                "operator": "EQ",
-                "value": "books"
-            }
-        },
-        {
-            "metric_id": "avg_quantity",
-            "source_field": "quantity",
-            "aggregation": "AVG",
-            "filter": null
-        },
-        {
-            "metric_id": "avg_quantity_where_product_category_electronics",
-            "source_field": "quantity",
-            "aggregation": "AVG",
-            "filter": {
-                "type": "RAW_FIELD",
-                "field": "product_category",
-                "operator": "EQ",
-                "value": "electronics"
-            }
-        },
-        {
-            "metric_id": "avg_quantity_where_product_category_food",
-            "source_field": "quantity",
-            "aggregation": "AVG",
-            "filter": {
-                "type": "RAW_FIELD",
-                "field": "product_category",
-                "operator": "EQ",
-                "value": "food"
-            }
-        },
-        {
-            "metric_id": "avg_quantity_where_product_category_fashion",
-            "source_field": "quantity",
-            "aggregation": "AVG",
-            "filter": {
-                "type": "RAW_FIELD",
-                "field": "product_category",
-                "operator": "EQ",
-                "value": "fashion"
-            }
-        },
-        {
-            "metric_id": "avg_quantity_where_product_category_books",
-            "source_field": "quantity",
-            "aggregation": "AVG",
-            "filter": {
-                "type": "RAW_FIELD",
-                "field": "product_category",
-                "operator": "EQ",
-                "value": "books"
-            }
-        },
-        {
-            "metric_id": "max_quantity",
-            "source_field": "quantity",
-            "aggregation": "MAX",
-            "filter": null
-        },
-        {
-            "metric_id": "max_quantity_where_product_category_electronics",
-            "source_field": "quantity",
-            "aggregation": "MAX",
-            "filter": {
-                "type": "RAW_FIELD",
-                "field": "product_category",
-                "operator": "EQ",
-                "value": "electronics"
-            }
-        },
-        {
-            "metric_id": "max_quantity_where_product_category_food",
-            "source_field": "quantity",
-            "aggregation": "MAX",
-            "filter": {
-                "type": "RAW_FIELD",
-                "field": "product_category",
-                "operator": "EQ",
-                "value": "food"
-            }
-        },
-        {
-            "metric_id": "max_quantity_where_product_category_fashion",
-            "source_field": "quantity",
-            "aggregation": "MAX",
-            "filter": {
-                "type": "RAW_FIELD",
-                "field": "product_category",
-                "operator": "EQ",
-                "value": "fashion"
-            }
-        },
-        {
-            "metric_id": "max_quantity_where_product_category_books",
-            "source_field": "quantity",
-            "aggregation": "MAX",
-            "filter": {
-                "type": "RAW_FIELD",
-                "field": "product_category",
-                "operator": "EQ",
-                "value": "books"
-            }
-        },
-        {
-            "metric_id": "min_quantity",
-            "source_field": "quantity",
-            "aggregation": "MIN",
-            "filter": null
-        },
-        {
-            "metric_id": "min_quantity_where_product_category_electronics",
-            "source_field": "quantity",
-            "aggregation": "MIN",
-            "filter": {
-                "type": "RAW_FIELD",
-                "field": "product_category",
-                "operator": "EQ",
-                "value": "electronics"
-            }
-        },
-        {
-            "metric_id": "min_quantity_where_product_category_food",
-            "source_field": "quantity",
-            "aggregation": "MIN",
-            "filter": {
-                "type": "RAW_FIELD",
-                "field": "product_category",
-                "operator": "EQ",
-                "value": "food"
-            }
-        },
-        {
-            "metric_id": "min_quantity_where_product_category_fashion",
-            "source_field": "quantity",
-            "aggregation": "MIN",
-            "filter": {
-                "type": "RAW_FIELD",
-                "field": "product_category",
-                "operator": "EQ",
-                "value": "fashion"
-            }
-        },
-        {
-            "metric_id": "min_quantity_where_product_category_books",
-            "source_field": "quantity",
-            "aggregation": "MIN",
-            "filter": {
-                "type": "RAW_FIELD",
-                "field": "product_category",
-                "operator": "EQ",
-                "value": "books"
-            }
-        },
-        {
-            "metric_id": "sum_unit_price",
-            "source_field": "unit_price",
-            "aggregation": "SUM",
-            "filter": null
-        },
-        {
-            "metric_id": "sum_unit_price_where_product_category_electronics",
-            "source_field": "unit_price",
-            "aggregation": "SUM",
-            "filter": {
-                "type": "RAW_FIELD",
-                "field": "product_category",
-                "operator": "EQ",
-                "value": "electronics"
-            }
-        },
-        {
-            "metric_id": "sum_unit_price_where_product_category_food",
-            "source_field": "unit_price",
-            "aggregation": "SUM",
-            "filter": {
-                "type": "RAW_FIELD",
-                "field": "product_category",
-                "operator": "EQ",
-                "value": "food"
-            }
-        },
-        {
-            "metric_id": "sum_unit_price_where_product_category_fashion",
-            "source_field": "unit_price",
-            "aggregation": "SUM",
-            "filter": {
-                "type": "RAW_FIELD",
-                "field": "product_category",
-                "operator": "EQ",
-                "value": "fashion"
-            }
-        },
-        {
-            "metric_id": "sum_unit_price_where_product_category_books",
-            "source_field": "unit_price",
             "aggregation": "SUM",
             "filter": {
                 "type": "RAW_FIELD",
@@ -534,13 +308,263 @@
             }
         },
         {
-            "metric_id": "count_unit_price",
+            "metric_id": "remove_from_cart_count_quantity",
+            "source_field": "quantity",
+            "aggregation": "COUNT",
+            "filter": null
+        },
+        {
+            "metric_id": "remove_from_cart_count_quantity_where_product_category_electronics",
+            "source_field": "quantity",
+            "aggregation": "COUNT",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "electronics"
+            }
+        },
+        {
+            "metric_id": "remove_from_cart_count_quantity_where_product_category_food",
+            "source_field": "quantity",
+            "aggregation": "COUNT",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "food"
+            }
+        },
+        {
+            "metric_id": "remove_from_cart_count_quantity_where_product_category_fashion",
+            "source_field": "quantity",
+            "aggregation": "COUNT",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "fashion"
+            }
+        },
+        {
+            "metric_id": "remove_from_cart_count_quantity_where_product_category_books",
+            "source_field": "quantity",
+            "aggregation": "COUNT",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "books"
+            }
+        },
+        {
+            "metric_id": "remove_from_cart_avg_quantity",
+            "source_field": "quantity",
+            "aggregation": "AVG",
+            "filter": null
+        },
+        {
+            "metric_id": "remove_from_cart_avg_quantity_where_product_category_electronics",
+            "source_field": "quantity",
+            "aggregation": "AVG",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "electronics"
+            }
+        },
+        {
+            "metric_id": "remove_from_cart_avg_quantity_where_product_category_food",
+            "source_field": "quantity",
+            "aggregation": "AVG",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "food"
+            }
+        },
+        {
+            "metric_id": "remove_from_cart_avg_quantity_where_product_category_fashion",
+            "source_field": "quantity",
+            "aggregation": "AVG",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "fashion"
+            }
+        },
+        {
+            "metric_id": "remove_from_cart_avg_quantity_where_product_category_books",
+            "source_field": "quantity",
+            "aggregation": "AVG",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "books"
+            }
+        },
+        {
+            "metric_id": "remove_from_cart_max_quantity",
+            "source_field": "quantity",
+            "aggregation": "MAX",
+            "filter": null
+        },
+        {
+            "metric_id": "remove_from_cart_max_quantity_where_product_category_electronics",
+            "source_field": "quantity",
+            "aggregation": "MAX",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "electronics"
+            }
+        },
+        {
+            "metric_id": "remove_from_cart_max_quantity_where_product_category_food",
+            "source_field": "quantity",
+            "aggregation": "MAX",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "food"
+            }
+        },
+        {
+            "metric_id": "remove_from_cart_max_quantity_where_product_category_fashion",
+            "source_field": "quantity",
+            "aggregation": "MAX",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "fashion"
+            }
+        },
+        {
+            "metric_id": "remove_from_cart_max_quantity_where_product_category_books",
+            "source_field": "quantity",
+            "aggregation": "MAX",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "books"
+            }
+        },
+        {
+            "metric_id": "remove_from_cart_min_quantity",
+            "source_field": "quantity",
+            "aggregation": "MIN",
+            "filter": null
+        },
+        {
+            "metric_id": "remove_from_cart_min_quantity_where_product_category_electronics",
+            "source_field": "quantity",
+            "aggregation": "MIN",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "electronics"
+            }
+        },
+        {
+            "metric_id": "remove_from_cart_min_quantity_where_product_category_food",
+            "source_field": "quantity",
+            "aggregation": "MIN",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "food"
+            }
+        },
+        {
+            "metric_id": "remove_from_cart_min_quantity_where_product_category_fashion",
+            "source_field": "quantity",
+            "aggregation": "MIN",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "fashion"
+            }
+        },
+        {
+            "metric_id": "remove_from_cart_min_quantity_where_product_category_books",
+            "source_field": "quantity",
+            "aggregation": "MIN",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "books"
+            }
+        },
+        {
+            "metric_id": "remove_from_cart_sum_unit_price",
+            "source_field": "unit_price",
+            "aggregation": "SUM",
+            "filter": null
+        },
+        {
+            "metric_id": "remove_from_cart_sum_unit_price_where_product_category_electronics",
+            "source_field": "unit_price",
+            "aggregation": "SUM",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "electronics"
+            }
+        },
+        {
+            "metric_id": "remove_from_cart_sum_unit_price_where_product_category_food",
+            "source_field": "unit_price",
+            "aggregation": "SUM",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "food"
+            }
+        },
+        {
+            "metric_id": "remove_from_cart_sum_unit_price_where_product_category_fashion",
+            "source_field": "unit_price",
+            "aggregation": "SUM",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "fashion"
+            }
+        },
+        {
+            "metric_id": "remove_from_cart_sum_unit_price_where_product_category_books",
+            "source_field": "unit_price",
+            "aggregation": "SUM",
+            "filter": {
+                "type": "RAW_FIELD",
+                "field": "product_category",
+                "operator": "EQ",
+                "value": "books"
+            }
+        },
+        {
+            "metric_id": "remove_from_cart_count_unit_price",
             "source_field": "unit_price",
             "aggregation": "COUNT",
             "filter": null
         },
         {
-            "metric_id": "count_unit_price_where_product_category_electronics",
+            "metric_id": "remove_from_cart_count_unit_price_where_product_category_electronics",
             "source_field": "unit_price",
             "aggregation": "COUNT",
             "filter": {
@@ -551,7 +575,7 @@
             }
         },
         {
-            "metric_id": "count_unit_price_where_product_category_food",
+            "metric_id": "remove_from_cart_count_unit_price_where_product_category_food",
             "source_field": "unit_price",
             "aggregation": "COUNT",
             "filter": {
@@ -562,7 +586,7 @@
             }
         },
         {
-            "metric_id": "count_unit_price_where_product_category_fashion",
+            "metric_id": "remove_from_cart_count_unit_price_where_product_category_fashion",
             "source_field": "unit_price",
             "aggregation": "COUNT",
             "filter": {
@@ -573,7 +597,7 @@
             }
         },
         {
-            "metric_id": "count_unit_price_where_product_category_books",
+            "metric_id": "remove_from_cart_count_unit_price_where_product_category_books",
             "source_field": "unit_price",
             "aggregation": "COUNT",
             "filter": {
@@ -584,13 +608,13 @@
             }
         },
         {
-            "metric_id": "avg_unit_price",
+            "metric_id": "remove_from_cart_avg_unit_price",
             "source_field": "unit_price",
             "aggregation": "AVG",
             "filter": null
         },
         {
-            "metric_id": "avg_unit_price_where_product_category_electronics",
+            "metric_id": "remove_from_cart_avg_unit_price_where_product_category_electronics",
             "source_field": "unit_price",
             "aggregation": "AVG",
             "filter": {
@@ -601,7 +625,7 @@
             }
         },
         {
-            "metric_id": "avg_unit_price_where_product_category_food",
+            "metric_id": "remove_from_cart_avg_unit_price_where_product_category_food",
             "source_field": "unit_price",
             "aggregation": "AVG",
             "filter": {
@@ -612,7 +636,7 @@
             }
         },
         {
-            "metric_id": "avg_unit_price_where_product_category_fashion",
+            "metric_id": "remove_from_cart_avg_unit_price_where_product_category_fashion",
             "source_field": "unit_price",
             "aggregation": "AVG",
             "filter": {
@@ -623,7 +647,7 @@
             }
         },
         {
-            "metric_id": "avg_unit_price_where_product_category_books",
+            "metric_id": "remove_from_cart_avg_unit_price_where_product_category_books",
             "source_field": "unit_price",
             "aggregation": "AVG",
             "filter": {
@@ -634,13 +658,13 @@
             }
         },
         {
-            "metric_id": "max_unit_price",
+            "metric_id": "remove_from_cart_max_unit_price",
             "source_field": "unit_price",
             "aggregation": "MAX",
             "filter": null
         },
         {
-            "metric_id": "max_unit_price_where_product_category_electronics",
+            "metric_id": "remove_from_cart_max_unit_price_where_product_category_electronics",
             "source_field": "unit_price",
             "aggregation": "MAX",
             "filter": {
@@ -651,7 +675,7 @@
             }
         },
         {
-            "metric_id": "max_unit_price_where_product_category_food",
+            "metric_id": "remove_from_cart_max_unit_price_where_product_category_food",
             "source_field": "unit_price",
             "aggregation": "MAX",
             "filter": {
@@ -662,7 +686,7 @@
             }
         },
         {
-            "metric_id": "max_unit_price_where_product_category_fashion",
+            "metric_id": "remove_from_cart_max_unit_price_where_product_category_fashion",
             "source_field": "unit_price",
             "aggregation": "MAX",
             "filter": {
@@ -673,7 +697,7 @@
             }
         },
         {
-            "metric_id": "max_unit_price_where_product_category_books",
+            "metric_id": "remove_from_cart_max_unit_price_where_product_category_books",
             "source_field": "unit_price",
             "aggregation": "MAX",
             "filter": {
@@ -684,13 +708,13 @@
             }
         },
         {
-            "metric_id": "min_unit_price",
+            "metric_id": "remove_from_cart_min_unit_price",
             "source_field": "unit_price",
             "aggregation": "MIN",
             "filter": null
         },
         {
-            "metric_id": "min_unit_price_where_product_category_electronics",
+            "metric_id": "remove_from_cart_min_unit_price_where_product_category_electronics",
             "source_field": "unit_price",
             "aggregation": "MIN",
             "filter": {
@@ -701,7 +725,7 @@
             }
         },
         {
-            "metric_id": "min_unit_price_where_product_category_food",
+            "metric_id": "remove_from_cart_min_unit_price_where_product_category_food",
             "source_field": "unit_price",
             "aggregation": "MIN",
             "filter": {
@@ -712,7 +736,7 @@
             }
         },
         {
-            "metric_id": "min_unit_price_where_product_category_fashion",
+            "metric_id": "remove_from_cart_min_unit_price_where_product_category_fashion",
             "source_field": "unit_price",
             "aggregation": "MIN",
             "filter": {
@@ -723,7 +747,7 @@
             }
         },
         {
-            "metric_id": "min_unit_price_where_product_category_books",
+            "metric_id": "remove_from_cart_min_unit_price_where_product_category_books",
             "source_field": "unit_price",
             "aggregation": "MIN",
             "filter": {

@@ -1,250 +1,244 @@
 package flink;
 
 import flink.config.KafkaClusterConfig;
+import flink.control.ControlMessageParser;
 import flink.dynamic.metadata.PostgresKafkaMetadataService;
+import flink.engine.EngineConfig;
+import flink.io.KafkaIo;
+import flink.model.ControlMessage;
+import flink.model.KeyedRecord;
+import flink.model.RawEvent;
+import flink.model.ValidatedEvent;
 import flink.operators.DynamicSchemaValidationFunction;
 import flink.operators.RingBufferRuleProcessFunction;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
-import org.apache.flink.api.common.serialization.SimpleStringSchema;
+import org.apache.flink.api.common.typeinfo.Types;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.configuration.CheckpointingOptions;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.configuration.ExternalizedCheckpointRetention;
 import org.apache.flink.connector.base.DeliveryGuarantee;
 import org.apache.flink.connector.kafka.dynamic.source.DynamicKafkaSource;
 import org.apache.flink.connector.kafka.dynamic.source.DynamicKafkaSourceOptions;
-import org.apache.flink.connector.kafka.sink.KafkaRecordSerializationSchema;
 import org.apache.flink.connector.kafka.sink.KafkaSink;
+import org.apache.flink.connector.kafka.sink.KafkaSinkBuilder;
 import org.apache.flink.connector.kafka.source.KafkaSource;
 import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer;
-import org.apache.flink.connector.kafka.source.reader.deserializer.KafkaRecordDeserializationSchema;
+import org.apache.flink.streaming.api.CheckpointingMode;
 import org.apache.flink.streaming.api.datastream.BroadcastStream;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
+import org.apache.flink.streaming.api.environment.CheckpointConfig;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
-import java.time.Instant;
 import java.util.Collections;
 import java.util.Properties;
+import java.util.regex.Pattern;
 
 public class RealtimeCepJob {
     private static final Logger LOG = LoggerFactory.getLogger(RealtimeCepJob.class);
 
     public static void main(String[] args) throws Exception {
-        LOG.info("Starting Flink Real-time CEP Job with DynamicKafkaSource...");
+        ParameterTool params = ParameterTool.fromArgs(args);
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        configureEnvironment(env, params);
+        build(env, params);
+        env.execute(params.get("job.name", "Flink Real-time CEP & Rule Engine Job"));
+    }
 
-        final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-
-        ParameterTool parameters = ParameterTool.fromArgs(args);
-        env.getConfig().setGlobalJobParameters(parameters);
-
-        int parallelism = parameters.getInt("parallelism", 4);
-        env.setParallelism(parallelism);
-        env.getConfig().setLatencyTrackingInterval(parameters.getLong("latency.tracking.interval", 5000L));
-
-        if (parameters.has("checkpoint.dir")) {
+    static void configureEnvironment(StreamExecutionEnvironment env, ParameterTool params) {
+        env.getConfig().setGlobalJobParameters(params);
+        env.setParallelism(params.getInt("parallelism", 4));
+        env.setMaxParallelism(params.getInt("max.parallelism", 128));
+        long latencyTracking = params.getLong("latency.tracking.interval", 0L);
+        if (latencyTracking > 0) {
+            env.getConfig().setLatencyTrackingInterval(latencyTracking);
+        }
+        env.setBufferTimeout(params.getLong("buffer.timeout.ms", 10L));
+        if (params.getBoolean("object.reuse", true)) {
+            env.getConfig().enableObjectReuse();
+        }
+        if (params.has("checkpoint.dir")) {
             Configuration config = new Configuration();
-            config.set(CheckpointingOptions.CHECKPOINTS_DIRECTORY, parameters.get("checkpoint.dir"));
+            config.set(CheckpointingOptions.CHECKPOINTS_DIRECTORY, params.get("checkpoint.dir"));
             env.configure(config);
         }
+        if (params.has("checkpoint.interval.ms")) {
+            env.enableCheckpointing(params.getLong("checkpoint.interval.ms"), CheckpointingMode.EXACTLY_ONCE);
+            CheckpointConfig cc = env.getCheckpointConfig();
+            cc.setMinPauseBetweenCheckpoints(params.getLong("checkpoint.min.pause.ms", 5000L));
+            cc.setCheckpointTimeout(params.getLong("checkpoint.timeout.ms", 300000L));
+            cc.setTolerableCheckpointFailureNumber(params.getInt("checkpoint.tolerable.failures", 3));
+            cc.setMaxConcurrentCheckpoints(1);
+            cc.setExternalizedCheckpointRetention(ExternalizedCheckpointRetention.RETAIN_ON_CANCELLATION);
+            cc.enableUnalignedCheckpoints(params.getBoolean("checkpoint.unaligned", true));
+            cc.setAlignedCheckpointTimeout(Duration.ofMillis(params.getLong("checkpoint.aligned.timeout.ms", 5000L)));
+        }
+    }
 
-        // 1. Cấu hình Schema Source (KafkaSource đọc trực tiếp từ cụm GSSAPI / Kerberos)
-        String schemaBootstrap = KafkaClusterConfig.getBootstrapServers(parameters, "schema", KafkaClusterConfig.CLUSTER_GSSAPI);
-        Properties schemaProps = KafkaClusterConfig.getConsumerProperties(parameters, "schema", KafkaClusterConfig.CLUSTER_GSSAPI);
-        String schemaTopic = parameters.get("schema.topic", "schema_registry");
-        LOG.info("Schema Source (GSSAPI) -> Bootstrap: {}, Topic: {}", schemaBootstrap, schemaTopic);
+    static void build(StreamExecutionEnvironment env, ParameterTool params) {
+        EngineConfig engineConfig = EngineConfig.fromParameters(params);
 
+        DataStream<ControlMessage> control = controlStream(env, params);
+        BroadcastStream<ControlMessage> controlForValidation =
+                control.broadcast(DynamicSchemaValidationFunction.descriptors());
+        BroadcastStream<ControlMessage> controlForEngine =
+                control.broadcast(RingBufferRuleProcessFunction.descriptors());
+
+        DataStream<RawEvent> events = eventStream(env, params);
+
+        SingleOutputStreamOperator<ValidatedEvent> validated = events
+                .connect(controlForValidation)
+                .process(new DynamicSchemaValidationFunction(engineConfig))
+                .name("Validate & Project")
+                .uid("op-validate");
+
+        SingleOutputStreamOperator<KeyedRecord> alerts = validated
+                .keyBy(ev -> ev.entityId, Types.STRING)
+                .connect(controlForEngine)
+                .process(new RingBufferRuleProcessFunction(engineConfig))
+                .name("Segment Engine")
+                .uid("op-engine");
+
+        alerts.sinkTo(resultSink(params)).name("Result Kafka Sink").uid("sink-result");
+
+        validated.getSideOutput(DynamicSchemaValidationFunction.DIRTY_DATA_TAG)
+                .union(alerts.getSideOutput(RingBufferRuleProcessFunction.LATE_DATA_TAG))
+                .sinkTo(dlqSink(params))
+                .name("DLQ Kafka Sink")
+                .uid("sink-dlq");
+
+        LOG.info("Engine configured: index={}, effectiveMode={}, projection={}, bootstrap={}",
+                engineConfig.indexMode, engineConfig.effectiveMode, engineConfig.projectionEnabled,
+                engineConfig.bootstrapEnabled);
+    }
+
+    static DataStream<ControlMessage> controlStream(StreamExecutionEnvironment env, ParameterTool params) {
         KafkaSource<String> schemaSource = KafkaSource.<String>builder()
-                .setBootstrapServers(schemaBootstrap)
-                .setTopics(schemaTopic)
-                .setGroupId(parameters.get("schema.group.id", "flink-schema-group"))
+                .setBootstrapServers(KafkaClusterConfig.getBootstrapServers(params, "schema", KafkaClusterConfig.CLUSTER_GSSAPI))
+                .setProperties(KafkaClusterConfig.getConsumerProperties(params, "schema", KafkaClusterConfig.CLUSTER_GSSAPI))
+                .setTopics(params.get("schema.topic", "schema_registry"))
+                .setGroupId(params.get("schema.group.id", "flink-schema-group"))
                 .setStartingOffsets(OffsetsInitializer.earliest())
-                .setValueOnlyDeserializer(new SimpleStringSchema())
-                .setProperties(schemaProps)
+                .setDeserializer(new KafkaIo.NullSafeStringDeserializer())
                 .build();
-
-        DataStream<String> schemaStream = env.fromSource(
-                schemaSource,
-                WatermarkStrategy.noWatermarks(),
-                "Schema Registry Source");
-
-        BroadcastStream<String> broadcastSchemaStream = schemaStream
-                .broadcast(
-                        DynamicSchemaValidationFunction.SCHEMA_STATE_DESCRIPTOR,
-                        DynamicSchemaValidationFunction.LATEST_VERSION_DESCRIPTOR,
-                        DynamicSchemaValidationFunction.DEPRECATED_SCHEMAS_DESCRIPTOR);
-
-        // 2. Cấu hình Rule Source (KafkaSource đọc trực tiếp từ cụm PLAIN)
-        String ruleBootstrap = KafkaClusterConfig.getBootstrapServers(parameters, "rule", KafkaClusterConfig.CLUSTER_PLAIN);
-        Properties ruleProps = KafkaClusterConfig.getConsumerProperties(parameters, "rule", KafkaClusterConfig.CLUSTER_PLAIN);
-        String ruleTopic = parameters.get("rule.topic", "rule_definitions");
-        LOG.info("Rule Source (PLAIN) -> Bootstrap: {}, Topic: {}", ruleBootstrap, ruleTopic);
 
         KafkaSource<String> ruleSource = KafkaSource.<String>builder()
-                .setBootstrapServers(ruleBootstrap)
-                .setTopics(ruleTopic)
-                .setGroupId(parameters.get("rule.group.id", "flink-rule-group"))
+                .setBootstrapServers(KafkaClusterConfig.getBootstrapServers(params, "rule", KafkaClusterConfig.CLUSTER_PLAIN))
+                .setProperties(KafkaClusterConfig.getConsumerProperties(params, "rule", KafkaClusterConfig.CLUSTER_PLAIN))
+                .setTopics(params.get("rule.topic", "rule_definitions"))
+                .setGroupId(params.get("rule.group.id", "flink-rule-group"))
                 .setStartingOffsets(OffsetsInitializer.earliest())
-                .setValueOnlyDeserializer(new SimpleStringSchema())
-                .setProperties(ruleProps)
+                .setDeserializer(new KafkaIo.NullSafeStringDeserializer())
                 .build();
 
-        DataStream<String> ruleStream = env.fromSource(
-                ruleSource,
-                WatermarkStrategy.noWatermarks(),
-                "Rule Definitions Source");
+        DataStream<String> schemaRaw = env
+                .fromSource(schemaSource, KafkaIo.<String>controlWatermarks(), "Schema Registry Source")
+                .setParallelism(1)
+                .uid("src-control-schema");
 
-        BroadcastStream<String> broadcastRuleStream = ruleStream
-                .broadcast(RingBufferRuleProcessFunction.RULE_STATE_DESCRIPTOR);
+        DataStream<String> ruleRaw = env
+                .fromSource(ruleSource, KafkaIo.<String>controlWatermarks(), "Rule Definitions Source")
+                .setParallelism(1)
+                .uid("src-control-rule");
 
-        // 3. Cấu hình PostgreSQL Metadata Service cho Event Stream (DynamicKafkaSource)
-        String pgHost = parameters.get("postgres.host", "postgres");
-        String pgPort = parameters.get("postgres.port", "5432");
-        String pgDb = parameters.get("postgres.db", "realtime_core");
-        String defaultPgUrl = String.format("jdbc:postgresql://%s:%s/%s", pgHost, pgPort, pgDb);
-        String pgUrl = parameters.get("postgres.url", defaultPgUrl);
-        String pgUser = parameters.get("postgres.user", "postgres");
-        String pgPassword = parameters.get("postgres.password", "postgres");
-        String tablePrefix = parameters.get("postgres.table.prefix", "kafka_stream");
-        long discoveryIntervalMs = parameters.getLong("stream.metadata.discovery.interval.ms", 30000L);
+        return schemaRaw.union(ruleRaw)
+                .flatMap(new ControlMessageParser())
+                .setParallelism(1)
+                .name("Control Parser")
+                .uid("map-control");
+    }
 
-        LOG.info("Connecting to PostgreSQL metadata: {} (tablePrefix: {})", pgUrl, tablePrefix);
-        PostgresKafkaMetadataService metadataService = new PostgresKafkaMetadataService(
-                pgUrl, pgUser, pgPassword, tablePrefix, 5000L);
+    static DataStream<RawEvent> eventStream(StreamExecutionEnvironment env, ParameterTool params) {
+        WatermarkStrategy<RawEvent> watermarks = KafkaIo.eventWatermarks(
+                Duration.ofMillis(params.getLong("watermark.out.of.orderness.ms", 60000L)),
+                Duration.ofMillis(params.getLong("watermark.idleness.ms", 60000L)),
+                params.getLong("watermark.alignment.max.drift.ms", 0L));
+        OffsetsInitializer offsets = eventOffsets(params.get("events.starting.offsets", "committed"));
+        String groupId = params.get("events.group.id", "flink-event-validation-group");
 
-        // 4. Cấu hình Result & DLQ Sink (cụm PLAIN)
-        String resultBootstrap = KafkaClusterConfig.getBootstrapServers(parameters, "result", KafkaClusterConfig.CLUSTER_PLAIN);
-        Properties resultProps = KafkaClusterConfig.getProducerProperties(parameters, "result", KafkaClusterConfig.CLUSTER_PLAIN);
-        String resultTopic = parameters.get("result.topic", "result");
-
-        String dlqBootstrap = KafkaClusterConfig.getBootstrapServers(parameters, "dlq", KafkaClusterConfig.CLUSTER_PLAIN);
-        Properties dlqProps = KafkaClusterConfig.getProducerProperties(parameters, "dlq", KafkaClusterConfig.CLUSTER_PLAIN);
-        String dlqTopic = parameters.get("dlq.topic", "dlq");
-
-        LOG.info("Result Sink -> Bootstrap: {}, Topic: {}", resultBootstrap, resultTopic);
-        LOG.info("DLQ Sink -> Bootstrap: {}, Topic: {}", dlqBootstrap, dlqTopic);
-
-        WatermarkStrategy<String> eventWatermarkStrategy = WatermarkStrategy
-                .<String>forBoundedOutOfOrderness(Duration.ofMinutes(1))
-                .withTimestampAssigner((eventJson, recordTimestamp) -> {
-                    try {
-                        int idx = eventJson.indexOf("\"event_time\"");
-                        if (idx != -1) {
-                            int startQuote = eventJson.indexOf('"', idx + 12);
-                            int endQuote = eventJson.indexOf('"', startQuote + 1);
-                            if (startQuote != -1 && endQuote != -1) {
-                                String timeStr = eventJson.substring(startQuote + 1, endQuote);
-                                return Instant.parse(timeStr).toEpochMilli();
-                            }
-                        }
-                    } catch (Exception ignored) {
-                    }
-                    return recordTimestamp > 0 ? recordTimestamp : System.currentTimeMillis();
-                })
-                .withIdleness(Duration.ofMinutes(1));
-
-        // 5. Khởi tạo DynamicKafkaSource cho Event Multi-Cluster Source
-        String eventsStreamId = parameters.get("events.stream.id", "stream-events");
-        boolean useDynamicEventSource = parameters.getBoolean("use.dynamic.source", true);
-
-        DataStream<String> eventStream;
-        if (useDynamicEventSource) {
-            LOG.info("Creating DynamicKafkaSource for events subscribing to stream '{}' via PostgreSQL (discovery interval: {} ms)",
-                    eventsStreamId, discoveryIntervalMs);
-
-            DynamicKafkaSource<String> dynamicEventSource = DynamicKafkaSource.<String>builder()
-                    .setKafkaMetadataService(metadataService)
-                    .setStreamIds(Collections.singleton(eventsStreamId))
-                    .setDeserializer(KafkaRecordDeserializationSchema.valueOnly(new SimpleStringSchema()))
-                    .setStartingOffsets(OffsetsInitializer.earliest())
-                    .setGroupId(parameters.get("events.group.id", "flink-event-validation-group"))
-                    .setProperty(DynamicKafkaSourceOptions.STREAM_METADATA_DISCOVERY_INTERVAL_MS.key(), String.valueOf(discoveryIntervalMs))
+        if (params.getBoolean("use.dynamic.source", true)) {
+            EngineConfig pg = EngineConfig.fromParameters(params);
+            PostgresKafkaMetadataService metadata = new PostgresKafkaMetadataService(
+                    pg.bootstrapUrl, pg.bootstrapUser, pg.bootstrapPassword,
+                    params.get("postgres.table.prefix", "kafka_stream"), 5000L);
+            DynamicKafkaSource<RawEvent> source = DynamicKafkaSource.<RawEvent>builder()
+                    .setKafkaMetadataService(metadata)
+                    .setStreamIds(Collections.singleton(params.get("events.stream.id", "stream-events")))
+                    .setDeserializer(new KafkaIo.RawEventDeserializer())
+                    .setStartingOffsets(offsets)
+                    .setGroupId(groupId)
+                    .setProperty(DynamicKafkaSourceOptions.STREAM_METADATA_DISCOVERY_INTERVAL_MS.key(),
+                            String.valueOf(params.getLong("stream.metadata.discovery.interval.ms", 30000L)))
+                    .setProperty("commit.offsets.on.checkpoint", "true")
                     .build();
-
-            eventStream = env.fromSource(
-                    dynamicEventSource,
-                    eventWatermarkStrategy,
-                    "Dynamic Events Multi-Cluster Source");
-        } else {
-            String eventsBootstrap = KafkaClusterConfig.getBootstrapServers(parameters, "events", KafkaClusterConfig.CLUSTER_PLAIN);
-            Properties eventsProps = KafkaClusterConfig.getConsumerProperties(parameters, "events", KafkaClusterConfig.CLUSTER_PLAIN);
-            KafkaSource<String> staticEventSource = KafkaSource.<String>builder()
-                    .setBootstrapServers(eventsBootstrap)
-                    .setTopicPattern(java.util.regex.Pattern.compile(parameters.get("events.topic.pattern", "events_.*")))
-                    .setGroupId(parameters.get("events.group.id", "flink-event-validation-group"))
-                    .setProperty("partition.discovery.interval.ms", "60000")
-                    .setStartingOffsets(OffsetsInitializer.earliest())
-                    .setValueOnlyDeserializer(new SimpleStringSchema())
-                    .setProperties(eventsProps)
-                    .build();
-
-            eventStream = env.fromSource(
-                    staticEventSource,
-                    eventWatermarkStrategy,
-                    "Events Multi-Topic Source");
+            return env.fromSource(source, watermarks, "Dynamic Events Multi-Cluster Source").uid("src-events");
         }
 
-        SingleOutputStreamOperator<String> cleanEventsStream = eventStream
-                .connect(broadcastSchemaStream)
-                .process(new DynamicSchemaValidationFunction())
-                .name("Dynamic Schema Validation Operator");
-
-        KafkaSink<String> resultSink = KafkaSink.<String>builder()
-                .setBootstrapServers(resultBootstrap)
-                .setRecordSerializer(
-                        KafkaRecordSerializationSchema.builder()
-                                .setTopic(resultTopic)
-                                .setValueSerializationSchema(new SimpleStringSchema())
-                                .build())
-                .setDeliveryGuarantee(DeliveryGuarantee.AT_LEAST_ONCE)
-                .setKafkaProducerConfig(resultProps)
+        KafkaSource<RawEvent> source = KafkaSource.<RawEvent>builder()
+                .setBootstrapServers(KafkaClusterConfig.getBootstrapServers(params, "events", KafkaClusterConfig.CLUSTER_PLAIN))
+                .setProperties(KafkaClusterConfig.getConsumerProperties(params, "events", KafkaClusterConfig.CLUSTER_PLAIN))
+                .setTopicPattern(Pattern.compile(params.get("events.topic.pattern", "events_.*")))
+                .setGroupId(groupId)
+                .setProperty("partition.discovery.interval.ms", "60000")
+                .setProperty("commit.offsets.on.checkpoint", "true")
+                .setStartingOffsets(offsets)
+                .setDeserializer(new KafkaIo.RawEventDeserializer())
                 .build();
+        return env.fromSource(source, watermarks, "Events Multi-Topic Source").uid("src-events");
+    }
 
-        KafkaSink<String> dlqSink = KafkaSink.<String>builder()
-                .setBootstrapServers(dlqBootstrap)
-                .setRecordSerializer(
-                        KafkaRecordSerializationSchema.builder()
-                                .setTopic(dlqTopic)
-                                .setValueSerializationSchema(new SimpleStringSchema())
-                                .build())
+    static OffsetsInitializer eventOffsets(String mode) {
+        switch (mode.trim().toLowerCase()) {
+            case "earliest":
+                return OffsetsInitializer.earliest();
+            case "latest":
+                return OffsetsInitializer.latest();
+            default:
+                return OffsetsInitializer.committedOffsets(OffsetResetStrategy.EARLIEST);
+        }
+    }
+
+    static Properties producerTuning(Properties base, ParameterTool params) {
+        Properties p = new Properties();
+        p.putAll(base);
+        p.setProperty("linger.ms", params.get("producer.linger.ms", "20"));
+        p.setProperty("batch.size", params.get("producer.batch.size", "131072"));
+        p.setProperty("compression.type", params.get("producer.compression", "lz4"));
+        p.setProperty("acks", "all");
+        p.setProperty("enable.idempotence", "true");
+        p.setProperty("delivery.timeout.ms", params.get("producer.delivery.timeout.ms", "120000"));
+        return p;
+    }
+
+    static KafkaSink<KeyedRecord> resultSink(ParameterTool params) {
+        Properties props = producerTuning(
+                KafkaClusterConfig.getProducerProperties(params, "result", KafkaClusterConfig.CLUSTER_PLAIN), params);
+        KafkaSinkBuilder<KeyedRecord> b = KafkaSink.<KeyedRecord>builder()
+                .setBootstrapServers(KafkaClusterConfig.getBootstrapServers(params, "result", KafkaClusterConfig.CLUSTER_PLAIN))
+                .setRecordSerializer(new KafkaIo.KeyedRecordSerializer(params.get("result.topic", "result")));
+        if (params.getBoolean("result.exactly.once", false)) {
+            props.setProperty("transaction.timeout.ms", params.get("result.transaction.timeout.ms", "900000"));
+            b.setDeliveryGuarantee(DeliveryGuarantee.EXACTLY_ONCE)
+                    .setTransactionalIdPrefix(params.get("result.transactional.id.prefix", "cep-result"));
+        } else {
+            b.setDeliveryGuarantee(DeliveryGuarantee.AT_LEAST_ONCE);
+        }
+        return b.setKafkaProducerConfig(props).build();
+    }
+
+    static KafkaSink<KeyedRecord> dlqSink(ParameterTool params) {
+        Properties props = producerTuning(
+                KafkaClusterConfig.getProducerProperties(params, "dlq", KafkaClusterConfig.CLUSTER_PLAIN), params);
+        return KafkaSink.<KeyedRecord>builder()
+                .setBootstrapServers(KafkaClusterConfig.getBootstrapServers(params, "dlq", KafkaClusterConfig.CLUSTER_PLAIN))
+                .setRecordSerializer(new KafkaIo.KeyedRecordSerializer(params.get("dlq.topic", "dlq")))
                 .setDeliveryGuarantee(DeliveryGuarantee.AT_LEAST_ONCE)
-                .setKafkaProducerConfig(dlqProps)
+                .setKafkaProducerConfig(props)
                 .build();
-
-        DataStream<String> dirtyEventsStream = cleanEventsStream
-                .getSideOutput(DynamicSchemaValidationFunction.DIRTY_DATA_TAG);
-
-        SingleOutputStreamOperator<String> aggregatedStream = cleanEventsStream
-                .keyBy(eventJson -> {
-                    try {
-                        int idx = eventJson.indexOf("\"entity_id\"");
-                        if (idx != -1) {
-                            int startQuote = eventJson.indexOf('"', idx + 11);
-                            int endQuote = eventJson.indexOf('"', startQuote + 1);
-                            if (startQuote != -1 && endQuote != -1) {
-                                return eventJson.substring(startQuote + 1, endQuote);
-                            }
-                        }
-                    } catch (Exception ignored) {
-                    }
-                    return "unknown_entity";
-                })
-                .connect(broadcastRuleStream)
-                .process(new RingBufferRuleProcessFunction())
-                .name("Ring Buffer & Rule Evaluation Operator")
-                .disableChaining();
-
-        DataStream<String> lateEventsStream = aggregatedStream
-                .getSideOutput(RingBufferRuleProcessFunction.LATE_DATA_TAG);
-
-        DataStream<String> dlqStream = dirtyEventsStream.union(lateEventsStream);
-        dlqStream.sinkTo(dlqSink).name("DLQ Kafka Sink");
-
-        aggregatedStream.sinkTo(resultSink).name("Aggregated Result Kafka Sink");
-
-        env.execute("Flink Real-time CEP & Rule Engine Job");
     }
 }
-

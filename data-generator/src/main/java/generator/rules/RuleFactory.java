@@ -6,6 +6,15 @@ import java.util.Set;
 
 public class RuleFactory {
 
+  /** Probability that the root of a condition tree is AND (realistic segment definitions; makes the index useful). */
+  public static double andRootRatio = 0.7;
+  /** Probability that a leaf is a LINEAR expression mixing aggregates and raw fields. */
+  public static double linearRatio = 0.1;
+  /** "inline" (field + filter in the rule) or "reference" (half of the aggregations reference schema metric aliases). */
+  public static String metricMode = "inline";
+  /** Metric aliases available for reference mode (loaded from the schema files). */
+  public static java.util.List<String> metricAliases = new java.util.ArrayList<>();
+
   public static String generateTopLevelRuleJson(int maxDepth) {
     int numTriggers = 1 + RandomUtils.RANDOM.nextInt(3);
     Set<String> triggers = new LinkedHashSet<>();
@@ -36,7 +45,9 @@ public class RuleFactory {
 
     String operator;
     double r = RandomUtils.RANDOM.nextDouble();
-    if (r < 0.45)
+    if (currentDepth == 0 && RandomUtils.RANDOM.nextDouble() < andRootRatio)
+      operator = "AND";
+    else if (r < 0.45)
       operator = "AND";
     else if (r < 0.90)
       operator = "OR";
@@ -65,6 +76,10 @@ public class RuleFactory {
   }
 
   private static String generateLeafClause() {
+    if (RandomUtils.RANDOM.nextDouble() < linearRatio)
+      return generateLinearClause();
+    if ("reference".equalsIgnoreCase(metricMode) && !metricAliases.isEmpty() && RandomUtils.RANDOM.nextDouble() < 0.25)
+      return generateAliasAggregationClause();
     double r = RandomUtils.RANDOM.nextDouble();
     if (r < 0.25)
       return generateAggregationClause();
@@ -94,16 +109,11 @@ public class RuleFactory {
           "type": "AGGREGATION",
           "field": "%s",
           "function": "%s",
-          "window": {
-            "type": "%s",
-            "lookback_seconds": %d,
-            "size_seconds": %d,
-            "slide_seconds": %d
-          },
+          "window": %s,
           "filter": %s,
           "operator": "%s",
           "value": %s
-        }""".formatted(field, function, windowType, lookback, size, slide, filterJson, operator, valueStr);
+        }""".formatted(field, function, windowJson(windowType, lookback, size, slide), filterJson, operator, valueStr);
   }
 
   private static String generateSourceSystemCountAggregationClause() {
@@ -300,5 +310,71 @@ public class RuleFactory {
             "value": "example"
           }""".formatted(field);
     }
+  }
+
+  static String windowJson(String windowType, int lookback, int size, int slide) {
+    String quantifier = "";
+    if (lookback > size && RandomUtils.RANDOM.nextDouble() < 0.3)
+      quantifier = ", \"quantifier\": \"" + RandomUtils.randomElement("ANY", "ALL", "LATEST") + "\"";
+    return "{\"type\": \"%s\", \"lookback_seconds\": %d, \"size_seconds\": %d, \"slide_seconds\": %d%s}"
+        .formatted(windowType, lookback, size, slide, quantifier);
+  }
+
+  private static String randomWindow() {
+    int size = RandomUtils.randomInt(300, 3600, 21600, 86400);
+    int slide = size == 86400 ? 300 : (size == 3600 ? 300 : size);
+    String windowType = size == slide ? "tumbling" : "sliding";
+    int lookback = size * (RandomUtils.RANDOM.nextInt(86400 / size) + 1);
+    return windowJson(windowType, lookback, size, slide);
+  }
+
+  private static String generateAliasAggregationClause() {
+    String alias = metricAliases.get(RandomUtils.RANDOM.nextInt(metricAliases.size()));
+    String operator = RandomUtils.randomElement(RuleConfig.NUMERIC_OPS);
+    return """
+        {
+          "type": "AGGREGATION",
+          "metric_id": "%s",
+          "window": %s,
+          "operator": "%s",
+          "value": %d
+        }""".formatted(alias, randomWindow(), operator, RandomUtils.RANDOM.nextInt(20) + 1);
+  }
+
+  /** sum(total_amount) - k * count(refund) + c * raw numeric field  OP  threshold */
+  private static String generateLinearClause() {
+    String rawField = RandomUtils.randomElement(RuleConfig.NUM_FIELDS);
+    int k = 1000 * (1 + RandomUtils.RANDOM.nextInt(10));
+    int c = 1 + RandomUtils.RANDOM.nextInt(10);
+    String window = randomWindow();
+    return """
+        {
+          "type": "LINEAR",
+          "terms": [
+            {"coef": 1, "ref": {"type": "AGGREGATION", "field": "total_amount", "function": "SUM", "window": %s}},
+            {"coef": -%d, "ref": {"type": "AGGREGATION", "field": "event_id", "function": "COUNT", "window": %s,
+              "filter": {"type": "RAW_FIELD", "field": "event_type", "operator": "EQ", "value": "refund"}}},
+            {"coef": %d, "field": "%s"}
+          ],
+          "constant": 0,
+          "operator": "%s",
+          "value": %d
+        }""".formatted(window, k, window, c, rawField, RandomUtils.randomElement(RuleConfig.NUMERIC_OPS),
+        RandomUtils.RANDOM.nextInt(50_000) + 1);
+  }
+
+  /** Loads all metric ids from schema JSON files (for --rule-metric-mode reference). */
+  public static void loadMetricAliases(java.nio.file.Path schemaDir) throws java.io.IOException {
+    com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+    java.util.List<String> ids = new java.util.ArrayList<>();
+    try (java.util.stream.Stream<java.nio.file.Path> files = java.nio.file.Files.walk(schemaDir)) {
+      for (java.nio.file.Path p : (Iterable<java.nio.file.Path>) files.filter(f -> f.toString().endsWith(".json")).sorted()::iterator) {
+        com.fasterxml.jackson.databind.JsonNode metrics = mapper.readTree(p.toFile()).path("metrics");
+        for (com.fasterxml.jackson.databind.JsonNode m : metrics) {
+          if (m.hasNonNull("metric_id")) ids.add(m.get("metric_id").asText());
+        }
+      }
+    }
+    metricAliases = ids;
   }
 }
